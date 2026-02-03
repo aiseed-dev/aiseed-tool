@@ -3,10 +3,11 @@ import 'package:path/path.dart' as p;
 import '../models/location.dart';
 import '../models/crop.dart';
 import '../models/record.dart';
+import '../models/record_photo.dart';
 
 class DatabaseService {
   static const _dbName = 'grow.db';
-  static const _dbVersion = 1;
+  static const _dbVersion = 2;
 
   Database? _db;
 
@@ -22,39 +23,67 @@ class DatabaseService {
       path,
       version: _dbVersion,
       onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE locations (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            description TEXT NOT NULL DEFAULT '',
-            created_at TEXT NOT NULL
-          )
-        ''');
-        await db.execute('''
-          CREATE TABLE crops (
-            id TEXT PRIMARY KEY,
-            location_id TEXT NOT NULL,
-            name TEXT NOT NULL,
-            variety TEXT NOT NULL DEFAULT '',
-            acquisition_type INTEGER NOT NULL,
-            start_date TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE
-          )
-        ''');
-        await db.execute('''
-          CREATE TABLE records (
-            id TEXT PRIMARY KEY,
-            crop_id TEXT NOT NULL,
-            activity_type INTEGER NOT NULL,
-            date TEXT NOT NULL,
-            note TEXT NOT NULL DEFAULT '',
-            created_at TEXT NOT NULL,
-            FOREIGN KEY (crop_id) REFERENCES crops(id) ON DELETE CASCADE
-          )
-        ''');
+        await _createTables(db);
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('''
+            CREATE TABLE record_photos (
+              id TEXT PRIMARY KEY,
+              record_id TEXT NOT NULL,
+              file_path TEXT NOT NULL,
+              sort_order INTEGER NOT NULL DEFAULT 0,
+              created_at TEXT NOT NULL,
+              FOREIGN KEY (record_id) REFERENCES records(id) ON DELETE CASCADE
+            )
+          ''');
+        }
       },
     );
+  }
+
+  Future<void> _createTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE locations (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE crops (
+        id TEXT PRIMARY KEY,
+        location_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        variety TEXT NOT NULL DEFAULT '',
+        acquisition_type INTEGER NOT NULL,
+        start_date TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE records (
+        id TEXT PRIMARY KEY,
+        crop_id TEXT NOT NULL,
+        activity_type INTEGER NOT NULL,
+        date TEXT NOT NULL,
+        note TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (crop_id) REFERENCES crops(id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE record_photos (
+        id TEXT PRIMARY KEY,
+        record_id TEXT NOT NULL,
+        file_path TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (record_id) REFERENCES records(id) ON DELETE CASCADE
+      )
+    ''');
   }
 
   // -- Locations --
@@ -141,5 +170,26 @@ class DatabaseService {
   Future<void> deleteRecord(String id) async {
     final d = await db;
     await d.delete('records', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // -- Record Photos --
+
+  Future<List<RecordPhoto>> getPhotos(String recordId) async {
+    final d = await db;
+    final rows = await d.query('record_photos',
+        where: 'record_id = ?',
+        whereArgs: [recordId],
+        orderBy: 'sort_order ASC');
+    return rows.map(RecordPhoto.fromMap).toList();
+  }
+
+  Future<void> insertPhoto(RecordPhoto photo) async {
+    final d = await db;
+    await d.insert('record_photos', photo.toMap());
+  }
+
+  Future<void> deletePhoto(String id) async {
+    final d = await db;
+    await d.delete('record_photos', where: 'id = ?', whereArgs: [id]);
   }
 }

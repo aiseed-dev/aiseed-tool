@@ -42,5 +42,9 @@
   "theme": "テーマ",
   "darkMode": "ダークモード",
   "lightMode": "ライトモード",
-  "systemMode": "システム設定に従う"
+  "systemMode": "システム設定に従う",
+  "takePhoto": "撮影",
+  "pickFromGallery": "ギャラリーから選択",
+  "photos": "写真",
+  "noPhotos": "写真はまだありません"
 }

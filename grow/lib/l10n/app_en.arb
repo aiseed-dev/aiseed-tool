@@ -42,5 +42,9 @@
   "theme": "Theme",
   "darkMode": "Dark mode",
   "lightMode": "Light mode",
-  "systemMode": "System default"
+  "systemMode": "System default",
+  "takePhoto": "Take photo",
+  "pickFromGallery": "Pick from gallery",
+  "photos": "Photos",
+  "noPhotos": "No photos yet"
 }
