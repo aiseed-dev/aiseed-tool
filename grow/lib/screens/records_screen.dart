@@ -320,8 +320,12 @@ class _RecordsScreenState extends State<RecordsScreen> {
               title: Text(l.takePhoto),
               onTap: () async {
                 Navigator.pop(bsCtx);
-                final xFile =
-                    await _picker.pickImage(source: ImageSource.camera);
+                final xFile = await _picker.pickImage(
+                  source: ImageSource.camera,
+                  maxWidth: 1920,
+                  imageQuality: 85,
+                  requestFullMetadata: false,
+                );
                 if (xFile != null) {
                   setDialogState(() => newPhotoPaths.add(xFile.path));
                 }
@@ -332,8 +336,12 @@ class _RecordsScreenState extends State<RecordsScreen> {
               title: Text(l.pickFromGallery),
               onTap: () async {
                 Navigator.pop(bsCtx);
-                final xFile =
-                    await _picker.pickImage(source: ImageSource.gallery);
+                final xFile = await _picker.pickImage(
+                  source: ImageSource.gallery,
+                  maxWidth: 1920,
+                  imageQuality: 85,
+                  requestFullMetadata: false,
+                );
                 if (xFile != null) {
                   setDialogState(() => newPhotoPaths.add(xFile.path));
                 }
@@ -414,6 +422,17 @@ class _RecordsScreenState extends State<RecordsScreen> {
                                     width: 180,
                                     height: 180,
                                     fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      width: 180,
+                                      height: 180,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .surfaceContainerHighest,
+                                      child: const Icon(
+                                        Icons.broken_image,
+                                        size: 48,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
