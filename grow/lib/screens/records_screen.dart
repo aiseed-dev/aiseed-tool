@@ -257,14 +257,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
       ),
     ];
 
-    return SizedBox(
-      height: 88,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: items
-            .map((w) => Padding(padding: const EdgeInsets.only(right: 8), child: w))
-            .toList(),
-      ),
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: items,
     );
   }
 
