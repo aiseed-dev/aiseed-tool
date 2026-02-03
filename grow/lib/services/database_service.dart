@@ -8,7 +8,7 @@ import '../models/record_photo.dart';
 
 class DatabaseService {
   static const _dbName = 'grow.db';
-  static const _dbVersion = 7;
+  static const _dbVersion = 8;
 
   Database? _db;
 
@@ -81,31 +81,44 @@ class DatabaseService {
           }
         }
         if (oldVersion < 7) {
-          // crop_plots many-to-many table
-          await db.execute('''
-            CREATE TABLE crop_plots (
-              crop_id TEXT NOT NULL,
-              plot_id TEXT NOT NULL,
-              created_at TEXT NOT NULL,
-              PRIMARY KEY (crop_id, plot_id),
-              FOREIGN KEY (crop_id) REFERENCES crops(id) ON DELETE CASCADE,
-              FOREIGN KEY (plot_id) REFERENCES plots(id) ON DELETE CASCADE
-            )
-          ''');
-          // Migrate existing crop->plot links to crop_plots
-          final existing = await db.rawQuery(
-            'SELECT id, plot_id FROM crops WHERE plot_id IS NOT NULL',
-          );
-          for (final row in existing) {
-            await db.insert('crop_plots', {
-              'crop_id': row['id'],
-              'plot_id': row['plot_id'],
-              'created_at': DateTime.now().toIso8601String(),
-            });
+          // crop_plots was created in v7 but removed in v8
+          // Still need to add location_id and plot_id to records if upgrading from <7
+          final recCols = await db.rawQuery('PRAGMA table_info(records)');
+          final recColNames = recCols.map((c) => c['name'] as String).toSet();
+          if (!recColNames.contains('location_id')) {
+            await db.execute('ALTER TABLE records ADD COLUMN location_id TEXT');
           }
-          // Add location_id and plot_id to records
-          await db.execute('ALTER TABLE records ADD COLUMN location_id TEXT');
-          await db.execute('ALTER TABLE records ADD COLUMN plot_id TEXT');
+          if (!recColNames.contains('plot_id')) {
+            await db.execute('ALTER TABLE records ADD COLUMN plot_id TEXT');
+          }
+        }
+        if (oldVersion < 8) {
+          // Add parent_crop_id for linking related cultivations
+          final cols = await db.rawQuery('PRAGMA table_info(crops)');
+          final colNames = cols.map((c) => c['name'] as String).toSet();
+          if (!colNames.contains('parent_crop_id')) {
+            await db.execute(
+              'ALTER TABLE crops ADD COLUMN parent_crop_id TEXT',
+            );
+          }
+          // Ensure plot_id exists on crops (may have been removed in v7 changes)
+          if (!colNames.contains('plot_id')) {
+            await db.execute('ALTER TABLE crops ADD COLUMN plot_id TEXT');
+          }
+          // Migrate crop_plots back to crops.plot_id (take first link)
+          final tables = await db.rawQuery(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='crop_plots'",
+          );
+          if (tables.isNotEmpty) {
+            final links = await db.rawQuery('SELECT crop_id, plot_id FROM crop_plots');
+            for (final link in links) {
+              await db.execute(
+                'UPDATE crops SET plot_id = ? WHERE id = ? AND plot_id IS NULL',
+                [link['plot_id'], link['crop_id']],
+              );
+            }
+            await db.execute('DROP TABLE crop_plots');
+          }
         }
       },
     );
@@ -136,19 +149,13 @@ class DatabaseService {
         cultivation_name TEXT NOT NULL DEFAULT '',
         name TEXT NOT NULL DEFAULT '',
         variety TEXT NOT NULL DEFAULT '',
+        plot_id TEXT,
+        parent_crop_id TEXT,
         memo TEXT NOT NULL DEFAULT '',
         start_date TEXT NOT NULL,
-        created_at TEXT NOT NULL
-      )
-    ''');
-    await db.execute('''
-      CREATE TABLE crop_plots (
-        crop_id TEXT NOT NULL,
-        plot_id TEXT NOT NULL,
         created_at TEXT NOT NULL,
-        PRIMARY KEY (crop_id, plot_id),
-        FOREIGN KEY (crop_id) REFERENCES crops(id) ON DELETE CASCADE,
-        FOREIGN KEY (plot_id) REFERENCES plots(id) ON DELETE CASCADE
+        FOREIGN KEY (plot_id) REFERENCES plots(id) ON DELETE SET NULL,
+        FOREIGN KEY (parent_crop_id) REFERENCES crops(id) ON DELETE SET NULL
       )
     ''');
     await db.execute('''
@@ -245,12 +252,19 @@ class DatabaseService {
 
   Future<List<Crop>> getCropsByPlot(String plotId) async {
     final d = await db;
-    final rows = await d.rawQuery('''
-      SELECT c.* FROM crops c
-      INNER JOIN crop_plots cp ON c.id = cp.crop_id
-      WHERE cp.plot_id = ?
-      ORDER BY c.start_date DESC
-    ''', [plotId]);
+    final rows = await d.query('crops',
+        where: 'plot_id = ?',
+        whereArgs: [plotId],
+        orderBy: 'start_date DESC');
+    return rows.map(Crop.fromMap).toList();
+  }
+
+  Future<List<Crop>> getChildCrops(String parentCropId) async {
+    final d = await db;
+    final rows = await d.query('crops',
+        where: 'parent_crop_id = ?',
+        whereArgs: [parentCropId],
+        orderBy: 'start_date DESC');
     return rows.map(Crop.fromMap).toList();
   }
 
@@ -268,44 +282,6 @@ class DatabaseService {
   Future<void> deleteCrop(String id) async {
     final d = await db;
     await d.delete('crops', where: 'id = ?', whereArgs: [id]);
-  }
-
-  // -- Crop-Plot links --
-
-  Future<List<String>> getCropPlotIds(String cropId) async {
-    final d = await db;
-    final rows = await d.query('crop_plots',
-        where: 'crop_id = ?', whereArgs: [cropId]);
-    return rows.map((r) => r['plot_id'] as String).toList();
-  }
-
-  Future<void> linkCropToPlot(String cropId, String plotId) async {
-    final d = await db;
-    await d.insert('crop_plots', {
-      'crop_id': cropId,
-      'plot_id': plotId,
-      'created_at': DateTime.now().toIso8601String(),
-    }, conflictAlgorithm: ConflictAlgorithm.ignore);
-  }
-
-  Future<void> unlinkCropFromPlot(String cropId, String plotId) async {
-    final d = await db;
-    await d.delete('crop_plots',
-        where: 'crop_id = ? AND plot_id = ?',
-        whereArgs: [cropId, plotId]);
-  }
-
-  Future<void> setCropPlots(String cropId, List<String> plotIds) async {
-    final d = await db;
-    await d.delete('crop_plots',
-        where: 'crop_id = ?', whereArgs: [cropId]);
-    for (final plotId in plotIds) {
-      await d.insert('crop_plots', {
-        'crop_id': cropId,
-        'plot_id': plotId,
-        'created_at': DateTime.now().toIso8601String(),
-      });
-    }
   }
 
   // -- Records --

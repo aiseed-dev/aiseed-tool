@@ -55,6 +55,5 @@
   "linkToLocation": "栽培場所",
   "linkToPlot": "区画",
   "linkToCrop": "栽培",
-  "linkedPlots": "区画",
-  "selectLinkedPlots": "区画を選択"
+  "parentCrop": "元の栽培"
 }

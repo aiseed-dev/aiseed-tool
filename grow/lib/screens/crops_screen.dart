@@ -18,7 +18,6 @@ class _CropsScreenState extends State<CropsScreen> {
   List<Crop> _crops = [];
   List<Plot> _allPlots = [];
   List<Location> _locations = [];
-  Map<String, List<String>> _cropPlotIds = {};
   bool _loading = true;
 
   @override
@@ -31,25 +30,27 @@ class _CropsScreenState extends State<CropsScreen> {
     final crops = await widget.db.getCrops();
     final allPlots = await widget.db.getAllPlots();
     final locations = await widget.db.getLocations();
-    final cropPlotIds = <String, List<String>>{};
-    for (final crop in crops) {
-      cropPlotIds[crop.id] = await widget.db.getCropPlotIds(crop.id);
-    }
     if (!mounted) return;
     setState(() {
       _crops = crops;
       _allPlots = allPlots;
       _locations = locations;
-      _cropPlotIds = cropPlotIds;
       _loading = false;
     });
   }
 
-  String _plotName(String plotId) {
+  String _plotDisplayName(String? plotId) {
+    if (plotId == null) return '';
     final plot = _allPlots.where((p) => p.id == plotId).firstOrNull;
     if (plot == null) return '';
     final loc = _locations.where((l) => l.id == plot.locationId).firstOrNull;
     return loc != null ? '${loc.name} / ${plot.name}' : plot.name;
+  }
+
+  String _parentCropName(String? parentCropId) {
+    if (parentCropId == null) return '';
+    final crop = _crops.where((c) => c.id == parentCropId).firstOrNull;
+    return crop?.cultivationName ?? '';
   }
 
   Future<void> _showForm({Crop? existing}) async {
@@ -61,12 +62,12 @@ class _CropsScreenState extends State<CropsScreen> {
     final varietyCtrl = TextEditingController(text: existing?.variety ?? '');
     final memoCtrl = TextEditingController(text: existing?.memo ?? '');
 
-    // Load linked plot IDs for editing
-    List<String> selectedPlotIds = [];
-    if (existing != null) {
-      selectedPlotIds =
-          List.of(await widget.db.getCropPlotIds(existing.id));
-    }
+    String? selectedPlotId = existing?.plotId;
+    String? selectedParentCropId = existing?.parentCropId;
+
+    // Crops available as parent (exclude self)
+    final parentCandidates =
+        _crops.where((c) => c.id != existing?.id).toList();
 
     final saved = await showDialog<bool>(
       context: context,
@@ -101,39 +102,52 @@ class _CropsScreenState extends State<CropsScreen> {
                     maxLines: 3,
                   ),
                   if (_allPlots.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        l.linkedPlots,
-                        style: Theme.of(ctx).textTheme.titleSmall,
-                      ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String?>(
+                      value: selectedPlotId,
+                      decoration: InputDecoration(labelText: l.selectPlot),
+                      items: [
+                        DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text(l.nonePlot),
+                        ),
+                        ..._allPlots.map((plot) {
+                          final loc = _locations
+                              .where((lo) => lo.id == plot.locationId)
+                              .firstOrNull;
+                          final label = loc != null
+                              ? '${loc.name} / ${plot.name}'
+                              : plot.name;
+                          return DropdownMenuItem<String?>(
+                            value: plot.id,
+                            child: Text(label),
+                          );
+                        }),
+                      ],
+                      onChanged: (v) =>
+                          setDialogState(() => selectedPlotId = v),
                     ),
-                    const SizedBox(height: 8),
-                    ..._allPlots.map((plot) {
-                      final checked = selectedPlotIds.contains(plot.id);
-                      final loc = _locations
-                          .where((lo) => lo.id == plot.locationId)
-                          .firstOrNull;
-                      final label = loc != null
-                          ? '${loc.name} / ${plot.name}'
-                          : plot.name;
-                      return CheckboxListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(label),
-                        value: checked,
-                        onChanged: (v) {
-                          setDialogState(() {
-                            if (v == true) {
-                              selectedPlotIds.add(plot.id);
-                            } else {
-                              selectedPlotIds.remove(plot.id);
-                            }
-                          });
-                        },
-                      );
-                    }),
+                  ],
+                  if (parentCandidates.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String?>(
+                      value: selectedParentCropId,
+                      decoration:
+                          InputDecoration(labelText: l.parentCrop),
+                      items: [
+                        DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text(l.nonePlot),
+                        ),
+                        ...parentCandidates.map((c) =>
+                            DropdownMenuItem<String?>(
+                              value: c.id,
+                              child: Text(c.cultivationName),
+                            )),
+                      ],
+                      onChanged: (v) =>
+                          setDialogState(() => selectedParentCropId = v),
+                    ),
                   ],
                 ],
               ),
@@ -160,6 +174,8 @@ class _CropsScreenState extends State<CropsScreen> {
       cultivationName: cultivationNameCtrl.text.trim(),
       name: nameCtrl.text.trim(),
       variety: varietyCtrl.text.trim(),
+      plotId: selectedPlotId,
+      parentCropId: selectedParentCropId,
       memo: memoCtrl.text.trim(),
       startDate: existing?.startDate,
       createdAt: existing?.createdAt,
@@ -170,9 +186,6 @@ class _CropsScreenState extends State<CropsScreen> {
     } else {
       await widget.db.updateCrop(crop);
     }
-
-    // Save crop-plot links
-    await widget.db.setCropPlots(crop.id, selectedPlotIds);
 
     _load();
   }
@@ -216,13 +229,13 @@ class _CropsScreenState extends State<CropsScreen> {
                   itemCount: _crops.length,
                   itemBuilder: (context, index) {
                     final crop = _crops[index];
-                    final plotIds = _cropPlotIds[crop.id] ?? [];
-                    final plotNames =
-                        plotIds.map((id) => _plotName(id)).where((s) => s.isNotEmpty);
+                    final plotName = _plotDisplayName(crop.plotId);
+                    final parentName = _parentCropName(crop.parentCropId);
                     final subtitle = [
                       if (crop.name.isNotEmpty) crop.name,
                       if (crop.variety.isNotEmpty) crop.variety,
-                      ...plotNames,
+                      if (plotName.isNotEmpty) plotName,
+                      if (parentName.isNotEmpty) '← $parentName',
                     ].join(' / ');
 
                     return Card(

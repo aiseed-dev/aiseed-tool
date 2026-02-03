@@ -55,6 +55,5 @@
   "linkToLocation": "Location",
   "linkToPlot": "Plot",
   "linkToCrop": "Cultivation",
-  "linkedPlots": "Plots",
-  "selectLinkedPlots": "Select plots"
+  "parentCrop": "Parent cultivation"
 }
