@@ -64,9 +64,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
     }
   }
 
-  String _cropName(String cropId) {
+  String _cropDisplayName(String cropId) {
     final crop = _crops.where((c) => c.id == cropId).firstOrNull;
-    return crop?.name ?? '';
+    return crop?.cultivationName ?? '';
   }
 
   Future<void> _showForm({GrowRecord? existing}) async {
@@ -119,7 +119,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     items: _crops
                         .map((c) => DropdownMenuItem(
                               value: c.id,
-                              child: Text(c.name),
+                              child: Text(c.cultivationName),
                             ))
                         .toList(),
                     onChanged: (v) =>
@@ -438,7 +438,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                               ),
                             ListTile(
                               title: Text(
-                                '${_cropName(rec.cropId)} - ${_activityLabel(l, rec.activityType)}',
+                                '${_cropDisplayName(rec.cropId)} - ${_activityLabel(l, rec.activityType)}',
                               ),
                               subtitle: Text(
                                 [dateStr, if (rec.note.isNotEmpty) rec.note]

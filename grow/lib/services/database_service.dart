@@ -7,7 +7,7 @@ import '../models/record_photo.dart';
 
 class DatabaseService {
   static const _dbName = 'grow.db';
-  static const _dbVersion = 2;
+  static const _dbVersion = 3;
 
   Database? _db;
 
@@ -38,6 +38,11 @@ class DatabaseService {
             )
           ''');
         }
+        if (oldVersion < 3) {
+          await db.execute(
+            "ALTER TABLE crops ADD COLUMN cultivation_name TEXT NOT NULL DEFAULT ''",
+          );
+        }
       },
     );
   }
@@ -55,6 +60,7 @@ class DatabaseService {
       CREATE TABLE crops (
         id TEXT PRIMARY KEY,
         location_id TEXT NOT NULL,
+        cultivation_name TEXT NOT NULL DEFAULT '',
         name TEXT NOT NULL,
         variety TEXT NOT NULL DEFAULT '',
         acquisition_type INTEGER NOT NULL,

@@ -64,6 +64,8 @@ class _CropsScreenState extends State<CropsScreen> {
       return;
     }
 
+    final cultivationNameCtrl =
+        TextEditingController(text: existing?.cultivationName ?? '');
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
     final varietyCtrl = TextEditingController(text: existing?.variety ?? '');
     var selectedLocationId = existing?.locationId ?? _locations.first.id;
@@ -79,6 +81,13 @@ class _CropsScreenState extends State<CropsScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                TextField(
+                  controller: cultivationNameCtrl,
+                  decoration:
+                      InputDecoration(labelText: l.cultivationName),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: selectedLocationId,
                   decoration: InputDecoration(labelText: l.selectLocation),
@@ -95,7 +104,6 @@ class _CropsScreenState extends State<CropsScreen> {
                 TextField(
                   controller: nameCtrl,
                   decoration: InputDecoration(labelText: l.cropName),
-                  autofocus: true,
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -132,11 +140,12 @@ class _CropsScreenState extends State<CropsScreen> {
       ),
     );
 
-    if (saved != true || nameCtrl.text.trim().isEmpty) return;
+    if (saved != true || cultivationNameCtrl.text.trim().isEmpty) return;
 
     final crop = Crop(
       id: existing?.id,
       locationId: selectedLocationId,
+      cultivationName: cultivationNameCtrl.text.trim(),
       name: nameCtrl.text.trim(),
       variety: varietyCtrl.text.trim(),
       acquisitionType: selectedAcquisition,
@@ -214,6 +223,7 @@ class _CropsScreenState extends State<CropsScreen> {
                   itemBuilder: (context, index) {
                     final crop = _crops[index];
                     final subtitle = [
+                      if (crop.name.isNotEmpty) crop.name,
                       if (crop.variety.isNotEmpty) crop.variety,
                       _acquisitionLabel(l, crop.acquisitionType),
                       _locationName(crop.locationId),
@@ -222,7 +232,7 @@ class _CropsScreenState extends State<CropsScreen> {
                     return Card(
                       child: ListTile(
                         leading: const Icon(Icons.eco),
-                        title: Text(crop.name),
+                        title: Text(crop.cultivationName),
                         subtitle: Text(subtitle),
                         onTap: () => _showForm(existing: crop),
                         trailing: IconButton(

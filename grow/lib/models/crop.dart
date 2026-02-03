@@ -10,6 +10,7 @@ enum AcquisitionType {
 class Crop {
   final String id;
   final String locationId;
+  final String cultivationName;
   final String name;
   final String variety;
   final AcquisitionType acquisitionType;
@@ -19,6 +20,7 @@ class Crop {
   Crop({
     String? id,
     required this.locationId,
+    required this.cultivationName,
     required this.name,
     this.variety = '',
     required this.acquisitionType,
@@ -31,6 +33,7 @@ class Crop {
   Map<String, dynamic> toMap() => {
         'id': id,
         'location_id': locationId,
+        'cultivation_name': cultivationName,
         'name': name,
         'variety': variety,
         'acquisition_type': acquisitionType.index,
@@ -41,6 +44,7 @@ class Crop {
   factory Crop.fromMap(Map<String, dynamic> map) => Crop(
         id: map['id'] as String,
         locationId: map['location_id'] as String,
+        cultivationName: (map['cultivation_name'] as String?) ?? '',
         name: map['name'] as String,
         variety: (map['variety'] as String?) ?? '',
         acquisitionType:
