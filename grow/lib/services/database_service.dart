@@ -7,7 +7,7 @@ import '../models/record_photo.dart';
 
 class DatabaseService {
   static const _dbName = 'grow.db';
-  static const _dbVersion = 3;
+  static const _dbVersion = 4;
 
   Database? _db;
 
@@ -43,6 +43,11 @@ class DatabaseService {
             "ALTER TABLE crops ADD COLUMN cultivation_name TEXT NOT NULL DEFAULT ''",
           );
         }
+        if (oldVersion < 4) {
+          await db.execute(
+            "ALTER TABLE crops ADD COLUMN memo TEXT NOT NULL DEFAULT ''",
+          );
+        }
       },
     );
   }
@@ -61,9 +66,7 @@ class DatabaseService {
         id TEXT PRIMARY KEY,
         location_id TEXT NOT NULL,
         cultivation_name TEXT NOT NULL DEFAULT '',
-        name TEXT NOT NULL,
-        variety TEXT NOT NULL DEFAULT '',
-        acquisition_type INTEGER NOT NULL,
+        memo TEXT NOT NULL DEFAULT '',
         start_date TEXT NOT NULL,
         created_at TEXT NOT NULL,
         FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE

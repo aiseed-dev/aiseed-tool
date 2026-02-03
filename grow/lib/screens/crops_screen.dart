@@ -36,19 +36,6 @@ class _CropsScreenState extends State<CropsScreen> {
     });
   }
 
-  String _acquisitionLabel(AppLocalizations l, AcquisitionType type) {
-    switch (type) {
-      case AcquisitionType.seedSowing:
-        return l.acquisitionSeedSowing;
-      case AcquisitionType.seedlingPurchase:
-        return l.acquisitionSeedlingPurchase;
-      case AcquisitionType.seedlingTransplant:
-        return l.acquisitionSeedlingTransplant;
-      case AcquisitionType.directSowing:
-        return l.acquisitionDirectSowing;
-    }
-  }
-
   String _locationName(String locationId) {
     final loc = _locations.where((l) => l.id == locationId).firstOrNull;
     return loc?.name ?? '';
@@ -66,11 +53,8 @@ class _CropsScreenState extends State<CropsScreen> {
 
     final cultivationNameCtrl =
         TextEditingController(text: existing?.cultivationName ?? '');
-    final nameCtrl = TextEditingController(text: existing?.name ?? '');
-    final varietyCtrl = TextEditingController(text: existing?.variety ?? '');
+    final memoCtrl = TextEditingController(text: existing?.memo ?? '');
     var selectedLocationId = existing?.locationId ?? _locations.first.id;
-    var selectedAcquisition =
-        existing?.acquisitionType ?? AcquisitionType.seedSowing;
 
     final saved = await showDialog<bool>(
       context: context,
@@ -102,26 +86,9 @@ class _CropsScreenState extends State<CropsScreen> {
                 ),
                 const SizedBox(height: 12),
                 TextField(
-                  controller: nameCtrl,
-                  decoration: InputDecoration(labelText: l.cropName),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: varietyCtrl,
-                  decoration: InputDecoration(labelText: l.variety),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<AcquisitionType>(
-                  value: selectedAcquisition,
-                  decoration: InputDecoration(labelText: l.acquisitionType),
-                  items: AcquisitionType.values
-                      .map((t) => DropdownMenuItem(
-                            value: t,
-                            child: Text(_acquisitionLabel(l, t)),
-                          ))
-                      .toList(),
-                  onChanged: (v) =>
-                      setDialogState(() => selectedAcquisition = v!),
+                  controller: memoCtrl,
+                  decoration: InputDecoration(labelText: l.memo),
+                  maxLines: 3,
                 ),
               ],
             ),
@@ -146,9 +113,7 @@ class _CropsScreenState extends State<CropsScreen> {
       id: existing?.id,
       locationId: selectedLocationId,
       cultivationName: cultivationNameCtrl.text.trim(),
-      name: nameCtrl.text.trim(),
-      variety: varietyCtrl.text.trim(),
-      acquisitionType: selectedAcquisition,
+      memo: memoCtrl.text.trim(),
       startDate: existing?.startDate,
       createdAt: existing?.createdAt,
     );
@@ -223,17 +188,15 @@ class _CropsScreenState extends State<CropsScreen> {
                   itemBuilder: (context, index) {
                     final crop = _crops[index];
                     final subtitle = [
-                      if (crop.name.isNotEmpty) crop.name,
-                      if (crop.variety.isNotEmpty) crop.variety,
-                      _acquisitionLabel(l, crop.acquisitionType),
                       _locationName(crop.locationId),
+                      if (crop.memo.isNotEmpty) crop.memo,
                     ].join(' / ');
 
                     return Card(
                       child: ListTile(
                         leading: const Icon(Icons.eco),
                         title: Text(crop.cultivationName),
-                        subtitle: Text(subtitle),
+                        subtitle: subtitle.isNotEmpty ? Text(subtitle) : null,
                         onTap: () => _showForm(existing: crop),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete_outline),
