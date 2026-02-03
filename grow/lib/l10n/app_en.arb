@@ -73,5 +73,9 @@
   "soilSandy": "Sandy",
   "soilLoam": "Loam",
   "soilPeat": "Peat",
-  "soilVolcanic": "Volcanic ash"
+  "soilVolcanic": "Volcanic ash",
+  "getLocation": "Get current location",
+  "locationSet": "Location set",
+  "locationFailed": "Could not get location",
+  "autoLinkNearest": "Auto-select from current location"
 }

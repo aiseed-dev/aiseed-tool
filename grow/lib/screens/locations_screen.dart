@@ -3,6 +3,7 @@ import '../l10n/app_localizations.dart';
 import '../models/location.dart';
 import '../models/plot.dart';
 import '../services/database_service.dart';
+import '../services/location_service.dart';
 
 class LocationsScreen extends StatefulWidget {
   final DatabaseService db;
@@ -14,6 +15,7 @@ class LocationsScreen extends StatefulWidget {
 }
 
 class _LocationsScreenState extends State<LocationsScreen> {
+  final _locationService = LocationService();
   List<Location> _locations = [];
   bool _loading = true;
 
@@ -50,6 +52,8 @@ class _LocationsScreenState extends State<LocationsScreen> {
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
     final descCtrl = TextEditingController(text: existing?.description ?? '');
     var selectedEnvType = existing?.environmentType ?? EnvironmentType.outdoor;
+    double? lat = existing?.latitude;
+    double? lng = existing?.longitude;
 
     final saved = await showDialog<bool>(
       context: context,
@@ -85,6 +89,37 @@ class _LocationsScreenState extends State<LocationsScreen> {
                   onChanged: (v) =>
                       setDialogState(() => selectedEnvType = v!),
                 ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        lat != null && lng != null
+                            ? '${lat!.toStringAsFixed(5)}, ${lng!.toStringAsFixed(5)}'
+                            : '---',
+                        style: Theme.of(ctx).textTheme.bodySmall,
+                      ),
+                    ),
+                    TextButton.icon(
+                      icon: const Icon(Icons.my_location, size: 18),
+                      label: Text(l.getLocation),
+                      onPressed: () async {
+                        final pos =
+                            await _locationService.getCurrentPosition();
+                        if (pos != null) {
+                          setDialogState(() {
+                            lat = pos.latitude;
+                            lng = pos.longitude;
+                          });
+                        } else if (ctx.mounted) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(content: Text(l.locationFailed)),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -109,6 +144,8 @@ class _LocationsScreenState extends State<LocationsScreen> {
       name: nameCtrl.text.trim(),
       description: descCtrl.text.trim(),
       environmentType: selectedEnvType,
+      latitude: lat,
+      longitude: lng,
       createdAt: existing?.createdAt,
     );
 
@@ -171,6 +208,8 @@ class _LocationsScreenState extends State<LocationsScreen> {
                     final envLabel = _envLabel(l, loc.environmentType);
                     final subtitle = [
                       envLabel,
+                      if (loc.latitude != null && loc.longitude != null)
+                        '${loc.latitude!.toStringAsFixed(4)}, ${loc.longitude!.toStringAsFixed(4)}',
                       if (loc.description.isNotEmpty) loc.description,
                     ].join(' / ');
                     return Card(

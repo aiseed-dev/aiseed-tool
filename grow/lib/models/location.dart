@@ -13,6 +13,8 @@ class Location {
   final String name;
   final String description;
   final EnvironmentType environmentType;
+  final double? latitude;
+  final double? longitude;
   final DateTime createdAt;
 
   Location({
@@ -20,6 +22,8 @@ class Location {
     required this.name,
     this.description = '',
     this.environmentType = EnvironmentType.outdoor,
+    this.latitude,
+    this.longitude,
     DateTime? createdAt,
   })  : id = id ?? const Uuid().v4(),
         createdAt = createdAt ?? DateTime.now();
@@ -29,6 +33,8 @@ class Location {
         'name': name,
         'description': description,
         'environment_type': environmentType.index,
+        'latitude': latitude,
+        'longitude': longitude,
         'created_at': createdAt.toIso8601String(),
       };
 
@@ -38,6 +44,8 @@ class Location {
         description: (map['description'] as String?) ?? '',
         environmentType: EnvironmentType.values[
             (map['environment_type'] as int?) ?? 0],
+        latitude: (map['latitude'] as num?)?.toDouble(),
+        longitude: (map['longitude'] as num?)?.toDouble(),
         createdAt: DateTime.parse(map['created_at'] as String),
       );
 }

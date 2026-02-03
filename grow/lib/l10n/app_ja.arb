@@ -73,5 +73,9 @@
   "soilSandy": "砂質",
   "soilLoam": "壌土",
   "soilPeat": "泥炭",
-  "soilVolcanic": "火山灰土"
+  "soilVolcanic": "火山灰土",
+  "getLocation": "現在地を取得",
+  "locationSet": "位置情報を設定しました",
+  "locationFailed": "位置情報を取得できませんでした",
+  "autoLinkNearest": "現在地から自動選択"
 }

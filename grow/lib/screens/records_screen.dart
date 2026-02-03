@@ -8,6 +8,7 @@ import '../models/plot.dart';
 import '../models/record.dart';
 import '../models/record_photo.dart';
 import '../services/database_service.dart';
+import '../services/location_service.dart';
 import '../services/photo_service.dart';
 
 enum _LinkType { location, plot, crop }
@@ -23,6 +24,7 @@ class RecordsScreen extends StatefulWidget {
 
 class _RecordsScreenState extends State<RecordsScreen> {
   final _photoService = PhotoService();
+  final _locationService = LocationService();
   final _picker = ImagePicker();
   List<GrowRecord> _records = [];
   List<Crop> _crops = [];
@@ -110,17 +112,47 @@ class _RecordsScreenState extends State<RecordsScreen> {
     String? selectedLocationId = existing?.locationId;
     String? selectedPlotId = existing?.plotId;
 
-    // Set defaults for new records
+    // Set defaults for new records - try GPS auto-detect first
     if (existing == null) {
-      if (_crops.isNotEmpty) {
-        linkType = _LinkType.crop;
-        selectedCropId = _crops.first.id;
-      } else if (_allPlots.isNotEmpty) {
-        linkType = _LinkType.plot;
-        selectedPlotId = _allPlots.first.id;
-      } else if (_locations.isNotEmpty) {
-        linkType = _LinkType.location;
-        selectedLocationId = _locations.first.id;
+      final pos = await _locationService.getCurrentPosition();
+      Location? nearestLoc;
+      if (pos != null) {
+        nearestLoc = _locationService.findNearest(
+          _locations, pos.latitude, pos.longitude,
+        );
+      }
+
+      if (nearestLoc != null) {
+        // Find plots at this location, pick crop linked to a plot there
+        final plotsAtLoc = _allPlots
+            .where((p) => p.locationId == nearestLoc!.id)
+            .toList();
+        final cropAtLoc = plotsAtLoc.isNotEmpty
+            ? _crops.where((c) => plotsAtLoc.any((p) => p.id == c.plotId)).firstOrNull
+            : null;
+
+        if (cropAtLoc != null) {
+          linkType = _LinkType.crop;
+          selectedCropId = cropAtLoc.id;
+        } else if (plotsAtLoc.isNotEmpty) {
+          linkType = _LinkType.plot;
+          selectedPlotId = plotsAtLoc.first.id;
+        } else {
+          linkType = _LinkType.location;
+          selectedLocationId = nearestLoc.id;
+        }
+      } else {
+        // Fallback: no GPS match
+        if (_crops.isNotEmpty) {
+          linkType = _LinkType.crop;
+          selectedCropId = _crops.first.id;
+        } else if (_allPlots.isNotEmpty) {
+          linkType = _LinkType.plot;
+          selectedPlotId = _allPlots.first.id;
+        } else if (_locations.isNotEmpty) {
+          linkType = _LinkType.location;
+          selectedLocationId = _locations.first.id;
+        }
       }
     }
 

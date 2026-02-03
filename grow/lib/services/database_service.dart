@@ -9,7 +9,7 @@ import '../models/observation.dart';
 
 class DatabaseService {
   static const _dbName = 'grow.db';
-  static const _dbVersion = 9;
+  static const _dbVersion = 10;
 
   Database? _db;
 
@@ -163,6 +163,16 @@ class DatabaseService {
             )
           ''');
         }
+        if (oldVersion < 10) {
+          final locCols = await db.rawQuery('PRAGMA table_info(locations)');
+          final locColNames = locCols.map((c) => c['name'] as String).toSet();
+          if (!locColNames.contains('latitude')) {
+            await db.execute('ALTER TABLE locations ADD COLUMN latitude REAL');
+          }
+          if (!locColNames.contains('longitude')) {
+            await db.execute('ALTER TABLE locations ADD COLUMN longitude REAL');
+          }
+        }
       },
     );
   }
@@ -174,6 +184,8 @@ class DatabaseService {
         name TEXT NOT NULL,
         description TEXT NOT NULL DEFAULT '',
         environment_type INTEGER NOT NULL DEFAULT 0,
+        latitude REAL,
+        longitude REAL,
         created_at TEXT NOT NULL
       )
     ''');
