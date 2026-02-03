@@ -5,10 +5,11 @@ import '../models/plot.dart';
 import '../models/crop.dart';
 import '../models/record.dart';
 import '../models/record_photo.dart';
+import '../models/observation.dart';
 
 class DatabaseService {
   static const _dbName = 'grow.db';
-  static const _dbVersion = 8;
+  static const _dbVersion = 9;
 
   Database? _db;
 
@@ -81,8 +82,6 @@ class DatabaseService {
           }
         }
         if (oldVersion < 7) {
-          // crop_plots was created in v7 but removed in v8
-          // Still need to add location_id and plot_id to records if upgrading from <7
           final recCols = await db.rawQuery('PRAGMA table_info(records)');
           final recColNames = recCols.map((c) => c['name'] as String).toSet();
           if (!recColNames.contains('location_id')) {
@@ -93,7 +92,6 @@ class DatabaseService {
           }
         }
         if (oldVersion < 8) {
-          // Add parent_crop_id for linking related cultivations
           final cols = await db.rawQuery('PRAGMA table_info(crops)');
           final colNames = cols.map((c) => c['name'] as String).toSet();
           if (!colNames.contains('parent_crop_id')) {
@@ -101,11 +99,9 @@ class DatabaseService {
               'ALTER TABLE crops ADD COLUMN parent_crop_id TEXT',
             );
           }
-          // Ensure plot_id exists on crops (may have been removed in v7 changes)
           if (!colNames.contains('plot_id')) {
             await db.execute('ALTER TABLE crops ADD COLUMN plot_id TEXT');
           }
-          // Migrate crop_plots back to crops.plot_id (take first link)
           final tables = await db.rawQuery(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='crop_plots'",
           );
@@ -120,6 +116,53 @@ class DatabaseService {
             await db.execute('DROP TABLE crop_plots');
           }
         }
+        if (oldVersion < 9) {
+          // Add environment_type to locations
+          final locCols = await db.rawQuery('PRAGMA table_info(locations)');
+          final locColNames = locCols.map((c) => c['name'] as String).toSet();
+          if (!locColNames.contains('environment_type')) {
+            await db.execute(
+              'ALTER TABLE locations ADD COLUMN environment_type INTEGER NOT NULL DEFAULT 0',
+            );
+          }
+          // Add cover_type and soil_type to plots
+          final plotCols = await db.rawQuery('PRAGMA table_info(plots)');
+          final plotColNames = plotCols.map((c) => c['name'] as String).toSet();
+          if (!plotColNames.contains('cover_type')) {
+            await db.execute(
+              'ALTER TABLE plots ADD COLUMN cover_type INTEGER NOT NULL DEFAULT 0',
+            );
+          }
+          if (!plotColNames.contains('soil_type')) {
+            await db.execute(
+              'ALTER TABLE plots ADD COLUMN soil_type INTEGER NOT NULL DEFAULT 0',
+            );
+          }
+          // Create observations and observation_entries tables
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS observations (
+              id TEXT PRIMARY KEY,
+              location_id TEXT,
+              plot_id TEXT,
+              category INTEGER NOT NULL DEFAULT 0,
+              date TEXT NOT NULL,
+              memo TEXT NOT NULL DEFAULT '',
+              created_at TEXT NOT NULL,
+              FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE,
+              FOREIGN KEY (plot_id) REFERENCES plots(id) ON DELETE CASCADE
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS observation_entries (
+              id TEXT PRIMARY KEY,
+              observation_id TEXT NOT NULL,
+              key TEXT NOT NULL,
+              value REAL NOT NULL,
+              unit TEXT NOT NULL DEFAULT '',
+              FOREIGN KEY (observation_id) REFERENCES observations(id) ON DELETE CASCADE
+            )
+          ''');
+        }
       },
     );
   }
@@ -130,6 +173,7 @@ class DatabaseService {
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         description TEXT NOT NULL DEFAULT '',
+        environment_type INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL
       )
     ''');
@@ -138,6 +182,8 @@ class DatabaseService {
         id TEXT PRIMARY KEY,
         location_id TEXT NOT NULL,
         name TEXT NOT NULL,
+        cover_type INTEGER NOT NULL DEFAULT 0,
+        soil_type INTEGER NOT NULL DEFAULT 0,
         memo TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
         FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE
@@ -181,6 +227,29 @@ class DatabaseService {
         sort_order INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL,
         FOREIGN KEY (record_id) REFERENCES records(id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE observations (
+        id TEXT PRIMARY KEY,
+        location_id TEXT,
+        plot_id TEXT,
+        category INTEGER NOT NULL DEFAULT 0,
+        date TEXT NOT NULL,
+        memo TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE,
+        FOREIGN KEY (plot_id) REFERENCES plots(id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE observation_entries (
+        id TEXT PRIMARY KEY,
+        observation_id TEXT NOT NULL,
+        key TEXT NOT NULL,
+        value REAL NOT NULL,
+        unit TEXT NOT NULL DEFAULT '',
+        FOREIGN KEY (observation_id) REFERENCES observations(id) ON DELETE CASCADE
       )
     ''');
   }
@@ -352,5 +421,76 @@ class DatabaseService {
   Future<void> deletePhoto(String id) async {
     final d = await db;
     await d.delete('record_photos', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // -- Observations --
+
+  Future<List<Observation>> getObservations({
+    String? locationId,
+    String? plotId,
+  }) async {
+    final d = await db;
+    if (plotId != null) {
+      final rows = await d.query('observations',
+          where: 'plot_id = ?',
+          whereArgs: [plotId],
+          orderBy: 'date DESC');
+      return rows.map(Observation.fromMap).toList();
+    }
+    if (locationId != null) {
+      final rows = await d.query('observations',
+          where: 'location_id = ?',
+          whereArgs: [locationId],
+          orderBy: 'date DESC');
+      return rows.map(Observation.fromMap).toList();
+    }
+    final rows = await d.query('observations', orderBy: 'date DESC');
+    return rows.map(Observation.fromMap).toList();
+  }
+
+  Future<void> insertObservation(Observation obs) async {
+    final d = await db;
+    await d.insert('observations', obs.toMap());
+  }
+
+  Future<void> updateObservation(Observation obs) async {
+    final d = await db;
+    await d.update('observations', obs.toMap(),
+        where: 'id = ?', whereArgs: [obs.id]);
+  }
+
+  Future<void> deleteObservation(String id) async {
+    final d = await db;
+    await d.delete('observations', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // -- Observation Entries --
+
+  Future<List<ObservationEntry>> getObservationEntries(
+      String observationId) async {
+    final d = await db;
+    final rows = await d.query('observation_entries',
+        where: 'observation_id = ?', whereArgs: [observationId]);
+    return rows.map(ObservationEntry.fromMap).toList();
+  }
+
+  Future<void> insertObservationEntry(ObservationEntry entry) async {
+    final d = await db;
+    await d.insert('observation_entries', entry.toMap());
+  }
+
+  Future<void> deleteObservationEntry(String id) async {
+    final d = await db;
+    await d.delete('observation_entries', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> setObservationEntries(
+      String observationId, List<ObservationEntry> entries) async {
+    final d = await db;
+    await d.delete('observation_entries',
+        where: 'observation_id = ?', whereArgs: [observationId]);
+    for (final entry in entries) {
+      await d.insert('observation_entries', entry.toMap());
+    }
   }
 }
