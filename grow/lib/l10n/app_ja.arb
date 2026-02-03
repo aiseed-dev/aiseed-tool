@@ -12,6 +12,8 @@
   "addCrop": "栽培を追加",
   "editCrop": "栽培を編集",
   "cultivationName": "栽培名",
+  "cropName": "作物名",
+  "variety": "品種",
   "memo": "メモ",
   "addRecord": "記録を追加",
   "editRecord": "記録を編集",

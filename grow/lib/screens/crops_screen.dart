@@ -53,6 +53,8 @@ class _CropsScreenState extends State<CropsScreen> {
 
     final cultivationNameCtrl =
         TextEditingController(text: existing?.cultivationName ?? '');
+    final nameCtrl = TextEditingController(text: existing?.name ?? '');
+    final varietyCtrl = TextEditingController(text: existing?.variety ?? '');
     final memoCtrl = TextEditingController(text: existing?.memo ?? '');
     var selectedLocationId = existing?.locationId ?? _locations.first.id;
 
@@ -86,6 +88,16 @@ class _CropsScreenState extends State<CropsScreen> {
                 ),
                 const SizedBox(height: 12),
                 TextField(
+                  controller: nameCtrl,
+                  decoration: InputDecoration(labelText: l.cropName),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: varietyCtrl,
+                  decoration: InputDecoration(labelText: l.variety),
+                ),
+                const SizedBox(height: 12),
+                TextField(
                   controller: memoCtrl,
                   decoration: InputDecoration(labelText: l.memo),
                   maxLines: 3,
@@ -113,6 +125,8 @@ class _CropsScreenState extends State<CropsScreen> {
       id: existing?.id,
       locationId: selectedLocationId,
       cultivationName: cultivationNameCtrl.text.trim(),
+      name: nameCtrl.text.trim(),
+      variety: varietyCtrl.text.trim(),
       memo: memoCtrl.text.trim(),
       startDate: existing?.startDate,
       createdAt: existing?.createdAt,
@@ -188,8 +202,9 @@ class _CropsScreenState extends State<CropsScreen> {
                   itemBuilder: (context, index) {
                     final crop = _crops[index];
                     final subtitle = [
+                      if (crop.name.isNotEmpty) crop.name,
+                      if (crop.variety.isNotEmpty) crop.variety,
                       _locationName(crop.locationId),
-                      if (crop.memo.isNotEmpty) crop.memo,
                     ].join(' / ');
 
                     return Card(

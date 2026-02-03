@@ -12,6 +12,8 @@
   "addCrop": "Add cultivation",
   "editCrop": "Edit cultivation",
   "cultivationName": "Cultivation name",
+  "cropName": "Crop name",
+  "variety": "Variety",
   "memo": "Memo",
   "addRecord": "Add record",
   "editRecord": "Edit record",

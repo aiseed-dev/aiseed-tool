@@ -4,6 +4,8 @@ class Crop {
   final String id;
   final String locationId;
   final String cultivationName;
+  final String name;
+  final String variety;
   final String memo;
   final DateTime startDate;
   final DateTime createdAt;
@@ -12,6 +14,8 @@ class Crop {
     String? id,
     required this.locationId,
     required this.cultivationName,
+    this.name = '',
+    this.variety = '',
     this.memo = '',
     DateTime? startDate,
     DateTime? createdAt,
@@ -23,6 +27,8 @@ class Crop {
         'id': id,
         'location_id': locationId,
         'cultivation_name': cultivationName,
+        'name': name,
+        'variety': variety,
         'memo': memo,
         'start_date': startDate.toIso8601String(),
         'created_at': createdAt.toIso8601String(),
@@ -32,6 +38,8 @@ class Crop {
         id: map['id'] as String,
         locationId: map['location_id'] as String,
         cultivationName: (map['cultivation_name'] as String?) ?? '',
+        name: (map['name'] as String?) ?? '',
+        variety: (map['variety'] as String?) ?? '',
         memo: (map['memo'] as String?) ?? '',
         startDate: DateTime.parse(map['start_date'] as String),
         createdAt: DateTime.parse(map['created_at'] as String),

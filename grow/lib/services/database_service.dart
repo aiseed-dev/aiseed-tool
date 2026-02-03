@@ -7,7 +7,7 @@ import '../models/record_photo.dart';
 
 class DatabaseService {
   static const _dbName = 'grow.db';
-  static const _dbVersion = 4;
+  static const _dbVersion = 5;
 
   Database? _db;
 
@@ -48,6 +48,21 @@ class DatabaseService {
             "ALTER TABLE crops ADD COLUMN memo TEXT NOT NULL DEFAULT ''",
           );
         }
+        if (oldVersion < 5) {
+          // v4 fresh installs lack name/variety; v1-v3 upgrades still have them
+          final cols = await db.rawQuery('PRAGMA table_info(crops)');
+          final colNames = cols.map((c) => c['name'] as String).toSet();
+          if (!colNames.contains('name')) {
+            await db.execute(
+              "ALTER TABLE crops ADD COLUMN name TEXT NOT NULL DEFAULT ''",
+            );
+          }
+          if (!colNames.contains('variety')) {
+            await db.execute(
+              "ALTER TABLE crops ADD COLUMN variety TEXT NOT NULL DEFAULT ''",
+            );
+          }
+        }
       },
     );
   }
@@ -66,6 +81,8 @@ class DatabaseService {
         id TEXT PRIMARY KEY,
         location_id TEXT NOT NULL,
         cultivation_name TEXT NOT NULL DEFAULT '',
+        name TEXT NOT NULL DEFAULT '',
+        variety TEXT NOT NULL DEFAULT '',
         memo TEXT NOT NULL DEFAULT '',
         start_date TEXT NOT NULL,
         created_at TEXT NOT NULL,
