@@ -95,81 +95,94 @@ class _RecordsScreenState extends State<RecordsScreen> {
     final saved = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(existing == null ? l.addRecord : l.editRecord),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Photo area at top
-                _buildPhotoArea(
-                  ctx, l, existingPhotos, newPhotoPaths, setDialogState,
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: selectedCropId,
-                  decoration: InputDecoration(labelText: l.crops),
-                  items: _crops
-                      .map((c) => DropdownMenuItem(
-                            value: c.id,
-                            child: Text(c.name),
-                          ))
-                      .toList(),
-                  onChanged: (v) =>
-                      setDialogState(() => selectedCropId = v!),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<ActivityType>(
-                  value: selectedActivity,
-                  decoration: InputDecoration(labelText: l.activityType),
-                  items: ActivityType.values
-                      .map((t) => DropdownMenuItem(
-                            value: t,
-                            child: Text(_activityLabel(l, t)),
-                          ))
-                      .toList(),
-                  onChanged: (v) =>
-                      setDialogState(() => selectedActivity = v!),
-                ),
-                const SizedBox(height: 12),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(l.date),
-                  subtitle: Text(
-                    '${selectedDate.year}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.day.toString().padLeft(2, '0')}',
+        builder: (ctx, setDialogState) => Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    existing == null ? l.addRecord : l.editRecord,
+                    style: Theme.of(ctx).textTheme.headlineSmall,
                   ),
-                  trailing: const Icon(Icons.calendar_today),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: ctx,
-                      initialDate: selectedDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2030),
-                    );
-                    if (picked != null) {
-                      setDialogState(() => selectedDate = picked);
-                    }
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: noteCtrl,
-                  decoration: InputDecoration(labelText: l.note),
-                  maxLines: 3,
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  // Photo area at top
+                  _buildPhotoArea(
+                    ctx, l, existingPhotos, newPhotoPaths, setDialogState,
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: selectedCropId,
+                    decoration: InputDecoration(labelText: l.crops),
+                    items: _crops
+                        .map((c) => DropdownMenuItem(
+                              value: c.id,
+                              child: Text(c.name),
+                            ))
+                        .toList(),
+                    onChanged: (v) =>
+                        setDialogState(() => selectedCropId = v!),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<ActivityType>(
+                    value: selectedActivity,
+                    decoration: InputDecoration(labelText: l.activityType),
+                    items: ActivityType.values
+                        .map((t) => DropdownMenuItem(
+                              value: t,
+                              child: Text(_activityLabel(l, t)),
+                            ))
+                        .toList(),
+                    onChanged: (v) =>
+                        setDialogState(() => selectedActivity = v!),
+                  ),
+                  const SizedBox(height: 12),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(l.date),
+                    subtitle: Text(
+                      '${selectedDate.year}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.day.toString().padLeft(2, '0')}',
+                    ),
+                    trailing: const Icon(Icons.calendar_today),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: ctx,
+                        initialDate: selectedDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2030),
+                      );
+                      if (picked != null) {
+                        setDialogState(() => selectedDate = picked);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: noteCtrl,
+                    decoration: InputDecoration(labelText: l.note),
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: Text(l.cancel),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: Text(l.save),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.save),
-            ),
-          ],
         ),
       ),
     );
