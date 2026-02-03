@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/location.dart';
+import '../models/plot.dart';
 import '../models/crop.dart';
 import '../services/database_service.dart';
 
@@ -16,6 +17,7 @@ class CropsScreen extends StatefulWidget {
 class _CropsScreenState extends State<CropsScreen> {
   List<Crop> _crops = [];
   List<Location> _locations = [];
+  Map<String, List<Plot>> _plotsByLocation = {};
   String? _selectedLocationId;
   bool _loading = true;
 
@@ -27,10 +29,15 @@ class _CropsScreenState extends State<CropsScreen> {
 
   Future<void> _load() async {
     final locations = await widget.db.getLocations();
+    final plotsByLocation = <String, List<Plot>>{};
+    for (final loc in locations) {
+      plotsByLocation[loc.id] = await widget.db.getPlots(loc.id);
+    }
     final crops = await widget.db.getCrops(locationId: _selectedLocationId);
     if (!mounted) return;
     setState(() {
       _locations = locations;
+      _plotsByLocation = plotsByLocation;
       _crops = crops;
       _loading = false;
     });
@@ -39,6 +46,15 @@ class _CropsScreenState extends State<CropsScreen> {
   String _locationName(String locationId) {
     final loc = _locations.where((l) => l.id == locationId).firstOrNull;
     return loc?.name ?? '';
+  }
+
+  String _plotName(String? plotId) {
+    if (plotId == null) return '';
+    for (final plots in _plotsByLocation.values) {
+      final plot = plots.where((p) => p.id == plotId).firstOrNull;
+      if (plot != null) return plot.name;
+    }
+    return '';
   }
 
   Future<void> _showForm({Crop? existing}) async {
@@ -57,65 +73,99 @@ class _CropsScreenState extends State<CropsScreen> {
     final varietyCtrl = TextEditingController(text: existing?.variety ?? '');
     final memoCtrl = TextEditingController(text: existing?.memo ?? '');
     var selectedLocationId = existing?.locationId ?? _locations.first.id;
+    String? selectedPlotId = existing?.plotId;
 
     final saved = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(existing == null ? l.addCrop : l.editCrop),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: cultivationNameCtrl,
-                  decoration:
-                      InputDecoration(labelText: l.cultivationName),
-                  autofocus: true,
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: selectedLocationId,
-                  decoration: InputDecoration(labelText: l.selectLocation),
-                  items: _locations
-                      .map((loc) => DropdownMenuItem(
-                            value: loc.id,
-                            child: Text(loc.name),
-                          ))
-                      .toList(),
-                  onChanged: (v) =>
-                      setDialogState(() => selectedLocationId = v!),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: nameCtrl,
-                  decoration: InputDecoration(labelText: l.cropName),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: varietyCtrl,
-                  decoration: InputDecoration(labelText: l.variety),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: memoCtrl,
-                  decoration: InputDecoration(labelText: l.memo),
-                  maxLines: 3,
-                ),
-              ],
+        builder: (ctx, setDialogState) {
+          final plots = _plotsByLocation[selectedLocationId] ?? [];
+          // Reset plotId if it doesn't belong to selected location
+          if (selectedPlotId != null &&
+              !plots.any((p) => p.id == selectedPlotId)) {
+            selectedPlotId = null;
+          }
+
+          return AlertDialog(
+            title: Text(existing == null ? l.addCrop : l.editCrop),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: cultivationNameCtrl,
+                    decoration:
+                        InputDecoration(labelText: l.cultivationName),
+                    autofocus: true,
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: selectedLocationId,
+                    decoration: InputDecoration(labelText: l.selectLocation),
+                    items: _locations
+                        .map((loc) => DropdownMenuItem(
+                              value: loc.id,
+                              child: Text(loc.name),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      setDialogState(() {
+                        selectedLocationId = v!;
+                        selectedPlotId = null;
+                      });
+                    },
+                  ),
+                  if (plots.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String?>(
+                      value: selectedPlotId,
+                      decoration:
+                          InputDecoration(labelText: l.selectPlot),
+                      items: [
+                        DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text(l.nonePlot),
+                        ),
+                        ...plots.map((plot) => DropdownMenuItem<String?>(
+                              value: plot.id,
+                              child: Text(plot.name),
+                            )),
+                      ],
+                      onChanged: (v) =>
+                          setDialogState(() => selectedPlotId = v),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: InputDecoration(labelText: l.cropName),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: varietyCtrl,
+                    decoration: InputDecoration(labelText: l.variety),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: memoCtrl,
+                    decoration: InputDecoration(labelText: l.memo),
+                    maxLines: 3,
+                  ),
+                ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.save),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l.cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l.save),
+              ),
+            ],
+          );
+        },
       ),
     );
 
@@ -124,6 +174,7 @@ class _CropsScreenState extends State<CropsScreen> {
     final crop = Crop(
       id: existing?.id,
       locationId: selectedLocationId,
+      plotId: selectedPlotId,
       cultivationName: cultivationNameCtrl.text.trim(),
       name: nameCtrl.text.trim(),
       variety: varietyCtrl.text.trim(),
@@ -201,10 +252,12 @@ class _CropsScreenState extends State<CropsScreen> {
                   itemCount: _crops.length,
                   itemBuilder: (context, index) {
                     final crop = _crops[index];
+                    final plotStr = _plotName(crop.plotId);
                     final subtitle = [
                       if (crop.name.isNotEmpty) crop.name,
                       if (crop.variety.isNotEmpty) crop.variety,
                       _locationName(crop.locationId),
+                      if (plotStr.isNotEmpty) plotStr,
                     ].join(' / ');
 
                     return Card(

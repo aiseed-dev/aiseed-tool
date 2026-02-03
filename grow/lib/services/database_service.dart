@@ -1,13 +1,14 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 import '../models/location.dart';
+import '../models/plot.dart';
 import '../models/crop.dart';
 import '../models/record.dart';
 import '../models/record_photo.dart';
 
 class DatabaseService {
   static const _dbName = 'grow.db';
-  static const _dbVersion = 5;
+  static const _dbVersion = 6;
 
   Database? _db;
 
@@ -49,7 +50,6 @@ class DatabaseService {
           );
         }
         if (oldVersion < 5) {
-          // v4 fresh installs lack name/variety; v1-v3 upgrades still have them
           final cols = await db.rawQuery('PRAGMA table_info(crops)');
           final colNames = cols.map((c) => c['name'] as String).toSet();
           if (!colNames.contains('name')) {
@@ -62,6 +62,21 @@ class DatabaseService {
               "ALTER TABLE crops ADD COLUMN variety TEXT NOT NULL DEFAULT ''",
             );
           }
+        }
+        if (oldVersion < 6) {
+          await db.execute('''
+            CREATE TABLE plots (
+              id TEXT PRIMARY KEY,
+              location_id TEXT NOT NULL,
+              name TEXT NOT NULL,
+              memo TEXT NOT NULL DEFAULT '',
+              created_at TEXT NOT NULL,
+              FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE
+            )
+          ''');
+          await db.execute(
+            'ALTER TABLE crops ADD COLUMN plot_id TEXT',
+          );
         }
       },
     );
@@ -77,16 +92,28 @@ class DatabaseService {
       )
     ''');
     await db.execute('''
+      CREATE TABLE plots (
+        id TEXT PRIMARY KEY,
+        location_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        memo TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute('''
       CREATE TABLE crops (
         id TEXT PRIMARY KEY,
         location_id TEXT NOT NULL,
+        plot_id TEXT,
         cultivation_name TEXT NOT NULL DEFAULT '',
         name TEXT NOT NULL DEFAULT '',
         variety TEXT NOT NULL DEFAULT '',
         memo TEXT NOT NULL DEFAULT '',
         start_date TEXT NOT NULL,
         created_at TEXT NOT NULL,
-        FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE
+        FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE,
+        FOREIGN KEY (plot_id) REFERENCES plots(id) ON DELETE SET NULL
       )
     ''');
     await db.execute('''
@@ -136,10 +163,44 @@ class DatabaseService {
     await d.delete('locations', where: 'id = ?', whereArgs: [id]);
   }
 
+  // -- Plots --
+
+  Future<List<Plot>> getPlots(String locationId) async {
+    final d = await db;
+    final rows = await d.query('plots',
+        where: 'location_id = ?',
+        whereArgs: [locationId],
+        orderBy: 'created_at ASC');
+    return rows.map(Plot.fromMap).toList();
+  }
+
+  Future<void> insertPlot(Plot plot) async {
+    final d = await db;
+    await d.insert('plots', plot.toMap());
+  }
+
+  Future<void> updatePlot(Plot plot) async {
+    final d = await db;
+    await d.update('plots', plot.toMap(),
+        where: 'id = ?', whereArgs: [plot.id]);
+  }
+
+  Future<void> deletePlot(String id) async {
+    final d = await db;
+    await d.delete('plots', where: 'id = ?', whereArgs: [id]);
+  }
+
   // -- Crops --
 
-  Future<List<Crop>> getCrops({String? locationId}) async {
+  Future<List<Crop>> getCrops({String? locationId, String? plotId}) async {
     final d = await db;
+    if (plotId != null) {
+      final rows = await d.query('crops',
+          where: 'plot_id = ?',
+          whereArgs: [plotId],
+          orderBy: 'start_date DESC');
+      return rows.map(Crop.fromMap).toList();
+    }
     if (locationId != null) {
       final rows = await d.query('crops',
           where: 'location_id = ?',

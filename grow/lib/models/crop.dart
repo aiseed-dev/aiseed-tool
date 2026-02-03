@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 class Crop {
   final String id;
   final String locationId;
+  final String? plotId;
   final String cultivationName;
   final String name;
   final String variety;
@@ -13,6 +14,7 @@ class Crop {
   Crop({
     String? id,
     required this.locationId,
+    this.plotId,
     required this.cultivationName,
     this.name = '',
     this.variety = '',
@@ -26,6 +28,7 @@ class Crop {
   Map<String, dynamic> toMap() => {
         'id': id,
         'location_id': locationId,
+        'plot_id': plotId,
         'cultivation_name': cultivationName,
         'name': name,
         'variety': variety,
@@ -37,6 +40,7 @@ class Crop {
   factory Crop.fromMap(Map<String, dynamic> map) => Crop(
         id: map['id'] as String,
         locationId: map['location_id'] as String,
+        plotId: map['plot_id'] as String?,
         cultivationName: (map['cultivation_name'] as String?) ?? '',
         name: (map['name'] as String?) ?? '',
         variety: (map['variety'] as String?) ?? '',
