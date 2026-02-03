@@ -11,7 +11,9 @@ enum ActivityType {
 
 class GrowRecord {
   final String id;
-  final String cropId;
+  final String? cropId;
+  final String? locationId;
+  final String? plotId;
   final ActivityType activityType;
   final DateTime date;
   final String note;
@@ -19,7 +21,9 @@ class GrowRecord {
 
   GrowRecord({
     String? id,
-    required this.cropId,
+    this.cropId,
+    this.locationId,
+    this.plotId,
     required this.activityType,
     DateTime? date,
     this.note = '',
@@ -31,6 +35,8 @@ class GrowRecord {
   Map<String, dynamic> toMap() => {
         'id': id,
         'crop_id': cropId,
+        'location_id': locationId,
+        'plot_id': plotId,
         'activity_type': activityType.index,
         'date': date.toIso8601String(),
         'note': note,
@@ -39,7 +45,9 @@ class GrowRecord {
 
   factory GrowRecord.fromMap(Map<String, dynamic> map) => GrowRecord(
         id: map['id'] as String,
-        cropId: map['crop_id'] as String,
+        cropId: map['crop_id'] as String?,
+        locationId: map['location_id'] as String?,
+        plotId: map['plot_id'] as String?,
         activityType: ActivityType.values[map['activity_type'] as int],
         date: DateTime.parse(map['date'] as String),
         note: (map['note'] as String?) ?? '',

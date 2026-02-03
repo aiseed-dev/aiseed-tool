@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../l10n/app_localizations.dart';
 import '../models/crop.dart';
+import '../models/location.dart';
+import '../models/plot.dart';
 import '../models/record.dart';
 import '../models/record_photo.dart';
 import '../services/database_service.dart';
 import '../services/photo_service.dart';
+
+enum _LinkType { location, plot, crop }
 
 class RecordsScreen extends StatefulWidget {
   final DatabaseService db;
@@ -22,6 +26,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
   final _picker = ImagePicker();
   List<GrowRecord> _records = [];
   List<Crop> _crops = [];
+  List<Location> _locations = [];
+  List<Plot> _allPlots = [];
   Map<String, List<RecordPhoto>> _photosByRecord = {};
   bool _loading = true;
 
@@ -33,6 +39,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   Future<void> _load() async {
     final crops = await widget.db.getCrops();
+    final locations = await widget.db.getLocations();
+    final allPlots = await widget.db.getAllPlots();
     final records = await widget.db.getRecords();
     final photosByRecord = <String, List<RecordPhoto>>{};
     for (final rec in records) {
@@ -41,6 +49,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
     if (!mounted) return;
     setState(() {
       _crops = crops;
+      _locations = locations;
+      _allPlots = allPlots;
       _records = records;
       _photosByRecord = photosByRecord;
       _loading = false;
@@ -64,32 +74,64 @@ class _RecordsScreenState extends State<RecordsScreen> {
     }
   }
 
-  String _cropDisplayName(String cropId) {
-    final crop = _crops.where((c) => c.id == cropId).firstOrNull;
-    return crop?.cultivationName ?? '';
+  String _linkDisplayName(GrowRecord rec, AppLocalizations l) {
+    if (rec.cropId != null) {
+      final crop = _crops.where((c) => c.id == rec.cropId).firstOrNull;
+      return crop?.cultivationName ?? '';
+    }
+    if (rec.plotId != null) {
+      final plot = _allPlots.where((p) => p.id == rec.plotId).firstOrNull;
+      if (plot != null) {
+        final loc =
+            _locations.where((lo) => lo.id == plot.locationId).firstOrNull;
+        return loc != null ? '${loc.name} / ${plot.name}' : plot.name;
+      }
+      return '';
+    }
+    if (rec.locationId != null) {
+      final loc =
+          _locations.where((lo) => lo.id == rec.locationId).firstOrNull;
+      return loc?.name ?? '';
+    }
+    return '';
+  }
+
+  _LinkType _detectLinkType(GrowRecord? rec) {
+    if (rec?.plotId != null) return _LinkType.plot;
+    if (rec?.locationId != null) return _LinkType.location;
+    return _LinkType.crop;
   }
 
   Future<void> _showForm({GrowRecord? existing}) async {
     final l = AppLocalizations.of(context)!;
 
-    if (_crops.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.noCrops)),
-      );
-      return;
+    var linkType = _detectLinkType(existing);
+    String? selectedCropId = existing?.cropId;
+    String? selectedLocationId = existing?.locationId;
+    String? selectedPlotId = existing?.plotId;
+
+    // Set defaults for new records
+    if (existing == null) {
+      if (_crops.isNotEmpty) {
+        linkType = _LinkType.crop;
+        selectedCropId = _crops.first.id;
+      } else if (_allPlots.isNotEmpty) {
+        linkType = _LinkType.plot;
+        selectedPlotId = _allPlots.first.id;
+      } else if (_locations.isNotEmpty) {
+        linkType = _LinkType.location;
+        selectedLocationId = _locations.first.id;
+      }
     }
 
-    var selectedCropId = existing?.cropId ?? _crops.first.id;
     var selectedActivity = existing?.activityType ?? ActivityType.observation;
     var selectedDate = existing?.date ?? DateTime.now();
     final noteCtrl = TextEditingController(text: existing?.note ?? '');
 
-    // Load existing photos
     List<RecordPhoto> existingPhotos = [];
     if (existing != null) {
       existingPhotos = List.of(await widget.db.getPhotos(existing.id));
     }
-    // Newly picked file paths (not yet saved)
     List<String> newPhotoPaths = [];
 
     final saved = await showDialog<bool>(
@@ -108,23 +150,98 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     style: Theme.of(ctx).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 16),
-                  // Photo area at top
+                  // Photo area
                   _buildPhotoArea(
                     ctx, l, existingPhotos, newPhotoPaths, setDialogState,
                   ),
                   const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: selectedCropId,
-                    decoration: InputDecoration(labelText: l.crops),
-                    items: _crops
-                        .map((c) => DropdownMenuItem(
-                              value: c.id,
-                              child: Text(c.cultivationName),
-                            ))
-                        .toList(),
-                    onChanged: (v) =>
-                        setDialogState(() => selectedCropId = v!),
+                  // Link type selector
+                  DropdownButtonFormField<_LinkType>(
+                    value: linkType,
+                    decoration: InputDecoration(labelText: l.linkTarget),
+                    items: [
+                      if (_locations.isNotEmpty)
+                        DropdownMenuItem(
+                          value: _LinkType.location,
+                          child: Text(l.linkToLocation),
+                        ),
+                      if (_allPlots.isNotEmpty)
+                        DropdownMenuItem(
+                          value: _LinkType.plot,
+                          child: Text(l.linkToPlot),
+                        ),
+                      if (_crops.isNotEmpty)
+                        DropdownMenuItem(
+                          value: _LinkType.crop,
+                          child: Text(l.linkToCrop),
+                        ),
+                    ],
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setDialogState(() {
+                        linkType = v;
+                        selectedCropId =
+                            v == _LinkType.crop && _crops.isNotEmpty
+                                ? _crops.first.id
+                                : null;
+                        selectedLocationId =
+                            v == _LinkType.location && _locations.isNotEmpty
+                                ? _locations.first.id
+                                : null;
+                        selectedPlotId =
+                            v == _LinkType.plot && _allPlots.isNotEmpty
+                                ? _allPlots.first.id
+                                : null;
+                      });
+                    },
                   ),
+                  const SizedBox(height: 12),
+                  // Link target selector based on type
+                  if (linkType == _LinkType.crop && _crops.isNotEmpty)
+                    DropdownButtonFormField<String>(
+                      value: selectedCropId ?? _crops.first.id,
+                      decoration: InputDecoration(labelText: l.crops),
+                      items: _crops
+                          .map((c) => DropdownMenuItem(
+                                value: c.id,
+                                child: Text(c.cultivationName),
+                              ))
+                          .toList(),
+                      onChanged: (v) =>
+                          setDialogState(() => selectedCropId = v),
+                    ),
+                  if (linkType == _LinkType.location && _locations.isNotEmpty)
+                    DropdownButtonFormField<String>(
+                      value: selectedLocationId ?? _locations.first.id,
+                      decoration: InputDecoration(labelText: l.locations),
+                      items: _locations
+                          .map((loc) => DropdownMenuItem(
+                                value: loc.id,
+                                child: Text(loc.name),
+                              ))
+                          .toList(),
+                      onChanged: (v) =>
+                          setDialogState(() => selectedLocationId = v),
+                    ),
+                  if (linkType == _LinkType.plot && _allPlots.isNotEmpty)
+                    DropdownButtonFormField<String>(
+                      value: selectedPlotId ?? _allPlots.first.id,
+                      decoration: InputDecoration(labelText: l.plots),
+                      items: _allPlots.map((plot) {
+                        final loc = _locations
+                            .where((lo) => lo.id == plot.locationId)
+                            .firstOrNull;
+                        final label = loc != null
+                            ? '${loc.name} / ${plot.name}'
+                            : plot.name;
+                        return DropdownMenuItem(
+                          value: plot.id,
+                          child: Text(label),
+                        );
+                      }).toList(),
+                      onChanged: (v) =>
+                          setDialogState(() => selectedPlotId = v),
+                    ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<ActivityType>(
                     value: selectedActivity,
@@ -191,7 +308,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
     final record = GrowRecord(
       id: existing?.id,
-      cropId: selectedCropId,
+      cropId: linkType == _LinkType.crop ? selectedCropId : null,
+      locationId: linkType == _LinkType.location ? selectedLocationId : null,
+      plotId: linkType == _LinkType.plot ? selectedPlotId : null,
       activityType: selectedActivity,
       date: selectedDate,
       note: noteCtrl.text.trim(),
@@ -226,13 +345,18 @@ class _RecordsScreenState extends State<RecordsScreen> {
     StateSetter setDialogState,
   ) {
     final items = <Widget>[
-      // Existing photos
       ...existingPhotos.map((photo) => _photoThumbnail(
             image: Image.file(
               File(photo.filePath),
               width: 80,
               height: 80,
               fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 80,
+                height: 80,
+                color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
+                child: const Icon(Icons.broken_image),
+              ),
             ),
             onRemove: () async {
               await _photoService.deletePhotoFile(photo.filePath);
@@ -240,19 +364,23 @@ class _RecordsScreenState extends State<RecordsScreen> {
               setDialogState(() => existingPhotos.remove(photo));
             },
           )),
-      // New photos (not yet saved)
       ...newPhotoPaths.asMap().entries.map((entry) => _photoThumbnail(
             image: Image.file(
               File(entry.value),
               width: 80,
               height: 80,
               fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 80,
+                height: 80,
+                color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
+                child: const Icon(Icons.broken_image),
+              ),
             ),
             onRemove: () {
               setDialogState(() => newPhotoPaths.removeAt(entry.key));
             },
           )),
-      // Add button
       GestureDetector(
         onTap: () => _showPhotoOptions(ctx, l, newPhotoPaths, setDialogState),
         child: Container(
@@ -277,7 +405,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
     );
   }
 
-  Widget _photoThumbnail({required Image image, required VoidCallback onRemove}) {
+  Widget _photoThumbnail(
+      {required Image image, required VoidCallback onRemove}) {
     return Stack(
       children: [
         ClipRRect(
@@ -374,7 +503,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
     );
     if (confirmed != true) return;
 
-    // Delete associated photos
     final photos = await widget.db.getPhotos(record.id);
     for (final photo in photos) {
       await _photoService.deletePhotoFile(photo.filePath);
@@ -403,6 +531,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     final photos = _photosByRecord[rec.id] ?? [];
                     final dateStr =
                         '${rec.date.year}/${rec.date.month.toString().padLeft(2, '0')}/${rec.date.day.toString().padLeft(2, '0')}';
+                    final linkName = _linkDisplayName(rec, l);
                     return Card(
                       clipBehavior: Clip.antiAlias,
                       child: InkWell(
@@ -410,7 +539,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Photo thumbnails
                             if (photos.isNotEmpty)
                               SizedBox(
                                 height: 180,
@@ -438,7 +566,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
                               ),
                             ListTile(
                               title: Text(
-                                '${_cropDisplayName(rec.cropId)} - ${_activityLabel(l, rec.activityType)}',
+                                [
+                                  if (linkName.isNotEmpty) linkName,
+                                  _activityLabel(l, rec.activityType),
+                                ].join(' - '),
                               ),
                               subtitle: Text(
                                 [dateStr, if (rec.note.isNotEmpty) rec.note]

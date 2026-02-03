@@ -8,7 +8,7 @@ import '../models/record_photo.dart';
 
 class DatabaseService {
   static const _dbName = 'grow.db';
-  static const _dbVersion = 6;
+  static const _dbVersion = 7;
 
   Database? _db;
 
@@ -65,7 +65,7 @@ class DatabaseService {
         }
         if (oldVersion < 6) {
           await db.execute('''
-            CREATE TABLE plots (
+            CREATE TABLE IF NOT EXISTS plots (
               id TEXT PRIMARY KEY,
               location_id TEXT NOT NULL,
               name TEXT NOT NULL,
@@ -74,9 +74,38 @@ class DatabaseService {
               FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE
             )
           ''');
-          await db.execute(
-            'ALTER TABLE crops ADD COLUMN plot_id TEXT',
+          final cols = await db.rawQuery('PRAGMA table_info(crops)');
+          final colNames = cols.map((c) => c['name'] as String).toSet();
+          if (!colNames.contains('plot_id')) {
+            await db.execute('ALTER TABLE crops ADD COLUMN plot_id TEXT');
+          }
+        }
+        if (oldVersion < 7) {
+          // crop_plots many-to-many table
+          await db.execute('''
+            CREATE TABLE crop_plots (
+              crop_id TEXT NOT NULL,
+              plot_id TEXT NOT NULL,
+              created_at TEXT NOT NULL,
+              PRIMARY KEY (crop_id, plot_id),
+              FOREIGN KEY (crop_id) REFERENCES crops(id) ON DELETE CASCADE,
+              FOREIGN KEY (plot_id) REFERENCES plots(id) ON DELETE CASCADE
+            )
+          ''');
+          // Migrate existing crop->plot links to crop_plots
+          final existing = await db.rawQuery(
+            'SELECT id, plot_id FROM crops WHERE plot_id IS NOT NULL',
           );
+          for (final row in existing) {
+            await db.insert('crop_plots', {
+              'crop_id': row['id'],
+              'plot_id': row['plot_id'],
+              'created_at': DateTime.now().toIso8601String(),
+            });
+          }
+          // Add location_id and plot_id to records
+          await db.execute('ALTER TABLE records ADD COLUMN location_id TEXT');
+          await db.execute('ALTER TABLE records ADD COLUMN plot_id TEXT');
         }
       },
     );
@@ -104,27 +133,37 @@ class DatabaseService {
     await db.execute('''
       CREATE TABLE crops (
         id TEXT PRIMARY KEY,
-        location_id TEXT NOT NULL,
-        plot_id TEXT,
         cultivation_name TEXT NOT NULL DEFAULT '',
         name TEXT NOT NULL DEFAULT '',
         variety TEXT NOT NULL DEFAULT '',
         memo TEXT NOT NULL DEFAULT '',
         start_date TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE crop_plots (
+        crop_id TEXT NOT NULL,
+        plot_id TEXT NOT NULL,
         created_at TEXT NOT NULL,
-        FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE,
-        FOREIGN KEY (plot_id) REFERENCES plots(id) ON DELETE SET NULL
+        PRIMARY KEY (crop_id, plot_id),
+        FOREIGN KEY (crop_id) REFERENCES crops(id) ON DELETE CASCADE,
+        FOREIGN KEY (plot_id) REFERENCES plots(id) ON DELETE CASCADE
       )
     ''');
     await db.execute('''
       CREATE TABLE records (
         id TEXT PRIMARY KEY,
-        crop_id TEXT NOT NULL,
+        crop_id TEXT,
+        location_id TEXT,
+        plot_id TEXT,
         activity_type INTEGER NOT NULL,
         date TEXT NOT NULL,
         note TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
-        FOREIGN KEY (crop_id) REFERENCES crops(id) ON DELETE CASCADE
+        FOREIGN KEY (crop_id) REFERENCES crops(id) ON DELETE CASCADE,
+        FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE,
+        FOREIGN KEY (plot_id) REFERENCES plots(id) ON DELETE CASCADE
       )
     ''');
     await db.execute('''
@@ -174,6 +213,12 @@ class DatabaseService {
     return rows.map(Plot.fromMap).toList();
   }
 
+  Future<List<Plot>> getAllPlots() async {
+    final d = await db;
+    final rows = await d.query('plots', orderBy: 'created_at ASC');
+    return rows.map(Plot.fromMap).toList();
+  }
+
   Future<void> insertPlot(Plot plot) async {
     final d = await db;
     await d.insert('plots', plot.toMap());
@@ -192,23 +237,20 @@ class DatabaseService {
 
   // -- Crops --
 
-  Future<List<Crop>> getCrops({String? locationId, String? plotId}) async {
+  Future<List<Crop>> getCrops() async {
     final d = await db;
-    if (plotId != null) {
-      final rows = await d.query('crops',
-          where: 'plot_id = ?',
-          whereArgs: [plotId],
-          orderBy: 'start_date DESC');
-      return rows.map(Crop.fromMap).toList();
-    }
-    if (locationId != null) {
-      final rows = await d.query('crops',
-          where: 'location_id = ?',
-          whereArgs: [locationId],
-          orderBy: 'start_date DESC');
-      return rows.map(Crop.fromMap).toList();
-    }
     final rows = await d.query('crops', orderBy: 'start_date DESC');
+    return rows.map(Crop.fromMap).toList();
+  }
+
+  Future<List<Crop>> getCropsByPlot(String plotId) async {
+    final d = await db;
+    final rows = await d.rawQuery('''
+      SELECT c.* FROM crops c
+      INNER JOIN crop_plots cp ON c.id = cp.crop_id
+      WHERE cp.plot_id = ?
+      ORDER BY c.start_date DESC
+    ''', [plotId]);
     return rows.map(Crop.fromMap).toList();
   }
 
@@ -228,14 +270,70 @@ class DatabaseService {
     await d.delete('crops', where: 'id = ?', whereArgs: [id]);
   }
 
+  // -- Crop-Plot links --
+
+  Future<List<String>> getCropPlotIds(String cropId) async {
+    final d = await db;
+    final rows = await d.query('crop_plots',
+        where: 'crop_id = ?', whereArgs: [cropId]);
+    return rows.map((r) => r['plot_id'] as String).toList();
+  }
+
+  Future<void> linkCropToPlot(String cropId, String plotId) async {
+    final d = await db;
+    await d.insert('crop_plots', {
+      'crop_id': cropId,
+      'plot_id': plotId,
+      'created_at': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
+  }
+
+  Future<void> unlinkCropFromPlot(String cropId, String plotId) async {
+    final d = await db;
+    await d.delete('crop_plots',
+        where: 'crop_id = ? AND plot_id = ?',
+        whereArgs: [cropId, plotId]);
+  }
+
+  Future<void> setCropPlots(String cropId, List<String> plotIds) async {
+    final d = await db;
+    await d.delete('crop_plots',
+        where: 'crop_id = ?', whereArgs: [cropId]);
+    for (final plotId in plotIds) {
+      await d.insert('crop_plots', {
+        'crop_id': cropId,
+        'plot_id': plotId,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    }
+  }
+
   // -- Records --
 
-  Future<List<GrowRecord>> getRecords({String? cropId}) async {
+  Future<List<GrowRecord>> getRecords({
+    String? cropId,
+    String? locationId,
+    String? plotId,
+  }) async {
     final d = await db;
     if (cropId != null) {
       final rows = await d.query('records',
           where: 'crop_id = ?',
           whereArgs: [cropId],
+          orderBy: 'date DESC');
+      return rows.map(GrowRecord.fromMap).toList();
+    }
+    if (plotId != null) {
+      final rows = await d.query('records',
+          where: 'plot_id = ?',
+          whereArgs: [plotId],
+          orderBy: 'date DESC');
+      return rows.map(GrowRecord.fromMap).toList();
+    }
+    if (locationId != null) {
+      final rows = await d.query('records',
+          where: 'location_id = ?',
+          whereArgs: [locationId],
           orderBy: 'date DESC');
       return rows.map(GrowRecord.fromMap).toList();
     }

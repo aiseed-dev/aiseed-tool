@@ -50,5 +50,11 @@
   "takePhoto": "Take photo",
   "pickFromGallery": "Pick from gallery",
   "photos": "Photos",
-  "noPhotos": "No photos yet"
+  "noPhotos": "No photos yet",
+  "linkTarget": "Link to",
+  "linkToLocation": "Location",
+  "linkToPlot": "Plot",
+  "linkToCrop": "Cultivation",
+  "linkedPlots": "Plots",
+  "selectLinkedPlots": "Select plots"
 }
