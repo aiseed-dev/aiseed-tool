@@ -124,5 +124,8 @@
       "photos": { "type": "int" }
     }
   },
-  "syncFailed": "同期に失敗しました"
+  "syncFailed": "同期に失敗しました",
+  "plotDetail": "区画詳細",
+  "cropsInPlot": "この区画の栽培",
+  "noCropsInPlot": "この区画にはまだ栽培がありません"
 }

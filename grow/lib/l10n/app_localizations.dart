@@ -745,6 +745,24 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'同期に失敗しました'**
   String get syncFailed;
+
+  /// No description provided for @plotDetail.
+  ///
+  /// In ja, this message translates to:
+  /// **'区画詳細'**
+  String get plotDetail;
+
+  /// No description provided for @cropsInPlot.
+  ///
+  /// In ja, this message translates to:
+  /// **'この区画の栽培'**
+  String get cropsInPlot;
+
+  /// No description provided for @noCropsInPlot.
+  ///
+  /// In ja, this message translates to:
+  /// **'この区画にはまだ栽培がありません'**
+  String get noCropsInPlot;
 }
 
 class _AppLocalizationsDelegate

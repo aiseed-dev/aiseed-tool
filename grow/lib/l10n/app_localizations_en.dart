@@ -338,4 +338,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncFailed => 'Sync failed';
+
+  @override
+  String get plotDetail => 'Plot detail';
+
+  @override
+  String get cropsInPlot => 'Crops in this plot';
+
+  @override
+  String get noCropsInPlot => 'No crops in this plot yet';
 }

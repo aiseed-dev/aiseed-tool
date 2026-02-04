@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
+import '../models/crop.dart';
 import '../models/location.dart';
 import '../models/plot.dart';
 import '../services/database_service.dart';
@@ -492,6 +493,16 @@ class _PlotsScreenState extends State<_PlotsScreen> {
     );
   }
 
+  Future<void> _openPlotDetail(Plot plot) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _PlotDetailScreen(db: widget.db, plot: plot),
+      ),
+    );
+    _load();
+  }
+
   Future<void> _editLocation() async {
     // Navigate back and trigger edit on parent
     // For simplicity, we use the same pattern as LocationsScreen
@@ -543,7 +554,8 @@ class _PlotsScreenState extends State<_PlotsScreen> {
                                 title: Text(plot.name),
                                 subtitle:
                                     details.isNotEmpty ? Text(details) : null,
-                                onTap: () => _showForm(existing: plot),
+                                onTap: () => _openPlotDetail(plot),
+                                onLongPress: () => _showForm(existing: plot),
                                 trailing: IconButton(
                                   icon: const Icon(Icons.delete_outline),
                                   onPressed: () => _delete(plot),
@@ -559,6 +571,176 @@ class _PlotsScreenState extends State<_PlotsScreen> {
         onPressed: () => _showForm(),
         child: const Icon(Icons.add),
       ),
+    );
+  }
+}
+
+// -- Plot Detail Screen (navigated from plot tap) --
+
+class _PlotDetailScreen extends StatefulWidget {
+  final DatabaseService db;
+  final Plot plot;
+
+  const _PlotDetailScreen({required this.db, required this.plot});
+
+  @override
+  State<_PlotDetailScreen> createState() => _PlotDetailScreenState();
+}
+
+class _PlotDetailScreenState extends State<_PlotDetailScreen> {
+  List<Crop> _crops = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final crops = await widget.db.getCropsByPlot(widget.plot.id);
+    if (!mounted) return;
+    setState(() {
+      _crops = crops;
+      _loading = false;
+    });
+  }
+
+  String _coverLabel(AppLocalizations l, CoverType type) {
+    switch (type) {
+      case CoverType.open:
+        return l.coverOpen;
+      case CoverType.greenhouse:
+        return l.coverGreenhouse;
+      case CoverType.tunnel:
+        return l.coverTunnel;
+      case CoverType.coldFrame:
+        return l.coverColdFrame;
+    }
+  }
+
+  String _soilLabel(AppLocalizations l, SoilType type) {
+    switch (type) {
+      case SoilType.unknown:
+        return l.soilUnknown;
+      case SoilType.clay:
+        return l.soilCite;
+      case SoilType.silt:
+        return l.soilSilt;
+      case SoilType.sandy:
+        return l.soilSandy;
+      case SoilType.loam:
+        return l.soilLoam;
+      case SoilType.peat:
+        return l.soilPeat;
+      case SoilType.volcanic:
+        return l.soilVolcanic;
+    }
+  }
+
+  Widget _buildPlotDetail(AppLocalizations l) {
+    final plot = widget.plot;
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.grid_view, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    plot.name,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.roofing, size: 16),
+                const SizedBox(width: 6),
+                Text('${l.coverType}: ${_coverLabel(l, plot.coverType)}'),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.terrain, size: 16),
+                const SizedBox(width: 6),
+                Text('${l.soilType}: ${_soilLabel(l, plot.soilType)}'),
+              ],
+            ),
+            if (plot.memo.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.notes, size: 16),
+                  const SizedBox(width: 6),
+                  Expanded(child: Text(plot.memo)),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.plot.name),
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                _buildPlotDetail(l),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: Row(
+                    children: [
+                      Text(
+                        l.cropsInPlot,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: _crops.isEmpty
+                      ? Center(child: Text(l.noCropsInPlot))
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _crops.length,
+                          itemBuilder: (context, index) {
+                            final crop = _crops[index];
+                            final subtitle = [
+                              if (crop.name.isNotEmpty) crop.name,
+                              if (crop.variety.isNotEmpty) crop.variety,
+                            ].join(' / ');
+                            return Card(
+                              child: ListTile(
+                                leading: const Icon(Icons.eco),
+                                title: Text(crop.cultivationName),
+                                subtitle:
+                                    subtitle.isNotEmpty ? Text(subtitle) : null,
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
     );
   }
 }

@@ -337,4 +337,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get syncFailed => '同期に失敗しました';
+
+  @override
+  String get plotDetail => '区画詳細';
+
+  @override
+  String get cropsInPlot => 'この区画の栽培';
+
+  @override
+  String get noCropsInPlot => 'この区画にはまだ栽培がありません';
 }

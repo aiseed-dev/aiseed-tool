@@ -114,5 +114,8 @@
       "photos": { "type": "int" }
     }
   },
-  "syncFailed": "Sync failed"
+  "syncFailed": "Sync failed",
+  "plotDetail": "Plot detail",
+  "cropsInPlot": "Crops in this plot",
+  "noCropsInPlot": "No crops in this plot yet"
 }
