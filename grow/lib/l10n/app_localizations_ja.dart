@@ -358,4 +358,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get homepageComingSoon => 'ホームページ作成機能は準備中です';
+
+  @override
+  String get searchRecords => '記録を検索';
+
+  @override
+  String get filterByActivity => '作業で絞り込み';
+
+  @override
+  String get allActivities => 'すべての作業';
+
+  @override
+  String get searchHint => 'メモ、栽培名、場所名で検索';
 }

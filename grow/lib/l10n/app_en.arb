@@ -121,5 +121,9 @@
   "growthTimeline": "Growth timeline",
   "createHomepage": "Create homepage",
   "createHomepageDesc": "Create a showcase page for this cultivation",
-  "homepageComingSoon": "Homepage creation is coming soon"
+  "homepageComingSoon": "Homepage creation is coming soon",
+  "searchRecords": "Search records",
+  "filterByActivity": "Filter by activity",
+  "allActivities": "All activities",
+  "searchHint": "Search by note, crop, or location"
 }

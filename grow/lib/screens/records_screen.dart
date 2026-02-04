@@ -38,6 +38,12 @@ class _RecordsScreenState extends State<RecordsScreen> {
   Map<String, List<RecordPhoto>> _photosByRecord = {};
   bool _loading = true;
 
+  // Search & filter state
+  bool _isSearching = false;
+  String _searchQuery = '';
+  ActivityType? _filterActivity;
+  final _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -47,6 +53,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
   @override
   void dispose() {
     _imageAnalysis.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -68,6 +75,57 @@ class _RecordsScreenState extends State<RecordsScreen> {
       _photosByRecord = photosByRecord;
       _loading = false;
     });
+  }
+
+  List<GrowRecord> get _filteredRecords {
+    var results = _records;
+
+    // Filter by activity type
+    if (_filterActivity != null) {
+      results = results.where((r) => r.activityType == _filterActivity).toList();
+    }
+
+    // Filter by search query
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      results = results.where((rec) {
+        // Search in note
+        if (rec.note.toLowerCase().contains(query)) return true;
+        // Search in linked name
+        final linkName = _linkDisplayNameRaw(rec);
+        if (linkName.toLowerCase().contains(query)) return true;
+        return false;
+      }).toList();
+    }
+
+    return results;
+  }
+
+  String _linkDisplayNameRaw(GrowRecord rec) {
+    if (rec.cropId != null) {
+      final crop = _crops.where((c) => c.id == rec.cropId).firstOrNull;
+      if (crop != null) {
+        return [crop.cultivationName, crop.name, crop.variety]
+            .where((s) => s.isNotEmpty)
+            .join(' ');
+      }
+      return '';
+    }
+    if (rec.plotId != null) {
+      final plot = _allPlots.where((p) => p.id == rec.plotId).firstOrNull;
+      if (plot != null) {
+        final loc =
+            _locations.where((lo) => lo.id == plot.locationId).firstOrNull;
+        return loc != null ? '${loc.name} ${plot.name}' : plot.name;
+      }
+      return '';
+    }
+    if (rec.locationId != null) {
+      final loc =
+          _locations.where((lo) => lo.id == rec.locationId).firstOrNull;
+      return loc?.name ?? '';
+    }
+    return '';
   }
 
   String _activityLabel(AppLocalizations l, ActivityType type) {
@@ -782,77 +840,158 @@ class _RecordsScreenState extends State<RecordsScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
+    final filtered = _filteredRecords;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.records)),
+      appBar: _isSearching
+          ? AppBar(
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () {
+                  setState(() {
+                    _isSearching = false;
+                    _searchQuery = '';
+                    _searchController.clear();
+                  });
+                },
+              ),
+              title: TextField(
+                controller: _searchController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: l.searchHint,
+                  border: InputBorder.none,
+                ),
+                onChanged: (v) => setState(() => _searchQuery = v),
+              ),
+              actions: [
+                if (_searchController.text.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() => _searchQuery = '');
+                    },
+                  ),
+              ],
+            )
+          : AppBar(
+              title: Text(l.records),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  tooltip: l.searchRecords,
+                  onPressed: () => setState(() => _isSearching = true),
+                ),
+              ],
+            ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _records.isEmpty
-              ? Center(child: Text(l.noRecords))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _records.length,
-                  itemBuilder: (context, index) {
-                    final rec = _records[index];
-                    final photos = _photosByRecord[rec.id] ?? [];
-                    final dateStr =
-                        '${rec.date.year}/${rec.date.month.toString().padLeft(2, '0')}/${rec.date.day.toString().padLeft(2, '0')}';
-                    final linkName = _linkDisplayName(rec, l);
-                    return Card(
-                      clipBehavior: Clip.antiAlias,
-                      child: InkWell(
-                        onTap: () => _showForm(existing: rec),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (photos.isNotEmpty)
-                              SizedBox(
-                                height: 180,
-                                child: ListView.builder(
-                                  scrollDirection: Axis.horizontal,
-                                  itemCount: photos.length,
-                                  itemBuilder: (ctx, i) => Image.file(
-                                    File(photos[i].filePath),
-                                    width: 180,
-                                    height: 180,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Container(
-                                      width: 180,
-                                      height: 180,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .surfaceContainerHighest,
-                                      child: const Icon(
-                                        Icons.broken_image,
-                                        size: 48,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ListTile(
-                              title: Text(
-                                [
-                                  if (linkName.isNotEmpty) linkName,
-                                  _activityLabel(l, rec.activityType),
-                                ].join(' - '),
-                              ),
-                              subtitle: Text(
-                                [dateStr, if (rec.note.isNotEmpty) rec.note]
-                                    .join('\n'),
-                              ),
-                              isThreeLine: rec.note.isNotEmpty,
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete_outline),
-                                onPressed: () => _delete(rec),
-                              ),
-                            ),
-                          ],
+          : Column(
+              children: [
+                // Activity filter chips
+                SizedBox(
+                  height: 48,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: FilterChip(
+                          label: Text(l.allActivities),
+                          selected: _filterActivity == null,
+                          onSelected: (_) =>
+                              setState(() => _filterActivity = null),
                         ),
                       ),
-                    );
-                  },
+                      ...ActivityType.values.map((type) => Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: FilterChip(
+                              label: Text(_activityLabel(l, type)),
+                              selected: _filterActivity == type,
+                              onSelected: (_) => setState(() =>
+                                  _filterActivity =
+                                      _filterActivity == type ? null : type),
+                            ),
+                          )),
+                    ],
+                  ),
                 ),
+                // Records list
+                Expanded(
+                  child: filtered.isEmpty
+                      ? Center(child: Text(l.noRecords))
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: filtered.length,
+                          itemBuilder: (context, index) {
+                            final rec = filtered[index];
+                            final photos = _photosByRecord[rec.id] ?? [];
+                            final dateStr =
+                                '${rec.date.year}/${rec.date.month.toString().padLeft(2, '0')}/${rec.date.day.toString().padLeft(2, '0')}';
+                            final linkName = _linkDisplayName(rec, l);
+                            return Card(
+                              clipBehavior: Clip.antiAlias,
+                              child: InkWell(
+                                onTap: () => _showForm(existing: rec),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (photos.isNotEmpty)
+                                      SizedBox(
+                                        height: 180,
+                                        child: ListView.builder(
+                                          scrollDirection: Axis.horizontal,
+                                          itemCount: photos.length,
+                                          itemBuilder: (ctx, i) => Image.file(
+                                            File(photos[i].filePath),
+                                            width: 180,
+                                            height: 180,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) =>
+                                                Container(
+                                              width: 180,
+                                              height: 180,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .surfaceContainerHighest,
+                                              child: const Icon(
+                                                Icons.broken_image,
+                                                size: 48,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ListTile(
+                                      title: Text(
+                                        [
+                                          if (linkName.isNotEmpty) linkName,
+                                          _activityLabel(l, rec.activityType),
+                                        ].join(' - '),
+                                      ),
+                                      subtitle: Text(
+                                        [
+                                          dateStr,
+                                          if (rec.note.isNotEmpty) rec.note,
+                                        ].join('\n'),
+                                      ),
+                                      isThreeLine: rec.note.isNotEmpty,
+                                      trailing: IconButton(
+                                        icon: const Icon(Icons.delete_outline),
+                                        onPressed: () => _delete(rec),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showForm(),
         child: const Icon(Icons.add),

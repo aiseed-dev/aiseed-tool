@@ -787,6 +787,30 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'ホームページ作成機能は準備中です'**
   String get homepageComingSoon;
+
+  /// No description provided for @searchRecords.
+  ///
+  /// In ja, this message translates to:
+  /// **'記録を検索'**
+  String get searchRecords;
+
+  /// No description provided for @filterByActivity.
+  ///
+  /// In ja, this message translates to:
+  /// **'作業で絞り込み'**
+  String get filterByActivity;
+
+  /// No description provided for @allActivities.
+  ///
+  /// In ja, this message translates to:
+  /// **'すべての作業'**
+  String get allActivities;
+
+  /// No description provided for @searchHint.
+  ///
+  /// In ja, this message translates to:
+  /// **'メモ、栽培名、場所名で検索'**
+  String get searchHint;
 }
 
 class _AppLocalizationsDelegate

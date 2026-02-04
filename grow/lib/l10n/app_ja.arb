@@ -131,5 +131,9 @@
   "growthTimeline": "成長タイムライン",
   "createHomepage": "ホームページを作成",
   "createHomepageDesc": "この栽培の紹介ページを作成します",
-  "homepageComingSoon": "ホームページ作成機能は準備中です"
+  "homepageComingSoon": "ホームページ作成機能は準備中です",
+  "searchRecords": "記録を検索",
+  "filterByActivity": "作業で絞り込み",
+  "allActivities": "すべての作業",
+  "searchHint": "メモ、栽培名、場所名で検索"
 }

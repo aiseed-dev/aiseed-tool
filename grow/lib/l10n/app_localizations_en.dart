@@ -359,4 +359,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homepageComingSoon => 'Homepage creation is coming soon';
+
+  @override
+  String get searchRecords => 'Search records';
+
+  @override
+  String get filterByActivity => 'Filter by activity';
+
+  @override
+  String get allActivities => 'All activities';
+
+  @override
+  String get searchHint => 'Search by note, crop, or location';
 }
