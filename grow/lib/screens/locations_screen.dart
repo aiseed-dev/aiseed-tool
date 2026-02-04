@@ -181,13 +181,16 @@ class _LocationsScreenState extends State<LocationsScreen> {
     _load();
   }
 
-  void _openPlots(Location location) {
-    Navigator.push(
+  Future<void> _openPlots(Location location) async {
+    final result = await Navigator.push<String>(
       context,
       MaterialPageRoute(
         builder: (_) => _PlotsScreen(db: widget.db, location: location),
       ),
     );
+    if (result == 'edit') {
+      await _showLocationForm(existing: location);
+    }
   }
 
   @override
@@ -412,45 +415,146 @@ class _PlotsScreenState extends State<_PlotsScreen> {
     _load();
   }
 
+  String _envLabel(AppLocalizations l, EnvironmentType type) {
+    switch (type) {
+      case EnvironmentType.outdoor:
+        return l.envOutdoor;
+      case EnvironmentType.indoor:
+        return l.envIndoor;
+      case EnvironmentType.balcony:
+        return l.envBalcony;
+      case EnvironmentType.rooftop:
+        return l.envRooftop;
+    }
+  }
+
+  Widget _buildLocationDetail(AppLocalizations l) {
+    final loc = widget.location;
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.place, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    loc.name,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit, size: 20),
+                  onPressed: () async {
+                    await _editLocation();
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.nature, size: 16),
+                const SizedBox(width: 6),
+                Text(_envLabel(l, loc.environmentType)),
+              ],
+            ),
+            if (loc.latitude != null && loc.longitude != null) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.gps_fixed, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${loc.latitude!.toStringAsFixed(5)}, ${loc.longitude!.toStringAsFixed(5)}',
+                  ),
+                ],
+              ),
+            ],
+            if (loc.description.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.notes, size: 16),
+                  const SizedBox(width: 6),
+                  Expanded(child: Text(loc.description)),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _editLocation() async {
+    // Navigate back and trigger edit on parent
+    // For simplicity, we use the same pattern as LocationsScreen
+    Navigator.pop(context, 'edit');
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.location.name} - ${l.plots}'),
+        title: Text(widget.location.name),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _plots.isEmpty
-              ? Center(child: Text(l.noPlots))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _plots.length,
-                  itemBuilder: (context, index) {
-                    final plot = _plots[index];
-                    final details = [
-                      if (plot.coverType != CoverType.open)
-                        _coverLabel(l, plot.coverType),
-                      if (plot.soilType != SoilType.unknown)
-                        _soilLabel(l, plot.soilType),
-                      if (plot.memo.isNotEmpty) plot.memo,
-                    ].join(' / ');
-                    return Card(
-                      child: ListTile(
-                        leading: const Icon(Icons.grid_view),
-                        title: Text(plot.name),
-                        subtitle:
-                            details.isNotEmpty ? Text(details) : null,
-                        onTap: () => _showForm(existing: plot),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline),
-                          onPressed: () => _delete(plot),
-                        ),
+          : Column(
+              children: [
+                _buildLocationDetail(l),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: Row(
+                    children: [
+                      Text(
+                        l.plots,
+                        style: Theme.of(context).textTheme.titleSmall,
                       ),
-                    );
-                  },
+                    ],
+                  ),
                 ),
+                Expanded(
+                  child: _plots.isEmpty
+                      ? Center(child: Text(l.noPlots))
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _plots.length,
+                          itemBuilder: (context, index) {
+                            final plot = _plots[index];
+                            final details = [
+                              if (plot.coverType != CoverType.open)
+                                _coverLabel(l, plot.coverType),
+                              if (plot.soilType != SoilType.unknown)
+                                _soilLabel(l, plot.soilType),
+                              if (plot.memo.isNotEmpty) plot.memo,
+                            ].join(' / ');
+                            return Card(
+                              child: ListTile(
+                                leading: const Icon(Icons.grid_view),
+                                title: Text(plot.name),
+                                subtitle:
+                                    details.isNotEmpty ? Text(details) : null,
+                                onTap: () => _showForm(existing: plot),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.delete_outline),
+                                  onPressed: () => _delete(plot),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showForm(),
         child: const Icon(Icons.add),
