@@ -176,9 +176,10 @@ class DatabaseService {
         if (oldVersion < 11) {
           // Add updated_at to all tables
           final now = DateTime.now().toUtc().toIso8601String();
+          // Tables that have created_at
           for (final table in [
             'locations', 'plots', 'crops', 'records',
-            'record_photos', 'observations', 'observation_entries',
+            'record_photos', 'observations',
           ]) {
             final cols = await db.rawQuery('PRAGMA table_info($table)');
             final colNames = cols.map((c) => c['name'] as String).toSet();
@@ -191,13 +192,27 @@ class DatabaseService {
               );
             }
           }
-          // observation_entries may not have created_at, set to parent's
-          await db.execute('''
-            UPDATE observation_entries SET updated_at = (
-              SELECT o.created_at FROM observations o
-              WHERE o.id = observation_entries.observation_id
-            ) WHERE updated_at = '$now'
-          ''');
+          // observation_entries has no created_at, handle separately
+          {
+            final cols = await db.rawQuery('PRAGMA table_info(observation_entries)');
+            final colNames = cols.map((c) => c['name'] as String).toSet();
+            if (!colNames.contains('updated_at')) {
+              await db.execute(
+                "ALTER TABLE observation_entries ADD COLUMN updated_at TEXT NOT NULL DEFAULT '$now'",
+              );
+              // Set updated_at from parent observation's created_at
+              await db.execute('''
+                UPDATE observation_entries SET updated_at = (
+                  SELECT o.created_at FROM observations o
+                  WHERE o.id = observation_entries.observation_id
+                ) WHERE updated_at = '$now'
+                  AND EXISTS (
+                    SELECT 1 FROM observations o
+                    WHERE o.id = observation_entries.observation_id
+                  )
+              ''');
+            }
+          }
           // Add r2_key to record_photos
           final photoCols = await db.rawQuery('PRAGMA table_info(record_photos)');
           final photoColNames = photoCols.map((c) => c['name'] as String).toSet();
