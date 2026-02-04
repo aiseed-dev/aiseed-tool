@@ -104,7 +104,7 @@ class _CropsScreenState extends State<CropsScreen> {
                   if (_allPlots.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String?>(
-                      value: selectedPlotId,
+                      initialValue: selectedPlotId,
                       decoration: InputDecoration(labelText: l.selectPlot),
                       items: [
                         DropdownMenuItem<String?>(
@@ -131,7 +131,7 @@ class _CropsScreenState extends State<CropsScreen> {
                   if (parentCandidates.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String?>(
-                      value: selectedParentCropId,
+                      initialValue: selectedParentCropId,
                       decoration:
                           InputDecoration(labelText: l.parentCrop),
                       items: [

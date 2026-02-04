@@ -77,7 +77,7 @@ class _LocationsScreenState extends State<LocationsScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<EnvironmentType>(
-                  value: selectedEnvType,
+                  initialValue: selectedEnvType,
                   decoration:
                       InputDecoration(labelText: l.environmentType),
                   items: EnvironmentType.values
@@ -321,7 +321,7 @@ class _PlotsScreenState extends State<_PlotsScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<CoverType>(
-                  value: selectedCover,
+                  initialValue: selectedCover,
                   decoration: InputDecoration(labelText: l.coverType),
                   items: CoverType.values
                       .map((t) => DropdownMenuItem(
@@ -334,7 +334,7 @@ class _PlotsScreenState extends State<_PlotsScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<SoilType>(
-                  value: selectedSoil,
+                  initialValue: selectedSoil,
                   decoration: InputDecoration(labelText: l.soilType),
                   items: SoilType.values
                       .map((t) => DropdownMenuItem(

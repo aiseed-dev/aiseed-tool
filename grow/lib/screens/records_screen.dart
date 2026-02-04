@@ -340,7 +340,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     valueListenable: linkType,
                     builder: (_, currentLinkType, __) =>
                         DropdownButtonFormField<_LinkType>(
-                      value: currentLinkType,
+                      initialValue: currentLinkType,
                       decoration: InputDecoration(labelText: l.linkTarget),
                       items: [
                         if (_locations.isNotEmpty)
@@ -391,7 +391,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                           builder: (_, cropId, __) =>
                               DropdownButtonFormField<String>(
                             key: ValueKey('crop_$cropId'),
-                            value: cropId ?? _crops.first.id,
+                            initialValue: cropId ?? _crops.first.id,
                             decoration:
                                 InputDecoration(labelText: l.crops),
                             items: _crops
@@ -411,7 +411,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                           builder: (_, locId, __) =>
                               DropdownButtonFormField<String>(
                             key: ValueKey('loc_$locId'),
-                            value: locId ?? _locations.first.id,
+                            initialValue: locId ?? _locations.first.id,
                             decoration:
                                 InputDecoration(labelText: l.locations),
                             items: _locations
@@ -432,7 +432,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                           builder: (_, plotId, __) =>
                               DropdownButtonFormField<String>(
                             key: ValueKey('plot_$plotId'),
-                            value: plotId ?? _allPlots.first.id,
+                            initialValue: plotId ?? _allPlots.first.id,
                             decoration:
                                 InputDecoration(labelText: l.plots),
                             items: _allPlots.map((plot) {
@@ -458,7 +458,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<ActivityType>(
-                    value: selectedActivity,
+                    initialValue: selectedActivity,
                     decoration: InputDecoration(labelText: l.activityType),
                     items: ActivityType.values
                         .map((t) => DropdownMenuItem(

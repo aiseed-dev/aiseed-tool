@@ -63,7 +63,7 @@ class PlantIdService extends PlantIdentificationService {
   PlantIdService({String? apiKey}) : _apiKey = apiKey;
 
   @override
-  bool get isAvailable => _apiKey != null && _apiKey!.isNotEmpty;
+  bool get isAvailable => _apiKey != null && _apiKey.isNotEmpty;
 
   @override
   Future<List<PlantIdResult>> identify(String imagePath) async {
@@ -141,7 +141,7 @@ class ServerPlantIdService extends PlantIdentificationService {
 
   @override
   bool get isAvailable =>
-      _serverUrl != null && _serverUrl!.isNotEmpty;
+      _serverUrl != null && _serverUrl.isNotEmpty;
 
   @override
   Future<List<PlantIdResult>> identify(String imagePath) async {
@@ -150,7 +150,7 @@ class ServerPlantIdService extends PlantIdentificationService {
     try {
       final request = http.MultipartRequest('POST', Uri.parse(_serverUrl!));
 
-      if (_token != null && _token!.isNotEmpty) {
+      if (_token != null && _token.isNotEmpty) {
         request.headers['Authorization'] = 'Bearer $_token';
       }
 
