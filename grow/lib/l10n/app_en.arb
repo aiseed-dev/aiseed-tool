@@ -86,6 +86,17 @@
   "plantIdentified": "Estimated: {name}",
   "suggestedLink": "Suggested: {target}",
   "apiKeyNotSet": "Plant identification API key not set",
+  "plantIdProvider": "Plant identification",
+  "plantIdProviderOff": "Off (no identification)",
+  "plantIdProviderOffDesc": "For small farms that don't need it",
+  "plantIdProviderPlantId": "Plant.id (direct API)",
+  "plantIdProviderPlantIdDesc": "Plant-specialized DB, low cost (200/month free)",
+  "plantIdProviderServer": "Server (high accuracy)",
+  "plantIdProviderServerDesc": "Claude / GPT-4V, can identify weeds",
   "plantIdApiKey": "Plant.id API Key",
-  "plantIdApiKeyHint": "Enter API key (optional)"
+  "plantIdApiKeyHint": "Enter API key",
+  "serverUrl": "Server URL",
+  "serverUrlHint": "https://example.com/api/identify",
+  "serverToken": "Auth token (optional)",
+  "serverTokenHint": "Enter Bearer token"
 }

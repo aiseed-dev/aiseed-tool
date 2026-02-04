@@ -32,7 +32,15 @@ class PlantIdResult {
   final String name;
   final double confidence;
 
-  const PlantIdResult({required this.name, required this.confidence});
+  /// サーバー経由（Claude/GPT-4V）の場合、追加の説明が返る
+  /// 例: 「トマトの苗、本葉4枚程度。健康状態は良好」
+  final String? description;
+
+  const PlantIdResult({
+    required this.name,
+    required this.confidence,
+    this.description,
+  });
 }
 
 /// ML Kit (オンデバイス) を使った画像分類サービス

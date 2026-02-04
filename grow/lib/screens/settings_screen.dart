@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_localizations.dart';
+import '../services/plant_identification_service.dart';
 
+const kPlantIdProviderPref = 'plant_id_provider';
 const kPlantIdApiKeyPref = 'plant_id_api_key';
+const kServerUrlPref = 'server_url';
+const kServerTokenPref = 'server_token';
 
 class SettingsScreen extends StatefulWidget {
   final ValueChanged<ThemeMode> onThemeModeChanged;
@@ -23,20 +27,35 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  String _apiKey = '';
+  PlantIdProvider _provider = PlantIdProvider.off;
+  String _plantIdApiKey = '';
+  String _serverUrl = '';
+  String _serverToken = '';
 
   @override
   void initState() {
     super.initState();
-    _loadApiKey();
+    _loadSettings();
   }
 
-  Future<void> _loadApiKey() async {
+  Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
     setState(() {
-      _apiKey = prefs.getString(kPlantIdApiKeyPref) ?? '';
+      final providerIndex = prefs.getInt(kPlantIdProviderPref) ?? 0;
+      _provider = PlantIdProvider.values[
+          providerIndex.clamp(0, PlantIdProvider.values.length - 1)];
+      _plantIdApiKey = prefs.getString(kPlantIdApiKeyPref) ?? '';
+      _serverUrl = prefs.getString(kServerUrlPref) ?? '';
+      _serverToken = prefs.getString(kServerTokenPref) ?? '';
     });
+  }
+
+  String _maskedKey(String key) {
+    if (key.isEmpty) return '';
+    final stars = '*' * (key.length > 8 ? 8 : key.length);
+    final tail = key.length > 4 ? key.substring(key.length - 4) : key;
+    return '$stars$tail';
   }
 
   @override
@@ -63,18 +82,86 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: () => _showLanguageDialog(context, l),
           ),
           const Divider(height: 1),
-          // Plant.id API Key
+          // Plant identification provider
           ListTile(
-            leading: const Icon(Icons.key),
-            title: Text(l.plantIdApiKey),
-            subtitle: Text(
-              _apiKey.isEmpty
-                  ? l.plantIdApiKeyHint
-                  : '${'*' * (_apiKey.length > 8 ? 8 : _apiKey.length)}${_apiKey.substring(_apiKey.length > 4 ? _apiKey.length - 4 : 0)}',
-            ),
-            onTap: () => _showApiKeyDialog(context, l),
+            leading: const Icon(Icons.eco),
+            title: Text(l.plantIdProvider),
+            subtitle: Text(_providerLabel(l, _provider)),
+            onTap: () => _showProviderDialog(context, l),
           ),
           const Divider(height: 1),
+          // Provider-specific settings
+          if (_provider == PlantIdProvider.plantId) ...[
+            ListTile(
+              leading: const SizedBox(width: 24),
+              title: Text(l.plantIdApiKey),
+              subtitle: Text(
+                _plantIdApiKey.isEmpty
+                    ? l.plantIdApiKeyHint
+                    : _maskedKey(_plantIdApiKey),
+              ),
+              onTap: () => _showTextDialog(
+                context, l,
+                title: l.plantIdApiKey,
+                hint: l.plantIdApiKeyHint,
+                currentValue: _plantIdApiKey,
+                obscure: true,
+                onSave: (v) async {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setString(kPlantIdApiKeyPref, v);
+                  if (!mounted) return;
+                  setState(() => _plantIdApiKey = v);
+                },
+              ),
+            ),
+            const Divider(height: 1),
+          ],
+          if (_provider == PlantIdProvider.server) ...[
+            ListTile(
+              leading: const SizedBox(width: 24),
+              title: Text(l.serverUrl),
+              subtitle: Text(
+                _serverUrl.isEmpty ? l.serverUrlHint : _serverUrl,
+              ),
+              onTap: () => _showTextDialog(
+                context, l,
+                title: l.serverUrl,
+                hint: l.serverUrlHint,
+                currentValue: _serverUrl,
+                obscure: false,
+                onSave: (v) async {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setString(kServerUrlPref, v);
+                  if (!mounted) return;
+                  setState(() => _serverUrl = v);
+                },
+              ),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const SizedBox(width: 24),
+              title: Text(l.serverToken),
+              subtitle: Text(
+                _serverToken.isEmpty
+                    ? l.serverTokenHint
+                    : _maskedKey(_serverToken),
+              ),
+              onTap: () => _showTextDialog(
+                context, l,
+                title: l.serverToken,
+                hint: l.serverTokenHint,
+                currentValue: _serverToken,
+                obscure: true,
+                onSave: (v) async {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setString(kServerTokenPref, v);
+                  if (!mounted) return;
+                  setState(() => _serverToken = v);
+                },
+              ),
+            ),
+            const Divider(height: 1),
+          ],
         ],
       ),
     );
@@ -100,6 +187,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return 'English';
       default:
         return locale.languageCode;
+    }
+  }
+
+  String _providerLabel(AppLocalizations l, PlantIdProvider provider) {
+    switch (provider) {
+      case PlantIdProvider.off:
+        return l.plantIdProviderOff;
+      case PlantIdProvider.plantId:
+        return l.plantIdProviderPlantId;
+      case PlantIdProvider.server:
+        return l.plantIdProviderServer;
     }
   }
 
@@ -167,19 +265,96 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _showApiKeyDialog(
-      BuildContext context, AppLocalizations l) async {
-    final ctrl = TextEditingController(text: _apiKey);
+  void _showProviderDialog(BuildContext context, AppLocalizations l) {
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l.plantIdProvider),
+        children: [
+          _providerOption(
+            ctx, l,
+            provider: PlantIdProvider.off,
+            title: l.plantIdProviderOff,
+            subtitle: l.plantIdProviderOffDesc,
+          ),
+          _providerOption(
+            ctx, l,
+            provider: PlantIdProvider.plantId,
+            title: l.plantIdProviderPlantId,
+            subtitle: l.plantIdProviderPlantIdDesc,
+          ),
+          _providerOption(
+            ctx, l,
+            provider: PlantIdProvider.server,
+            title: l.plantIdProviderServer,
+            subtitle: l.plantIdProviderServerDesc,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _providerOption(
+    BuildContext ctx,
+    AppLocalizations l, {
+    required PlantIdProvider provider,
+    required String title,
+    required String subtitle,
+  }) {
+    final isSelected = _provider == provider;
+    return SimpleDialogOption(
+      onPressed: () async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt(kPlantIdProviderPref, provider.index);
+        if (!mounted) return;
+        setState(() => _provider = provider);
+        if (ctx.mounted) Navigator.pop(ctx);
+      },
+      child: Row(
+        children: [
+          Icon(
+            isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+            size: 20,
+            color: isSelected
+                ? Theme.of(ctx).colorScheme.primary
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title),
+                Text(
+                  subtitle,
+                  style: Theme.of(ctx).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showTextDialog(
+    BuildContext context,
+    AppLocalizations l, {
+    required String title,
+    required String hint,
+    required String currentValue,
+    required bool obscure,
+    required Future<void> Function(String) onSave,
+  }) async {
+    final ctrl = TextEditingController(text: currentValue);
     final saved = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(l.plantIdApiKey),
+        title: Text(title),
         content: TextField(
           controller: ctrl,
-          decoration: InputDecoration(
-            hintText: l.plantIdApiKeyHint,
-          ),
-          obscureText: true,
+          decoration: InputDecoration(hintText: hint),
+          obscureText: obscure,
         ),
         actions: [
           TextButton(
@@ -194,9 +369,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
     if (saved != true) return;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(kPlantIdApiKeyPref, ctrl.text.trim());
-    if (!mounted) return;
-    setState(() => _apiKey = ctrl.text.trim());
+    await onSave(ctrl.text.trim());
   }
 }

@@ -137,10 +137,17 @@ class _RecordsScreenState extends State<RecordsScreen> {
       analysisStatus.value = l.plantDetected;
       setDialogState(() {});
 
-      // Stage 2: Cloud API for crop identification (if available)
+      // Stage 2: Cloud API for crop identification (if provider configured)
       final prefs = await SharedPreferences.getInstance();
-      final apiKey = prefs.getString(kPlantIdApiKeyPref) ?? '';
-      final plantIdService = PlantIdService(apiKey: apiKey);
+      final providerIndex = prefs.getInt(kPlantIdProviderPref) ?? 0;
+      final provider = PlantIdProvider.values[
+          providerIndex.clamp(0, PlantIdProvider.values.length - 1)];
+      final plantIdService = PlantIdentificationService.create(
+        provider: provider,
+        plantIdApiKey: prefs.getString(kPlantIdApiKeyPref),
+        serverUrl: prefs.getString(kServerUrlPref),
+        serverToken: prefs.getString(kServerTokenPref),
+      );
 
       if (plantIdService.isAvailable) {
         analysisStatus.value = l.identifyingPlant;
@@ -150,7 +157,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
         if (identifications.isNotEmpty) {
           final bestMatch = identifications.first;
-          analysisStatus.value = l.plantIdentified(bestMatch.name);
+          final desc = bestMatch.description;
+          analysisStatus.value = desc != null && desc.isNotEmpty
+              ? '${l.plantIdentified(bestMatch.name)}\n$desc'
+              : l.plantIdentified(bestMatch.name);
           setDialogState(() {});
 
           // Stage 3: Auto-suggest link based on crop name match

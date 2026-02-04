@@ -96,6 +96,17 @@
     }
   },
   "apiKeyNotSet": "作物同定APIキーが未設定です",
+  "plantIdProvider": "植物同定",
+  "plantIdProviderOff": "オフ（同定しない）",
+  "plantIdProviderOffDesc": "小さな畑で不要な場合",
+  "plantIdProviderPlantId": "Plant.id（直接API）",
+  "plantIdProviderPlantIdDesc": "植物特化DB、コスト低め（月200回無料）",
+  "plantIdProviderServer": "サーバー経由（高精度）",
+  "plantIdProviderServerDesc": "Claude / GPT-4V、雑草も同定可能",
   "plantIdApiKey": "Plant.id APIキー",
-  "plantIdApiKeyHint": "APIキーを入力（任意）"
+  "plantIdApiKeyHint": "APIキーを入力",
+  "serverUrl": "サーバーURL",
+  "serverUrlHint": "https://example.com/api/identify",
+  "serverToken": "認証トークン（任意）",
+  "serverTokenHint": "Bearer トークンを入力"
 }
