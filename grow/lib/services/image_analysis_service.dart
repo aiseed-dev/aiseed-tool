@@ -60,8 +60,8 @@ class ImageAnalysisService {
   };
 
   ImageLabeler _getLabeler() {
-    _labeler ??= ImageLabeling.client(
-      ImageLabelerOptions(confidenceThreshold: 0.4),
+    _labeler ??= ImageLabeler(
+      options: ImageLabelerOptions(confidenceThreshold: 0.4),
     );
     return _labeler!;
   }
