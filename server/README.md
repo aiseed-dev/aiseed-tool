@@ -7,6 +7,7 @@ Grow アプリのプレミアム機能用サーバーです。
 
 - **植物同定** (`POST /identify`) - Claude Vision による作物・雑草の同定
 - **写真ストレージ** (`/photos`) - Cloudflare R2 による写真の保存・取得
+- **データ同期** (`/sync`) - スマホ・デスクトップ間のデータ同期（D1）
 
 ## セットアップ
 
@@ -29,7 +30,19 @@ npm install
 npx wrangler r2 bucket create grow-photos
 ```
 
-### 4. シークレットの設定
+### 4. D1 データベースの作成
+
+```bash
+npx wrangler d1 create grow-db
+```
+
+表示された `database_id` を `wrangler.toml` の `database_id` に設定してから、スキーマを適用:
+
+```bash
+npx wrangler d1 execute grow-db --file=schema.sql
+```
+
+### 5. シークレットの設定
 
 ```bash
 # 認証トークン（アプリに入力するトークンと同じもの）
@@ -39,7 +52,7 @@ npx wrangler secret put AUTH_TOKEN
 npx wrangler secret put ANTHROPIC_KEY
 ```
 
-### 5. デプロイ
+### 6. デプロイ
 
 ```bash
 npm run deploy
@@ -120,6 +133,33 @@ Body: image (file)
 
 写真の一覧を取得します。
 
+### `POST /sync/pull`
+
+サーバーの更新データを取得します。
+
+```json
+{ "since": "2024-06-15T00:00:00.000Z" }
+```
+
+レスポンス: 各テーブルの更新レコード + 削除情報 + タイムスタンプ
+
+### `POST /sync/push`
+
+ローカルの更新データを送信します。
+
+```json
+{
+  "locations": [...],
+  "plots": [...],
+  "crops": [...],
+  "records": [...],
+  "record_photos": [...],
+  "observations": [...],
+  "observation_entries": [...],
+  "deleted": [{ "id": "...", "table_name": "..." }]
+}
+```
+
 ### `GET /health`
 
 ヘルスチェック。
@@ -132,6 +172,9 @@ Body: image (file)
 | R2 ストレージ | 10GB | $0.015/GB/月 |
 | R2 読み取り | 1000万/月 | $0.36/100万 |
 | R2 書き込み | 100万/月 | $4.50/100万 |
+| D1 ストレージ | 5GB | $0.75/GB/月 |
+| D1 読み取り | 500万行/日 | $0.001/1000行 |
+| D1 書き込み | 10万行/日 | $1.00/100万行 |
 | Claude API | なし | ~$0.003/画像 (Sonnet) |
 
 個人利用では Cloudflare の無料枠内に収まることが多いです。

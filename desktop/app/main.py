@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .identify import router as identify_router
 from .photos import router as photos_router
+from .sync import router as sync_router
 
 app = FastAPI(title="Grow Desktop Server", version="0.1.0")
 
@@ -21,6 +22,7 @@ app.add_middleware(
 
 app.include_router(identify_router)
 app.include_router(photos_router)
+app.include_router(sync_router)
 
 
 @app.get("/")

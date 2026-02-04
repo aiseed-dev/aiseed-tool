@@ -96,7 +96,23 @@
   "plantIdApiKey": "Plant.id API Key",
   "plantIdApiKeyHint": "Enter API key",
   "serverUrl": "Server URL",
-  "serverUrlHint": "https://example.com/api/identify",
-  "serverToken": "Auth token (optional)",
-  "serverTokenHint": "Enter Bearer token"
+  "serverUrlHint": "https://grow-server.example.workers.dev",
+  "serverToken": "Auth token",
+  "serverTokenHint": "Enter Bearer token",
+  "dataSync": "Data sync",
+  "syncModeLocal": "Local only",
+  "syncModeLocalDesc": "Data stays on this device only",
+  "syncModeCloudflare": "Cloudflare sync",
+  "syncModeCloudflareDesc": "Sync data and photos via server",
+  "syncNow": "Sync now",
+  "syncing": "Syncing…",
+  "syncComplete": "Sync complete (pulled: {pulled}, pushed: {pushed}, photos: {photos})",
+  "@syncComplete": {
+    "placeholders": {
+      "pulled": { "type": "int" },
+      "pushed": { "type": "int" },
+      "photos": { "type": "int" }
+    }
+  },
+  "syncFailed": "Sync failed"
 }

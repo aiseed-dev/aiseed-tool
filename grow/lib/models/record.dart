@@ -18,6 +18,7 @@ class GrowRecord {
   final DateTime date;
   final String note;
   final DateTime createdAt;
+  final DateTime updatedAt;
 
   GrowRecord({
     String? id,
@@ -28,9 +29,11 @@ class GrowRecord {
     DateTime? date,
     this.note = '',
     DateTime? createdAt,
+    DateTime? updatedAt,
   })  : id = id ?? const Uuid().v4(),
         date = date ?? DateTime.now(),
-        createdAt = createdAt ?? DateTime.now();
+        createdAt = createdAt ?? DateTime.now(),
+        updatedAt = updatedAt ?? DateTime.now();
 
   Map<String, dynamic> toMap() => {
         'id': id,
@@ -41,6 +44,7 @@ class GrowRecord {
         'date': date.toIso8601String(),
         'note': note,
         'created_at': createdAt.toIso8601String(),
+        'updated_at': updatedAt.toIso8601String(),
       };
 
   factory GrowRecord.fromMap(Map<String, dynamic> map) => GrowRecord(
@@ -52,5 +56,8 @@ class GrowRecord {
         date: DateTime.parse(map['date'] as String),
         note: (map['note'] as String?) ?? '',
         createdAt: DateTime.parse(map['created_at'] as String),
+        updatedAt: map['updated_at'] != null
+            ? DateTime.parse(map['updated_at'] as String)
+            : DateTime.parse(map['created_at'] as String),
       );
 }

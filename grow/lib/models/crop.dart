@@ -10,6 +10,7 @@ class Crop {
   final String memo;
   final DateTime startDate;
   final DateTime createdAt;
+  final DateTime updatedAt;
 
   Crop({
     String? id,
@@ -21,9 +22,11 @@ class Crop {
     this.memo = '',
     DateTime? startDate,
     DateTime? createdAt,
+    DateTime? updatedAt,
   })  : id = id ?? const Uuid().v4(),
         startDate = startDate ?? DateTime.now(),
-        createdAt = createdAt ?? DateTime.now();
+        createdAt = createdAt ?? DateTime.now(),
+        updatedAt = updatedAt ?? DateTime.now();
 
   Map<String, dynamic> toMap() => {
         'id': id,
@@ -35,6 +38,7 @@ class Crop {
         'memo': memo,
         'start_date': startDate.toIso8601String(),
         'created_at': createdAt.toIso8601String(),
+        'updated_at': updatedAt.toIso8601String(),
       };
 
   factory Crop.fromMap(Map<String, dynamic> map) => Crop(
@@ -47,5 +51,8 @@ class Crop {
         memo: (map['memo'] as String?) ?? '',
         startDate: DateTime.parse(map['start_date'] as String),
         createdAt: DateTime.parse(map['created_at'] as String),
+        updatedAt: map['updated_at'] != null
+            ? DateTime.parse(map['updated_at'] as String)
+            : DateTime.parse(map['created_at'] as String),
       );
 }

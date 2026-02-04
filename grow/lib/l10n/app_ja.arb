@@ -106,7 +106,23 @@
   "plantIdApiKey": "Plant.id APIキー",
   "plantIdApiKeyHint": "APIキーを入力",
   "serverUrl": "サーバーURL",
-  "serverUrlHint": "https://example.com/api/identify",
-  "serverToken": "認証トークン（任意）",
-  "serverTokenHint": "Bearer トークンを入力"
+  "serverUrlHint": "https://grow-server.example.workers.dev",
+  "serverToken": "認証トークン",
+  "serverTokenHint": "Bearer トークンを入力",
+  "dataSync": "データ同期",
+  "syncModeLocal": "ローカルのみ",
+  "syncModeLocalDesc": "データはこの端末のみに保存",
+  "syncModeCloudflare": "Cloudflare 同期",
+  "syncModeCloudflareDesc": "サーバー経由でデータ・写真を同期",
+  "syncNow": "今すぐ同期",
+  "syncing": "同期中…",
+  "syncComplete": "同期完了（取得: {pulled}件、送信: {pushed}件、写真: {photos}枚）",
+  "@syncComplete": {
+    "placeholders": {
+      "pulled": { "type": "int" },
+      "pushed": { "type": "int" },
+      "photos": { "type": "int" }
+    }
+  },
+  "syncFailed": "同期に失敗しました"
 }

@@ -27,6 +27,7 @@ class Plot {
   final SoilType soilType;
   final String memo;
   final DateTime createdAt;
+  final DateTime updatedAt;
 
   Plot({
     String? id,
@@ -36,8 +37,10 @@ class Plot {
     this.soilType = SoilType.unknown,
     this.memo = '',
     DateTime? createdAt,
+    DateTime? updatedAt,
   })  : id = id ?? const Uuid().v4(),
-        createdAt = createdAt ?? DateTime.now();
+        createdAt = createdAt ?? DateTime.now(),
+        updatedAt = updatedAt ?? DateTime.now();
 
   Map<String, dynamic> toMap() => {
         'id': id,
@@ -47,6 +50,7 @@ class Plot {
         'soil_type': soilType.index,
         'memo': memo,
         'created_at': createdAt.toIso8601String(),
+        'updated_at': updatedAt.toIso8601String(),
       };
 
   factory Plot.fromMap(Map<String, dynamic> map) => Plot(
@@ -57,5 +61,8 @@ class Plot {
         soilType: SoilType.values[(map['soil_type'] as int?) ?? 0],
         memo: (map['memo'] as String?) ?? '',
         createdAt: DateTime.parse(map['created_at'] as String),
+        updatedAt: map['updated_at'] != null
+            ? DateTime.parse(map['updated_at'] as String)
+            : DateTime.parse(map['created_at'] as String),
       );
 }

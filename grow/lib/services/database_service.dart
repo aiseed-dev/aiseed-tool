@@ -9,7 +9,7 @@ import '../models/observation.dart';
 
 class DatabaseService {
   static const _dbName = 'grow.db';
-  static const _dbVersion = 10;
+  static const _dbVersion = 11;
 
   Database? _db;
 
@@ -173,6 +173,47 @@ class DatabaseService {
             await db.execute('ALTER TABLE locations ADD COLUMN longitude REAL');
           }
         }
+        if (oldVersion < 11) {
+          // Add updated_at to all tables
+          final now = DateTime.now().toUtc().toIso8601String();
+          for (final table in [
+            'locations', 'plots', 'crops', 'records',
+            'record_photos', 'observations', 'observation_entries',
+          ]) {
+            final cols = await db.rawQuery('PRAGMA table_info($table)');
+            final colNames = cols.map((c) => c['name'] as String).toSet();
+            if (!colNames.contains('updated_at')) {
+              await db.execute(
+                "ALTER TABLE $table ADD COLUMN updated_at TEXT NOT NULL DEFAULT '$now'",
+              );
+              await db.execute(
+                "UPDATE $table SET updated_at = created_at WHERE updated_at = '$now'",
+              );
+            }
+          }
+          // observation_entries may not have created_at, set to parent's
+          await db.execute('''
+            UPDATE observation_entries SET updated_at = (
+              SELECT o.created_at FROM observations o
+              WHERE o.id = observation_entries.observation_id
+            ) WHERE updated_at = '$now'
+          ''');
+          // Add r2_key to record_photos
+          final photoCols = await db.rawQuery('PRAGMA table_info(record_photos)');
+          final photoColNames = photoCols.map((c) => c['name'] as String).toSet();
+          if (!photoColNames.contains('r2_key')) {
+            await db.execute('ALTER TABLE record_photos ADD COLUMN r2_key TEXT');
+          }
+          // Create deleted_records tracking table
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS deleted_records (
+              id TEXT NOT NULL,
+              table_name TEXT NOT NULL,
+              deleted_at TEXT NOT NULL,
+              PRIMARY KEY (id, table_name)
+            )
+          ''');
+        }
       },
     );
   }
@@ -186,7 +227,8 @@ class DatabaseService {
         environment_type INTEGER NOT NULL DEFAULT 0,
         latitude REAL,
         longitude REAL,
-        created_at TEXT NOT NULL
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     ''');
     await db.execute('''
@@ -198,6 +240,7 @@ class DatabaseService {
         soil_type INTEGER NOT NULL DEFAULT 0,
         memo TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
         FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE
       )
     ''');
@@ -212,6 +255,7 @@ class DatabaseService {
         memo TEXT NOT NULL DEFAULT '',
         start_date TEXT NOT NULL,
         created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
         FOREIGN KEY (plot_id) REFERENCES plots(id) ON DELETE SET NULL,
         FOREIGN KEY (parent_crop_id) REFERENCES crops(id) ON DELETE SET NULL
       )
@@ -226,6 +270,7 @@ class DatabaseService {
         date TEXT NOT NULL,
         note TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
         FOREIGN KEY (crop_id) REFERENCES crops(id) ON DELETE CASCADE,
         FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE,
         FOREIGN KEY (plot_id) REFERENCES plots(id) ON DELETE CASCADE
@@ -236,8 +281,10 @@ class DatabaseService {
         id TEXT PRIMARY KEY,
         record_id TEXT NOT NULL,
         file_path TEXT NOT NULL,
+        r2_key TEXT,
         sort_order INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
         FOREIGN KEY (record_id) REFERENCES records(id) ON DELETE CASCADE
       )
     ''');
@@ -250,6 +297,7 @@ class DatabaseService {
         date TEXT NOT NULL,
         memo TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
         FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE,
         FOREIGN KEY (plot_id) REFERENCES plots(id) ON DELETE CASCADE
       )
@@ -261,7 +309,16 @@ class DatabaseService {
         key TEXT NOT NULL,
         value REAL NOT NULL,
         unit TEXT NOT NULL DEFAULT '',
+        updated_at TEXT NOT NULL,
         FOREIGN KEY (observation_id) REFERENCES observations(id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE deleted_records (
+        id TEXT NOT NULL,
+        table_name TEXT NOT NULL,
+        deleted_at TEXT NOT NULL,
+        PRIMARY KEY (id, table_name)
       )
     ''');
   }
@@ -288,6 +345,7 @@ class DatabaseService {
   Future<void> deleteLocation(String id) async {
     final d = await db;
     await d.delete('locations', where: 'id = ?', whereArgs: [id]);
+    await _trackDeletion(d, id, 'locations');
   }
 
   // -- Plots --
@@ -321,6 +379,7 @@ class DatabaseService {
   Future<void> deletePlot(String id) async {
     final d = await db;
     await d.delete('plots', where: 'id = ?', whereArgs: [id]);
+    await _trackDeletion(d, id, 'plots');
   }
 
   // -- Crops --
@@ -363,6 +422,7 @@ class DatabaseService {
   Future<void> deleteCrop(String id) async {
     final d = await db;
     await d.delete('crops', where: 'id = ?', whereArgs: [id]);
+    await _trackDeletion(d, id, 'crops');
   }
 
   // -- Records --
@@ -412,6 +472,7 @@ class DatabaseService {
   Future<void> deleteRecord(String id) async {
     final d = await db;
     await d.delete('records', where: 'id = ?', whereArgs: [id]);
+    await _trackDeletion(d, id, 'records');
   }
 
   // -- Record Photos --
@@ -433,6 +494,7 @@ class DatabaseService {
   Future<void> deletePhoto(String id) async {
     final d = await db;
     await d.delete('record_photos', where: 'id = ?', whereArgs: [id]);
+    await _trackDeletion(d, id, 'record_photos');
   }
 
   // -- Observations --
@@ -474,6 +536,7 @@ class DatabaseService {
   Future<void> deleteObservation(String id) async {
     final d = await db;
     await d.delete('observations', where: 'id = ?', whereArgs: [id]);
+    await _trackDeletion(d, id, 'observations');
   }
 
   // -- Observation Entries --
@@ -494,6 +557,7 @@ class DatabaseService {
   Future<void> deleteObservationEntry(String id) async {
     final d = await db;
     await d.delete('observation_entries', where: 'id = ?', whereArgs: [id]);
+    await _trackDeletion(d, id, 'observation_entries');
   }
 
   Future<void> setObservationEntries(
@@ -504,5 +568,45 @@ class DatabaseService {
     for (final entry in entries) {
       await d.insert('observation_entries', entry.toMap());
     }
+  }
+
+  // -- Sync helpers --
+
+  Future<void> _trackDeletion(Database d, String id, String tableName) async {
+    await d.insert(
+      'deleted_records',
+      {
+        'id': id,
+        'table_name': tableName,
+        'deleted_at': DateTime.now().toUtc().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  /// Get all rows from [table] updated after [since].
+  Future<List<Map<String, dynamic>>> getUpdatedRows(
+      String table, String since) async {
+    final d = await db;
+    return d.query(table, where: 'updated_at > ?', whereArgs: [since]);
+  }
+
+  /// Get deleted records tracked after [since].
+  Future<List<Map<String, dynamic>>> getDeletedRecords(String since) async {
+    final d = await db;
+    return d.query('deleted_records',
+        where: 'deleted_at > ?', whereArgs: [since]);
+  }
+
+  /// Upsert a row from sync data (used by SyncService).
+  Future<void> upsertRow(String table, Map<String, dynamic> row) async {
+    final d = await db;
+    await d.insert(table, row, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  /// Apply a remote deletion (used by SyncService).
+  Future<void> applyDeletion(String table, String id) async {
+    final d = await db;
+    await d.delete(table, where: 'id = ?', whereArgs: [id]);
   }
 }

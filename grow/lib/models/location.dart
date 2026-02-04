@@ -16,6 +16,7 @@ class Location {
   final double? latitude;
   final double? longitude;
   final DateTime createdAt;
+  final DateTime updatedAt;
 
   Location({
     String? id,
@@ -25,8 +26,10 @@ class Location {
     this.latitude,
     this.longitude,
     DateTime? createdAt,
+    DateTime? updatedAt,
   })  : id = id ?? const Uuid().v4(),
-        createdAt = createdAt ?? DateTime.now();
+        createdAt = createdAt ?? DateTime.now(),
+        updatedAt = updatedAt ?? DateTime.now();
 
   Map<String, dynamic> toMap() => {
         'id': id,
@@ -36,6 +39,7 @@ class Location {
         'latitude': latitude,
         'longitude': longitude,
         'created_at': createdAt.toIso8601String(),
+        'updated_at': updatedAt.toIso8601String(),
       };
 
   factory Location.fromMap(Map<String, dynamic> map) => Location(
@@ -47,5 +51,8 @@ class Location {
         latitude: (map['latitude'] as num?)?.toDouble(),
         longitude: (map['longitude'] as num?)?.toDouble(),
         createdAt: DateTime.parse(map['created_at'] as String),
+        updatedAt: map['updated_at'] != null
+            ? DateTime.parse(map['updated_at'] as String)
+            : DateTime.parse(map['created_at'] as String),
       );
 }

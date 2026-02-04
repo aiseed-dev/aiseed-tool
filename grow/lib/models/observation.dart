@@ -16,6 +16,7 @@ class Observation {
   final DateTime date;
   final String memo;
   final DateTime createdAt;
+  final DateTime updatedAt;
 
   Observation({
     String? id,
@@ -25,9 +26,11 @@ class Observation {
     DateTime? date,
     this.memo = '',
     DateTime? createdAt,
+    DateTime? updatedAt,
   })  : id = id ?? const Uuid().v4(),
         date = date ?? DateTime.now(),
-        createdAt = createdAt ?? DateTime.now();
+        createdAt = createdAt ?? DateTime.now(),
+        updatedAt = updatedAt ?? DateTime.now();
 
   Map<String, dynamic> toMap() => {
         'id': id,
@@ -37,6 +40,7 @@ class Observation {
         'date': date.toIso8601String(),
         'memo': memo,
         'created_at': createdAt.toIso8601String(),
+        'updated_at': updatedAt.toIso8601String(),
       };
 
   factory Observation.fromMap(Map<String, dynamic> map) => Observation(
@@ -48,6 +52,9 @@ class Observation {
         date: DateTime.parse(map['date'] as String),
         memo: (map['memo'] as String?) ?? '',
         createdAt: DateTime.parse(map['created_at'] as String),
+        updatedAt: map['updated_at'] != null
+            ? DateTime.parse(map['updated_at'] as String)
+            : DateTime.parse(map['created_at'] as String),
       );
 }
 
@@ -58,6 +65,7 @@ class ObservationEntry {
   final String key;    // e.g. "temperature", "humidity", "soil_ph"
   final double value;
   final String unit;   // e.g. "°C", "%", "pH"
+  final DateTime updatedAt;
 
   ObservationEntry({
     String? id,
@@ -65,7 +73,9 @@ class ObservationEntry {
     required this.key,
     required this.value,
     this.unit = '',
-  }) : id = id ?? const Uuid().v4();
+    DateTime? updatedAt,
+  })  : id = id ?? const Uuid().v4(),
+        updatedAt = updatedAt ?? DateTime.now();
 
   Map<String, dynamic> toMap() => {
         'id': id,
@@ -73,6 +83,7 @@ class ObservationEntry {
         'key': key,
         'value': value,
         'unit': unit,
+        'updated_at': updatedAt.toIso8601String(),
       };
 
   factory ObservationEntry.fromMap(Map<String, dynamic> map) =>
@@ -82,5 +93,8 @@ class ObservationEntry {
         key: map['key'] as String,
         value: (map['value'] as num).toDouble(),
         unit: (map['unit'] as String?) ?? '',
+        updatedAt: map['updated_at'] != null
+            ? DateTime.parse(map['updated_at'] as String)
+            : DateTime.now(),
       );
 }

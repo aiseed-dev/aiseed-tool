@@ -6,6 +6,7 @@ import {
   handlePhotoDelete,
   handlePhotoList,
 } from "./photos";
+import { handleSyncPull, handleSyncPush } from "./sync";
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -27,6 +28,14 @@ export default {
       // Routes
       if (path === "/identify" && request.method === "POST") {
         return withCors(await handleIdentify(request, env));
+      }
+
+      if (path === "/sync/pull" && request.method === "POST") {
+        return withCors(await handleSyncPull(request, env));
+      }
+
+      if (path === "/sync/push" && request.method === "POST") {
+        return withCors(await handleSyncPush(request, env));
       }
 
       if (path === "/photos" && request.method === "POST") {

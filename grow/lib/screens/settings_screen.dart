@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_localizations.dart';
 import '../services/plant_identification_service.dart';
+import '../services/sync_service.dart';
+import '../services/database_service.dart';
 
 const kPlantIdProviderPref = 'plant_id_provider';
 const kPlantIdApiKeyPref = 'plant_id_api_key';
@@ -28,9 +30,11 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   PlantIdProvider _provider = PlantIdProvider.off;
+  SyncMode _syncMode = SyncMode.local;
   String _plantIdApiKey = '';
   String _serverUrl = '';
   String _serverToken = '';
+  bool _syncing = false;
 
   @override
   void initState() {
@@ -45,6 +49,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final providerIndex = prefs.getInt(kPlantIdProviderPref) ?? 0;
       _provider = PlantIdProvider.values[
           providerIndex.clamp(0, PlantIdProvider.values.length - 1)];
+      final syncIndex = prefs.getInt(kSyncModePref) ?? 0;
+      _syncMode = SyncMode.values[
+          syncIndex.clamp(0, SyncMode.values.length - 1)];
       _plantIdApiKey = prefs.getString(kPlantIdApiKeyPref) ?? '';
       _serverUrl = prefs.getString(kServerUrlPref) ?? '';
       _serverToken = prefs.getString(kServerTokenPref) ?? '';
@@ -116,9 +123,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const Divider(height: 1),
           ],
-          if (_provider == PlantIdProvider.server) ...[
+          // Server URL & token (shown when server provider or cloudflare sync)
+          if (_provider == PlantIdProvider.server ||
+              _syncMode == SyncMode.cloudflare) ...[
             ListTile(
-              leading: const SizedBox(width: 24),
+              leading: const Icon(Icons.dns),
               title: Text(l.serverUrl),
               subtitle: Text(
                 _serverUrl.isEmpty ? l.serverUrlHint : _serverUrl,
@@ -159,6 +168,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   setState(() => _serverToken = v);
                 },
               ),
+            ),
+            const Divider(height: 1),
+          ],
+          // Data sync
+          ListTile(
+            leading: const Icon(Icons.sync),
+            title: Text(l.dataSync),
+            subtitle: Text(_syncModeLabel(l, _syncMode)),
+            onTap: () => _showSyncModeDialog(context, l),
+          ),
+          const Divider(height: 1),
+          if (_syncMode == SyncMode.cloudflare) ...[
+            ListTile(
+              leading: const SizedBox(width: 24),
+              title: Text(l.syncNow),
+              subtitle: _syncing ? Text(l.syncing) : null,
+              trailing: _syncing
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.cloud_upload),
+              onTap: _syncing ? null : () => _runSync(context, l),
             ),
             const Divider(height: 1),
           ],
@@ -335,6 +368,106 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  String _syncModeLabel(AppLocalizations l, SyncMode mode) {
+    switch (mode) {
+      case SyncMode.local:
+        return l.syncModeLocal;
+      case SyncMode.cloudflare:
+        return l.syncModeCloudflare;
+    }
+  }
+
+  void _showSyncModeDialog(BuildContext context, AppLocalizations l) {
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l.dataSync),
+        children: [
+          _syncModeOption(ctx, l,
+              mode: SyncMode.local,
+              title: l.syncModeLocal,
+              subtitle: l.syncModeLocalDesc),
+          _syncModeOption(ctx, l,
+              mode: SyncMode.cloudflare,
+              title: l.syncModeCloudflare,
+              subtitle: l.syncModeCloudflareDesc),
+        ],
+      ),
+    );
+  }
+
+  Widget _syncModeOption(
+    BuildContext ctx,
+    AppLocalizations l, {
+    required SyncMode mode,
+    required String title,
+    required String subtitle,
+  }) {
+    final isSelected = _syncMode == mode;
+    return SimpleDialogOption(
+      onPressed: () async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt(kSyncModePref, mode.index);
+        if (!mounted) return;
+        setState(() => _syncMode = mode);
+        if (ctx.mounted) Navigator.pop(ctx);
+      },
+      child: Row(
+        children: [
+          Icon(
+            isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+            size: 20,
+            color: isSelected
+                ? Theme.of(ctx).colorScheme.primary
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title),
+                Text(subtitle, style: Theme.of(ctx).textTheme.bodySmall),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _runSync(BuildContext context, AppLocalizations l) async {
+    if (_serverUrl.isEmpty || _serverToken.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.serverUrlHint)),
+      );
+      return;
+    }
+    setState(() => _syncing = true);
+    try {
+      final syncService = SyncService(
+        db: DatabaseService(),
+        serverUrl: _serverUrl,
+        serverToken: _serverToken,
+      );
+      final result = await syncService.sync();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l.syncComplete(
+            result.pulled, result.pushed, result.photosUploaded)),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.syncFailed)),
+      );
+    } finally {
+      if (mounted) setState(() => _syncing = false);
+    }
   }
 
   Future<void> _showTextDialog(

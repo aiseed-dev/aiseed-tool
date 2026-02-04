@@ -7,6 +7,12 @@ compatibility_date = "2024-06-20"
 binding = "PHOTOS"
 bucket_name = "grow-photos"
 
+# D1 database for data sync
+[[d1_databases]]
+binding = "DB"
+database_name = "grow-db"
+database_id = "" # Set after running: npx wrangler d1 create grow-db
+
 # Environment variables (set via `wrangler secret put`)
 # AUTH_TOKEN    - Bearer token for app authentication
 # ANTHROPIC_KEY - Anthropic API key for Claude Vision

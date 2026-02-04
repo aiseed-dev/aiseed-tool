@@ -1,5 +1,6 @@
 export interface Env {
   PHOTOS: R2Bucket;
+  DB: D1Database;
   AUTH_TOKEN: string;
   ANTHROPIC_KEY: string;
 }
