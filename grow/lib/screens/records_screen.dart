@@ -11,6 +11,7 @@ import '../models/record_photo.dart';
 import '../services/database_service.dart';
 import '../services/image_analysis_service.dart';
 import '../services/location_service.dart';
+import '../services/exif_service.dart';
 import '../services/photo_service.dart';
 import '../services/plant_identification_service.dart';
 import 'settings_screen.dart';
@@ -28,6 +29,7 @@ class RecordsScreen extends StatefulWidget {
 
 class _RecordsScreenState extends State<RecordsScreen> {
   final _photoService = PhotoService();
+  final _exifService = ExifService();
   final _locationService = LocationService();
   final _imageAnalysis = ImageAnalysisService();
   final _picker = ImagePicker();
@@ -744,12 +746,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
           newPhotoPaths.add(f.path);
         }
       });
-      // Set record date from first photo's file date
-      try {
-        final firstFile = File(xFiles.first.path);
-        final lastModified = await firstFile.lastModified();
-        setDialogState(() => onDateDetected(lastModified));
-      } catch (_) {}
+      // Set record date from first photo's EXIF date (fallback: file date)
+      final photoDate = await _exifService.getPhotoDate(xFiles.first.path);
+      if (photoDate != null) {
+        setDialogState(() => onDateDetected(photoDate));
+      }
       // Analyze only the first selected photo for auto-link suggestion
       _analyzeAndSuggest(
         imagePath: xFiles.first.path,
