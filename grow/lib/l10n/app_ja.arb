@@ -77,5 +77,25 @@
   "getLocation": "現在地を取得",
   "locationSet": "位置情報を設定しました",
   "locationFailed": "位置情報を取得できませんでした",
-  "autoLinkNearest": "現在地から自動選択"
+  "autoLinkNearest": "現在地から自動選択",
+  "analyzing": "写真を分析中…",
+  "plantDetected": "植物を検出しました",
+  "landscapeDetected": "風景写真と判定しました",
+  "noPlantDetected": "植物は検出されませんでした",
+  "identifyingPlant": "作物を同定中…",
+  "plantIdentified": "推定: {name}",
+  "@plantIdentified": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "suggestedLink": "自動提案: {target}",
+  "@suggestedLink": {
+    "placeholders": {
+      "target": { "type": "String" }
+    }
+  },
+  "apiKeyNotSet": "作物同定APIキーが未設定です",
+  "plantIdApiKey": "Plant.id APIキー",
+  "plantIdApiKeyHint": "APIキーを入力（任意）"
 }

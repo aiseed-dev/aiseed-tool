@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_localizations.dart';
 import '../models/crop.dart';
 import '../models/location.dart';
@@ -8,8 +9,11 @@ import '../models/plot.dart';
 import '../models/record.dart';
 import '../models/record_photo.dart';
 import '../services/database_service.dart';
+import '../services/image_analysis_service.dart';
 import '../services/location_service.dart';
 import '../services/photo_service.dart';
+import '../services/plant_identification_service.dart';
+import 'settings_screen.dart';
 
 enum _LinkType { location, plot, crop }
 
@@ -25,6 +29,7 @@ class RecordsScreen extends StatefulWidget {
 class _RecordsScreenState extends State<RecordsScreen> {
   final _photoService = PhotoService();
   final _locationService = LocationService();
+  final _imageAnalysis = ImageAnalysisService();
   final _picker = ImagePicker();
   List<GrowRecord> _records = [];
   List<Crop> _crops = [];
@@ -37,6 +42,12 @@ class _RecordsScreenState extends State<RecordsScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _imageAnalysis.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -104,13 +115,118 @@ class _RecordsScreenState extends State<RecordsScreen> {
     return _LinkType.crop;
   }
 
+  /// 写真を分析して、リンク先を自動提案する
+  Future<void> _analyzeAndSuggest({
+    required String imagePath,
+    required StateSetter setDialogState,
+    required ValueNotifier<_LinkType> linkType,
+    required ValueNotifier<String?> selectedCropId,
+    required ValueNotifier<String?> selectedLocationId,
+    required ValueNotifier<String?> selectedPlotId,
+    required ValueNotifier<String> analysisStatus,
+  }) async {
+    final l = AppLocalizations.of(context)!;
+
+    // Stage 1: ML Kit on-device classification
+    analysisStatus.value = l.analyzing;
+    setDialogState(() {});
+
+    final result = await _imageAnalysis.analyze(imagePath);
+
+    if (result.hasPlant) {
+      analysisStatus.value = l.plantDetected;
+      setDialogState(() {});
+
+      // Stage 2: Cloud API for crop identification (if available)
+      final prefs = await SharedPreferences.getInstance();
+      final apiKey = prefs.getString(kPlantIdApiKeyPref) ?? '';
+      final plantIdService = PlantIdService(apiKey: apiKey);
+
+      if (plantIdService.isAvailable) {
+        analysisStatus.value = l.identifyingPlant;
+        setDialogState(() {});
+
+        final identifications = await plantIdService.identify(imagePath);
+
+        if (identifications.isNotEmpty) {
+          final bestMatch = identifications.first;
+          analysisStatus.value = l.plantIdentified(bestMatch.name);
+          setDialogState(() {});
+
+          // Stage 3: Auto-suggest link based on crop name match
+          final matchedCrop = _findCropByName(bestMatch.name);
+          if (matchedCrop != null) {
+            linkType.value = _LinkType.crop;
+            selectedCropId.value = matchedCrop.id;
+            selectedLocationId.value = null;
+            selectedPlotId.value = null;
+            analysisStatus.value =
+                l.suggestedLink(matchedCrop.cultivationName);
+            setDialogState(() {});
+            return;
+          }
+        }
+      }
+
+      // Plant detected but no crop match - suggest crop link type
+      if (_crops.isNotEmpty && linkType.value != _LinkType.crop) {
+        linkType.value = _LinkType.crop;
+        selectedCropId.value = _crops.first.id;
+        selectedLocationId.value = null;
+        selectedPlotId.value = null;
+        setDialogState(() {});
+      }
+    } else if (result.isLandscape) {
+      analysisStatus.value = l.landscapeDetected;
+      setDialogState(() {});
+
+      // Landscape → suggest location or plot link
+      if (_allPlots.isNotEmpty && linkType.value == _LinkType.crop) {
+        linkType.value = _LinkType.plot;
+        selectedCropId.value = null;
+        selectedPlotId.value = _allPlots.first.id;
+        selectedLocationId.value = null;
+        setDialogState(() {});
+      } else if (_locations.isNotEmpty && linkType.value == _LinkType.crop) {
+        linkType.value = _LinkType.location;
+        selectedCropId.value = null;
+        selectedPlotId.value = null;
+        selectedLocationId.value = _locations.first.id;
+        setDialogState(() {});
+      }
+    } else {
+      analysisStatus.value = l.noPlantDetected;
+      setDialogState(() {});
+    }
+  }
+
+  /// 作物名でCropを検索（部分一致）
+  Crop? _findCropByName(String plantName) {
+    final lower = plantName.toLowerCase();
+    for (final crop in _crops) {
+      final cropNameLower = crop.name.toLowerCase();
+      final cultivationLower = crop.cultivationName.toLowerCase();
+      if (cropNameLower.isNotEmpty && lower.contains(cropNameLower)) {
+        return crop;
+      }
+      if (cultivationLower.isNotEmpty && lower.contains(cultivationLower)) {
+        return crop;
+      }
+      if (cropNameLower.isNotEmpty && cropNameLower.contains(lower)) {
+        return crop;
+      }
+    }
+    return null;
+  }
+
   Future<void> _showForm({GrowRecord? existing}) async {
     final l = AppLocalizations.of(context)!;
 
-    var linkType = _detectLinkType(existing);
-    String? selectedCropId = existing?.cropId;
-    String? selectedLocationId = existing?.locationId;
-    String? selectedPlotId = existing?.plotId;
+    final linkType = ValueNotifier(_detectLinkType(existing));
+    final selectedCropId = ValueNotifier<String?>(existing?.cropId);
+    final selectedLocationId = ValueNotifier<String?>(existing?.locationId);
+    final selectedPlotId = ValueNotifier<String?>(existing?.plotId);
+    final analysisStatus = ValueNotifier<String>('');
 
     // Set defaults for new records - try GPS auto-detect first
     if (existing == null) {
@@ -123,35 +239,35 @@ class _RecordsScreenState extends State<RecordsScreen> {
       }
 
       if (nearestLoc != null) {
-        // Find plots at this location, pick crop linked to a plot there
         final plotsAtLoc = _allPlots
             .where((p) => p.locationId == nearestLoc!.id)
             .toList();
         final cropAtLoc = plotsAtLoc.isNotEmpty
-            ? _crops.where((c) => plotsAtLoc.any((p) => p.id == c.plotId)).firstOrNull
+            ? _crops
+                .where((c) => plotsAtLoc.any((p) => p.id == c.plotId))
+                .firstOrNull
             : null;
 
         if (cropAtLoc != null) {
-          linkType = _LinkType.crop;
-          selectedCropId = cropAtLoc.id;
+          linkType.value = _LinkType.crop;
+          selectedCropId.value = cropAtLoc.id;
         } else if (plotsAtLoc.isNotEmpty) {
-          linkType = _LinkType.plot;
-          selectedPlotId = plotsAtLoc.first.id;
+          linkType.value = _LinkType.plot;
+          selectedPlotId.value = plotsAtLoc.first.id;
         } else {
-          linkType = _LinkType.location;
-          selectedLocationId = nearestLoc.id;
+          linkType.value = _LinkType.location;
+          selectedLocationId.value = nearestLoc.id;
         }
       } else {
-        // Fallback: no GPS match
         if (_crops.isNotEmpty) {
-          linkType = _LinkType.crop;
-          selectedCropId = _crops.first.id;
+          linkType.value = _LinkType.crop;
+          selectedCropId.value = _crops.first.id;
         } else if (_allPlots.isNotEmpty) {
-          linkType = _LinkType.plot;
-          selectedPlotId = _allPlots.first.id;
+          linkType.value = _LinkType.plot;
+          selectedPlotId.value = _allPlots.first.id;
         } else if (_locations.isNotEmpty) {
-          linkType = _LinkType.location;
-          selectedLocationId = _locations.first.id;
+          linkType.value = _LinkType.location;
+          selectedLocationId.value = _locations.first.id;
         }
       }
     }
@@ -185,95 +301,151 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   // Photo area
                   _buildPhotoArea(
                     ctx, l, existingPhotos, newPhotoPaths, setDialogState,
+                    linkType: linkType,
+                    selectedCropId: selectedCropId,
+                    selectedLocationId: selectedLocationId,
+                    selectedPlotId: selectedPlotId,
+                    analysisStatus: analysisStatus,
+                  ),
+                  // Analysis status chip
+                  ValueListenableBuilder<String>(
+                    valueListenable: analysisStatus,
+                    builder: (_, status, __) {
+                      if (status.isEmpty) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Chip(
+                          avatar: const Icon(Icons.auto_awesome, size: 16),
+                          label: Text(
+                            status,
+                            style: Theme.of(ctx).textTheme.bodySmall,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
                   // Link type selector
-                  DropdownButtonFormField<_LinkType>(
-                    value: linkType,
-                    decoration: InputDecoration(labelText: l.linkTarget),
-                    items: [
-                      if (_locations.isNotEmpty)
-                        DropdownMenuItem(
-                          value: _LinkType.location,
-                          child: Text(l.linkToLocation),
-                        ),
-                      if (_allPlots.isNotEmpty)
-                        DropdownMenuItem(
-                          value: _LinkType.plot,
-                          child: Text(l.linkToPlot),
-                        ),
-                      if (_crops.isNotEmpty)
-                        DropdownMenuItem(
-                          value: _LinkType.crop,
-                          child: Text(l.linkToCrop),
-                        ),
-                    ],
-                    onChanged: (v) {
-                      if (v == null) return;
-                      setDialogState(() {
-                        linkType = v;
-                        selectedCropId =
-                            v == _LinkType.crop && _crops.isNotEmpty
-                                ? _crops.first.id
-                                : null;
-                        selectedLocationId =
-                            v == _LinkType.location && _locations.isNotEmpty
-                                ? _locations.first.id
-                                : null;
-                        selectedPlotId =
-                            v == _LinkType.plot && _allPlots.isNotEmpty
-                                ? _allPlots.first.id
-                                : null;
-                      });
-                    },
+                  ValueListenableBuilder<_LinkType>(
+                    valueListenable: linkType,
+                    builder: (_, currentLinkType, __) =>
+                        DropdownButtonFormField<_LinkType>(
+                      value: currentLinkType,
+                      decoration: InputDecoration(labelText: l.linkTarget),
+                      items: [
+                        if (_locations.isNotEmpty)
+                          DropdownMenuItem(
+                            value: _LinkType.location,
+                            child: Text(l.linkToLocation),
+                          ),
+                        if (_allPlots.isNotEmpty)
+                          DropdownMenuItem(
+                            value: _LinkType.plot,
+                            child: Text(l.linkToPlot),
+                          ),
+                        if (_crops.isNotEmpty)
+                          DropdownMenuItem(
+                            value: _LinkType.crop,
+                            child: Text(l.linkToCrop),
+                          ),
+                      ],
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setDialogState(() {
+                          linkType.value = v;
+                          selectedCropId.value =
+                              v == _LinkType.crop && _crops.isNotEmpty
+                                  ? _crops.first.id
+                                  : null;
+                          selectedLocationId.value =
+                              v == _LinkType.location && _locations.isNotEmpty
+                                  ? _locations.first.id
+                                  : null;
+                          selectedPlotId.value =
+                              v == _LinkType.plot && _allPlots.isNotEmpty
+                                  ? _allPlots.first.id
+                                  : null;
+                        });
+                      },
+                    ),
                   ),
                   const SizedBox(height: 12),
                   // Link target selector based on type
-                  if (linkType == _LinkType.crop && _crops.isNotEmpty)
-                    DropdownButtonFormField<String>(
-                      value: selectedCropId ?? _crops.first.id,
-                      decoration: InputDecoration(labelText: l.crops),
-                      items: _crops
-                          .map((c) => DropdownMenuItem(
-                                value: c.id,
-                                child: Text(c.cultivationName),
-                              ))
-                          .toList(),
-                      onChanged: (v) =>
-                          setDialogState(() => selectedCropId = v),
-                    ),
-                  if (linkType == _LinkType.location && _locations.isNotEmpty)
-                    DropdownButtonFormField<String>(
-                      value: selectedLocationId ?? _locations.first.id,
-                      decoration: InputDecoration(labelText: l.locations),
-                      items: _locations
-                          .map((loc) => DropdownMenuItem(
-                                value: loc.id,
-                                child: Text(loc.name),
-                              ))
-                          .toList(),
-                      onChanged: (v) =>
-                          setDialogState(() => selectedLocationId = v),
-                    ),
-                  if (linkType == _LinkType.plot && _allPlots.isNotEmpty)
-                    DropdownButtonFormField<String>(
-                      value: selectedPlotId ?? _allPlots.first.id,
-                      decoration: InputDecoration(labelText: l.plots),
-                      items: _allPlots.map((plot) {
-                        final loc = _locations
-                            .where((lo) => lo.id == plot.locationId)
-                            .firstOrNull;
-                        final label = loc != null
-                            ? '${loc.name} / ${plot.name}'
-                            : plot.name;
-                        return DropdownMenuItem(
-                          value: plot.id,
-                          child: Text(label),
+                  ValueListenableBuilder<_LinkType>(
+                    valueListenable: linkType,
+                    builder: (_, currentLinkType, __) {
+                      if (currentLinkType == _LinkType.crop &&
+                          _crops.isNotEmpty) {
+                        return ValueListenableBuilder<String?>(
+                          valueListenable: selectedCropId,
+                          builder: (_, cropId, __) =>
+                              DropdownButtonFormField<String>(
+                            key: ValueKey('crop_$cropId'),
+                            value: cropId ?? _crops.first.id,
+                            decoration:
+                                InputDecoration(labelText: l.crops),
+                            items: _crops
+                                .map((c) => DropdownMenuItem(
+                                      value: c.id,
+                                      child: Text(c.cultivationName),
+                                    ))
+                                .toList(),
+                            onChanged: (v) => selectedCropId.value = v,
+                          ),
                         );
-                      }).toList(),
-                      onChanged: (v) =>
-                          setDialogState(() => selectedPlotId = v),
-                    ),
+                      }
+                      if (currentLinkType == _LinkType.location &&
+                          _locations.isNotEmpty) {
+                        return ValueListenableBuilder<String?>(
+                          valueListenable: selectedLocationId,
+                          builder: (_, locId, __) =>
+                              DropdownButtonFormField<String>(
+                            key: ValueKey('loc_$locId'),
+                            value: locId ?? _locations.first.id,
+                            decoration:
+                                InputDecoration(labelText: l.locations),
+                            items: _locations
+                                .map((loc) => DropdownMenuItem(
+                                      value: loc.id,
+                                      child: Text(loc.name),
+                                    ))
+                                .toList(),
+                            onChanged: (v) =>
+                                selectedLocationId.value = v,
+                          ),
+                        );
+                      }
+                      if (currentLinkType == _LinkType.plot &&
+                          _allPlots.isNotEmpty) {
+                        return ValueListenableBuilder<String?>(
+                          valueListenable: selectedPlotId,
+                          builder: (_, plotId, __) =>
+                              DropdownButtonFormField<String>(
+                            key: ValueKey('plot_$plotId'),
+                            value: plotId ?? _allPlots.first.id,
+                            decoration:
+                                InputDecoration(labelText: l.plots),
+                            items: _allPlots.map((plot) {
+                              final loc = _locations
+                                  .where(
+                                      (lo) => lo.id == plot.locationId)
+                                  .firstOrNull;
+                              final label = loc != null
+                                  ? '${loc.name} / ${plot.name}'
+                                  : plot.name;
+                              return DropdownMenuItem(
+                                value: plot.id,
+                                child: Text(label),
+                              );
+                            }).toList(),
+                            onChanged: (v) =>
+                                selectedPlotId.value = v,
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<ActivityType>(
                     value: selectedActivity,
@@ -340,9 +512,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
     final record = GrowRecord(
       id: existing?.id,
-      cropId: linkType == _LinkType.crop ? selectedCropId : null,
-      locationId: linkType == _LinkType.location ? selectedLocationId : null,
-      plotId: linkType == _LinkType.plot ? selectedPlotId : null,
+      cropId: linkType.value == _LinkType.crop ? selectedCropId.value : null,
+      locationId:
+          linkType.value == _LinkType.location ? selectedLocationId.value : null,
+      plotId: linkType.value == _LinkType.plot ? selectedPlotId.value : null,
       activityType: selectedActivity,
       date: selectedDate,
       note: noteCtrl.text.trim(),
@@ -374,8 +547,13 @@ class _RecordsScreenState extends State<RecordsScreen> {
     AppLocalizations l,
     List<RecordPhoto> existingPhotos,
     List<String> newPhotoPaths,
-    StateSetter setDialogState,
-  ) {
+    StateSetter setDialogState, {
+    required ValueNotifier<_LinkType> linkType,
+    required ValueNotifier<String?> selectedCropId,
+    required ValueNotifier<String?> selectedLocationId,
+    required ValueNotifier<String?> selectedPlotId,
+    required ValueNotifier<String> analysisStatus,
+  }) {
     final items = <Widget>[
       ...existingPhotos.map((photo) => _photoThumbnail(
             image: Image.file(
@@ -414,7 +592,14 @@ class _RecordsScreenState extends State<RecordsScreen> {
             },
           )),
       GestureDetector(
-        onTap: () => _showPhotoOptions(ctx, l, newPhotoPaths, setDialogState),
+        onTap: () => _showPhotoOptions(
+          ctx, l, newPhotoPaths, setDialogState,
+          linkType: linkType,
+          selectedCropId: selectedCropId,
+          selectedLocationId: selectedLocationId,
+          selectedPlotId: selectedPlotId,
+          analysisStatus: analysisStatus,
+        ),
         child: Container(
           width: 80,
           height: 80,
@@ -464,12 +649,49 @@ class _RecordsScreenState extends State<RecordsScreen> {
     );
   }
 
+  Future<void> _pickAndAnalyze({
+    required ImageSource source,
+    required List<String> newPhotoPaths,
+    required StateSetter setDialogState,
+    required ValueNotifier<_LinkType> linkType,
+    required ValueNotifier<String?> selectedCropId,
+    required ValueNotifier<String?> selectedLocationId,
+    required ValueNotifier<String?> selectedPlotId,
+    required ValueNotifier<String> analysisStatus,
+  }) async {
+    final xFile = await _picker.pickImage(
+      source: source,
+      maxWidth: 1920,
+      imageQuality: 85,
+      requestFullMetadata: false,
+    );
+    if (xFile == null) return;
+
+    setDialogState(() => newPhotoPaths.add(xFile.path));
+
+    // Run AI analysis on the photo
+    _analyzeAndSuggest(
+      imagePath: xFile.path,
+      setDialogState: setDialogState,
+      linkType: linkType,
+      selectedCropId: selectedCropId,
+      selectedLocationId: selectedLocationId,
+      selectedPlotId: selectedPlotId,
+      analysisStatus: analysisStatus,
+    );
+  }
+
   void _showPhotoOptions(
     BuildContext ctx,
     AppLocalizations l,
     List<String> newPhotoPaths,
-    StateSetter setDialogState,
-  ) {
+    StateSetter setDialogState, {
+    required ValueNotifier<_LinkType> linkType,
+    required ValueNotifier<String?> selectedCropId,
+    required ValueNotifier<String?> selectedLocationId,
+    required ValueNotifier<String?> selectedPlotId,
+    required ValueNotifier<String> analysisStatus,
+  }) {
     showModalBottomSheet(
       context: ctx,
       builder: (bsCtx) => SafeArea(
@@ -479,33 +701,35 @@ class _RecordsScreenState extends State<RecordsScreen> {
             ListTile(
               leading: const Icon(Icons.camera_alt),
               title: Text(l.takePhoto),
-              onTap: () async {
+              onTap: () {
                 Navigator.pop(bsCtx);
-                final xFile = await _picker.pickImage(
+                _pickAndAnalyze(
                   source: ImageSource.camera,
-                  maxWidth: 1920,
-                  imageQuality: 85,
-                  requestFullMetadata: false,
+                  newPhotoPaths: newPhotoPaths,
+                  setDialogState: setDialogState,
+                  linkType: linkType,
+                  selectedCropId: selectedCropId,
+                  selectedLocationId: selectedLocationId,
+                  selectedPlotId: selectedPlotId,
+                  analysisStatus: analysisStatus,
                 );
-                if (xFile != null) {
-                  setDialogState(() => newPhotoPaths.add(xFile.path));
-                }
               },
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
               title: Text(l.pickFromGallery),
-              onTap: () async {
+              onTap: () {
                 Navigator.pop(bsCtx);
-                final xFile = await _picker.pickImage(
+                _pickAndAnalyze(
                   source: ImageSource.gallery,
-                  maxWidth: 1920,
-                  imageQuality: 85,
-                  requestFullMetadata: false,
+                  newPhotoPaths: newPhotoPaths,
+                  setDialogState: setDialogState,
+                  linkType: linkType,
+                  selectedCropId: selectedCropId,
+                  selectedLocationId: selectedLocationId,
+                  selectedPlotId: selectedPlotId,
+                  analysisStatus: analysisStatus,
                 );
-                if (xFile != null) {
-                  setDialogState(() => newPhotoPaths.add(xFile.path));
-                }
               },
             ),
           ],

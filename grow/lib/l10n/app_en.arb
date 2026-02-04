@@ -77,5 +77,15 @@
   "getLocation": "Get current location",
   "locationSet": "Location set",
   "locationFailed": "Could not get location",
-  "autoLinkNearest": "Auto-select from current location"
+  "autoLinkNearest": "Auto-select from current location",
+  "analyzing": "Analyzing photo…",
+  "plantDetected": "Plant detected",
+  "landscapeDetected": "Landscape photo detected",
+  "noPlantDetected": "No plant detected",
+  "identifyingPlant": "Identifying plant…",
+  "plantIdentified": "Estimated: {name}",
+  "suggestedLink": "Suggested: {target}",
+  "apiKeyNotSet": "Plant identification API key not set",
+  "plantIdApiKey": "Plant.id API Key",
+  "plantIdApiKeyHint": "Enter API key (optional)"
 }
