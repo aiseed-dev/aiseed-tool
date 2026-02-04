@@ -33,9 +33,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     final screens = [
-      LocationsScreen(db: widget.db),
-      CropsScreen(db: widget.db),
       RecordsScreen(db: widget.db),
+      CropsScreen(db: widget.db),
+      LocationsScreen(db: widget.db),
       SettingsScreen(
         onThemeModeChanged: widget.onThemeModeChanged,
         onLocaleChanged: widget.onLocaleChanged,
@@ -51,9 +51,9 @@ class _HomeScreenState extends State<HomeScreen> {
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: [
           NavigationDestination(
-            icon: const Icon(Icons.place_outlined),
-            selectedIcon: const Icon(Icons.place),
-            label: l.locations,
+            icon: const Icon(Icons.edit_note_outlined),
+            selectedIcon: const Icon(Icons.edit_note),
+            label: l.records,
           ),
           NavigationDestination(
             icon: const Icon(Icons.eco_outlined),
@@ -61,9 +61,9 @@ class _HomeScreenState extends State<HomeScreen> {
             label: l.crops,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.edit_note_outlined),
-            selectedIcon: const Icon(Icons.edit_note),
-            label: l.records,
+            icon: const Icon(Icons.place_outlined),
+            selectedIcon: const Icon(Icons.place),
+            label: l.locations,
           ),
           NavigationDestination(
             icon: const Icon(Icons.settings_outlined),
