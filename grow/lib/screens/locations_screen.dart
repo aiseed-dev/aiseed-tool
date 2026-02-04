@@ -5,6 +5,7 @@ import '../models/location.dart';
 import '../models/plot.dart';
 import '../services/database_service.dart';
 import '../services/location_service.dart';
+import 'crop_detail_screen.dart';
 
 class LocationsScreen extends StatefulWidget {
   final DatabaseService db;
@@ -734,6 +735,18 @@ class _PlotDetailScreenState extends State<_PlotDetailScreen> {
                                 title: Text(crop.cultivationName),
                                 subtitle:
                                     subtitle.isNotEmpty ? Text(subtitle) : null,
+                                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                                onTap: () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => CropDetailScreen(
+                                        db: widget.db,
+                                        crop: crop,
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             );
                           },

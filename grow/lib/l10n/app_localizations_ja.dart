@@ -346,4 +346,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get noCropsInPlot => 'この区画にはまだ栽培がありません';
+
+  @override
+  String get growthTimeline => '成長タイムライン';
+
+  @override
+  String get createHomepage => 'ホームページを作成';
+
+  @override
+  String get createHomepageDesc => 'この栽培の紹介ページを作成します';
+
+  @override
+  String get homepageComingSoon => 'ホームページ作成機能は準備中です';
 }

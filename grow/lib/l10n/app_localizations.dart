@@ -763,6 +763,30 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'この区画にはまだ栽培がありません'**
   String get noCropsInPlot;
+
+  /// No description provided for @growthTimeline.
+  ///
+  /// In ja, this message translates to:
+  /// **'成長タイムライン'**
+  String get growthTimeline;
+
+  /// No description provided for @createHomepage.
+  ///
+  /// In ja, this message translates to:
+  /// **'ホームページを作成'**
+  String get createHomepage;
+
+  /// No description provided for @createHomepageDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'この栽培の紹介ページを作成します'**
+  String get createHomepageDesc;
+
+  /// No description provided for @homepageComingSoon.
+  ///
+  /// In ja, this message translates to:
+  /// **'ホームページ作成機能は準備中です'**
+  String get homepageComingSoon;
 }
 
 class _AppLocalizationsDelegate

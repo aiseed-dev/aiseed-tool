@@ -117,5 +117,9 @@
   "syncFailed": "Sync failed",
   "plotDetail": "Plot detail",
   "cropsInPlot": "Crops in this plot",
-  "noCropsInPlot": "No crops in this plot yet"
+  "noCropsInPlot": "No crops in this plot yet",
+  "growthTimeline": "Growth timeline",
+  "createHomepage": "Create homepage",
+  "createHomepageDesc": "Create a showcase page for this cultivation",
+  "homepageComingSoon": "Homepage creation is coming soon"
 }

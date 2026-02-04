@@ -127,5 +127,9 @@
   "syncFailed": "同期に失敗しました",
   "plotDetail": "区画詳細",
   "cropsInPlot": "この区画の栽培",
-  "noCropsInPlot": "この区画にはまだ栽培がありません"
+  "noCropsInPlot": "この区画にはまだ栽培がありません",
+  "growthTimeline": "成長タイムライン",
+  "createHomepage": "ホームページを作成",
+  "createHomepageDesc": "この栽培の紹介ページを作成します",
+  "homepageComingSoon": "ホームページ作成機能は準備中です"
 }

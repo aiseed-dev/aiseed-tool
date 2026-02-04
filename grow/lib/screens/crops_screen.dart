@@ -4,6 +4,7 @@ import '../models/location.dart';
 import '../models/plot.dart';
 import '../models/crop.dart';
 import '../services/database_service.dart';
+import 'crop_detail_screen.dart';
 
 class CropsScreen extends StatefulWidget {
   final DatabaseService db;
@@ -190,6 +191,16 @@ class _CropsScreenState extends State<CropsScreen> {
     _load();
   }
 
+  Future<void> _openCropDetail(Crop crop) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CropDetailScreen(db: widget.db, crop: crop),
+      ),
+    );
+    _load();
+  }
+
   Future<void> _delete(Crop crop) async {
     final l = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
@@ -243,7 +254,8 @@ class _CropsScreenState extends State<CropsScreen> {
                         leading: const Icon(Icons.eco),
                         title: Text(crop.cultivationName),
                         subtitle: subtitle.isNotEmpty ? Text(subtitle) : null,
-                        onTap: () => _showForm(existing: crop),
+                        onTap: () => _openCropDetail(crop),
+                        onLongPress: () => _showForm(existing: crop),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete_outline),
                           onPressed: () => _delete(crop),

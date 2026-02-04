@@ -347,4 +347,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noCropsInPlot => 'No crops in this plot yet';
+
+  @override
+  String get growthTimeline => 'Growth timeline';
+
+  @override
+  String get createHomepage => 'Create homepage';
+
+  @override
+  String get createHomepageDesc => 'Create a showcase page for this cultivation';
+
+  @override
+  String get homepageComingSoon => 'Homepage creation is coming soon';
 }
