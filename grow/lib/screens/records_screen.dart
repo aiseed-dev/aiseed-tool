@@ -727,26 +727,48 @@ class _RecordsScreenState extends State<RecordsScreen> {
     required ValueNotifier<String?> selectedPlotId,
     required ValueNotifier<String> analysisStatus,
   }) async {
-    final xFile = await _picker.pickImage(
-      source: source,
-      maxWidth: 1920,
-      imageQuality: 85,
-      requestFullMetadata: false,
-    );
-    if (xFile == null) return;
-
-    setDialogState(() => newPhotoPaths.add(xFile.path));
-
-    // Run AI analysis on the photo
-    _analyzeAndSuggest(
-      imagePath: xFile.path,
-      setDialogState: setDialogState,
-      linkType: linkType,
-      selectedCropId: selectedCropId,
-      selectedLocationId: selectedLocationId,
-      selectedPlotId: selectedPlotId,
-      analysisStatus: analysisStatus,
-    );
+    // Gallery: allow multi-select; Camera: single
+    if (source == ImageSource.gallery) {
+      final xFiles = await _picker.pickMultiImage(
+        maxWidth: 1920,
+        imageQuality: 85,
+        requestFullMetadata: false,
+      );
+      if (xFiles.isEmpty) return;
+      setDialogState(() {
+        for (final f in xFiles) {
+          newPhotoPaths.add(f.path);
+        }
+      });
+      // Analyze only the first selected photo for auto-link suggestion
+      _analyzeAndSuggest(
+        imagePath: xFiles.first.path,
+        setDialogState: setDialogState,
+        linkType: linkType,
+        selectedCropId: selectedCropId,
+        selectedLocationId: selectedLocationId,
+        selectedPlotId: selectedPlotId,
+        analysisStatus: analysisStatus,
+      );
+    } else {
+      final xFile = await _picker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        imageQuality: 85,
+        requestFullMetadata: false,
+      );
+      if (xFile == null) return;
+      setDialogState(() => newPhotoPaths.add(xFile.path));
+      _analyzeAndSuggest(
+        imagePath: xFile.path,
+        setDialogState: setDialogState,
+        linkType: linkType,
+        selectedCropId: selectedCropId,
+        selectedLocationId: selectedLocationId,
+        selectedPlotId: selectedPlotId,
+        analysisStatus: analysisStatus,
+      );
+    }
   }
 
   void _showPhotoOptions(
