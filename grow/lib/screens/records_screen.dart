@@ -374,6 +374,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     selectedLocationId: selectedLocationId,
                     selectedPlotId: selectedPlotId,
                     analysisStatus: analysisStatus,
+                    onDateDetected: (date) => selectedDate = date,
                   ),
                   // Analysis status chip
                   ValueListenableBuilder<String>(
@@ -621,6 +622,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
     required ValueNotifier<String?> selectedLocationId,
     required ValueNotifier<String?> selectedPlotId,
     required ValueNotifier<String> analysisStatus,
+    required void Function(DateTime) onDateDetected,
   }) {
     final items = <Widget>[
       ...existingPhotos.map((photo) => _photoThumbnail(
@@ -667,6 +669,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
           selectedLocationId: selectedLocationId,
           selectedPlotId: selectedPlotId,
           analysisStatus: analysisStatus,
+          onDateDetected: onDateDetected,
         ),
         child: Container(
           width: 80,
@@ -726,6 +729,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
     required ValueNotifier<String?> selectedLocationId,
     required ValueNotifier<String?> selectedPlotId,
     required ValueNotifier<String> analysisStatus,
+    required void Function(DateTime) onDateDetected,
   }) async {
     // Gallery: allow multi-select; Camera: single
     if (source == ImageSource.gallery) {
@@ -740,6 +744,12 @@ class _RecordsScreenState extends State<RecordsScreen> {
           newPhotoPaths.add(f.path);
         }
       });
+      // Set record date from first photo's file date
+      try {
+        final firstFile = File(xFiles.first.path);
+        final lastModified = await firstFile.lastModified();
+        setDialogState(() => onDateDetected(lastModified));
+      } catch (_) {}
       // Analyze only the first selected photo for auto-link suggestion
       _analyzeAndSuggest(
         imagePath: xFiles.first.path,
@@ -781,6 +791,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
     required ValueNotifier<String?> selectedLocationId,
     required ValueNotifier<String?> selectedPlotId,
     required ValueNotifier<String> analysisStatus,
+    required void Function(DateTime) onDateDetected,
   }) {
     showModalBottomSheet(
       context: ctx,
@@ -802,6 +813,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   selectedLocationId: selectedLocationId,
                   selectedPlotId: selectedPlotId,
                   analysisStatus: analysisStatus,
+                  onDateDetected: onDateDetected,
                 );
               },
             ),
@@ -819,6 +831,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   selectedLocationId: selectedLocationId,
                   selectedPlotId: selectedPlotId,
                   analysisStatus: analysisStatus,
+                  onDateDetected: onDateDetected,
                 );
               },
             ),
