@@ -806,6 +806,36 @@ class _RecordsScreenState extends State<RecordsScreen> {
     );
   }
 
+  void _showRecordMenu(GrowRecord record) {
+    final l = AppLocalizations.of(context)!;
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: Text(l.editRecord),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showForm(existing: record);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: Text(l.delete),
+              onTap: () {
+                Navigator.pop(ctx);
+                _delete(record);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _delete(GrowRecord record) async {
     final l = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
@@ -935,6 +965,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                               clipBehavior: Clip.antiAlias,
                               child: InkWell(
                                 onTap: () => _showForm(existing: rec),
+                                onLongPress: () => _showRecordMenu(rec),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -978,10 +1009,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
                                         ].join('\n'),
                                       ),
                                       isThreeLine: rec.note.isNotEmpty,
-                                      trailing: IconButton(
-                                        icon: const Icon(Icons.delete_outline),
-                                        onPressed: () => _delete(rec),
-                                      ),
                                     ),
                                   ],
                                 ),

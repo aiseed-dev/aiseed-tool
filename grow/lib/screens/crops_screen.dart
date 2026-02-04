@@ -191,6 +191,36 @@ class _CropsScreenState extends State<CropsScreen> {
     _load();
   }
 
+  void _showCropMenu(Crop crop) {
+    final l = AppLocalizations.of(context)!;
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: Text(l.editCrop),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showForm(existing: crop);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: Text(l.delete),
+              onTap: () {
+                Navigator.pop(ctx);
+                _delete(crop);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _openCropDetail(Crop crop) async {
     await Navigator.push(
       context,
@@ -255,11 +285,7 @@ class _CropsScreenState extends State<CropsScreen> {
                         title: Text(crop.cultivationName),
                         subtitle: subtitle.isNotEmpty ? Text(subtitle) : null,
                         onTap: () => _openCropDetail(crop),
-                        onLongPress: () => _showForm(existing: crop),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline),
-                          onPressed: () => _delete(crop),
-                        ),
+                        onLongPress: () => _showCropMenu(crop),
                       ),
                     );
                   },

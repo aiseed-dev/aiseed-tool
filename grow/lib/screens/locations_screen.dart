@@ -183,6 +183,36 @@ class _LocationsScreenState extends State<LocationsScreen> {
     _load();
   }
 
+  void _showLocationMenu(Location location) {
+    final l = AppLocalizations.of(context)!;
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: Text(l.editLocation),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showLocationForm(existing: location);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: Text(l.delete),
+              onTap: () {
+                Navigator.pop(ctx);
+                _deleteLocation(location);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _openPlots(Location location) async {
     final result = await Navigator.push<String>(
       context,
@@ -223,11 +253,7 @@ class _LocationsScreenState extends State<LocationsScreen> {
                         title: Text(loc.name),
                         subtitle: Text(subtitle),
                         onTap: () => _openPlots(loc),
-                        onLongPress: () => _showLocationForm(existing: loc),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline),
-                          onPressed: () => _deleteLocation(loc),
-                        ),
+                        onLongPress: () => _showLocationMenu(loc),
                       ),
                     );
                   },
@@ -494,6 +520,36 @@ class _PlotsScreenState extends State<_PlotsScreen> {
     );
   }
 
+  void _showPlotMenu(Plot plot) {
+    final l = AppLocalizations.of(context)!;
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: Text(l.editPlot),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showForm(existing: plot);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: Text(l.delete),
+              onTap: () {
+                Navigator.pop(ctx);
+                _delete(plot);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _openPlotDetail(Plot plot) async {
     await Navigator.push(
       context,
@@ -556,11 +612,7 @@ class _PlotsScreenState extends State<_PlotsScreen> {
                                 subtitle:
                                     details.isNotEmpty ? Text(details) : null,
                                 onTap: () => _openPlotDetail(plot),
-                                onLongPress: () => _showForm(existing: plot),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.delete_outline),
-                                  onPressed: () => _delete(plot),
-                                ),
+                                onLongPress: () => _showPlotMenu(plot),
                               ),
                             );
                           },
