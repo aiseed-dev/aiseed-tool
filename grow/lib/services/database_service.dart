@@ -9,7 +9,7 @@ import '../models/observation.dart';
 
 class DatabaseService {
   static const _dbName = 'grow.db';
-  static const _dbVersion = 11;
+  static const _dbVersion = 12;
 
   Database? _db;
 
@@ -228,6 +228,36 @@ class DatabaseService {
               PRIMARY KEY (id, table_name)
             )
           ''');
+        }
+        if (oldVersion < 12) {
+          // Remove location_id from crops table if it exists
+          // SQLite doesn't support DROP COLUMN before 3.35.0, so recreate
+          final cols = await db.rawQuery('PRAGMA table_info(crops)');
+          final colNames = cols.map((c) => c['name'] as String).toSet();
+          if (colNames.contains('location_id')) {
+            await db.execute('''
+              CREATE TABLE crops_new (
+                id TEXT PRIMARY KEY,
+                cultivation_name TEXT NOT NULL DEFAULT '',
+                name TEXT NOT NULL DEFAULT '',
+                variety TEXT NOT NULL DEFAULT '',
+                plot_id TEXT,
+                parent_crop_id TEXT,
+                memo TEXT NOT NULL DEFAULT '',
+                start_date TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (plot_id) REFERENCES plots(id) ON DELETE SET NULL,
+                FOREIGN KEY (parent_crop_id) REFERENCES crops_new(id) ON DELETE SET NULL
+              )
+            ''');
+            await db.execute('''
+              INSERT INTO crops_new (id, cultivation_name, name, variety, plot_id, parent_crop_id, memo, start_date, created_at, updated_at)
+              SELECT id, cultivation_name, name, variety, plot_id, parent_crop_id, memo, start_date, created_at, updated_at FROM crops
+            ''');
+            await db.execute('DROP TABLE crops');
+            await db.execute('ALTER TABLE crops_new RENAME TO crops');
+          }
         }
       },
     );
