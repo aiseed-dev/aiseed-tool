@@ -103,3 +103,8 @@ drafts/
 server/node_modules/
 server/.dev.vars
 server/.wrangler/
+
+# Desktop Python server (desktop/)
+desktop/.venv/
+desktop/.env
+desktop/photos/
