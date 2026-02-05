@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import '../l10n/app_localizations.dart';
 import '../models/location.dart';
+import '../models/plot.dart';
 import '../models/crop.dart';
 import '../services/database_service.dart';
+import 'crop_detail_screen.dart';
 
 class CropsScreen extends StatefulWidget {
   final DatabaseService db;
@@ -15,8 +17,8 @@ class CropsScreen extends StatefulWidget {
 
 class _CropsScreenState extends State<CropsScreen> {
   List<Crop> _crops = [];
+  List<Plot> _allPlots = [];
   List<Location> _locations = [];
-  String? _selectedLocationId;
   bool _loading = true;
 
   @override
@@ -26,120 +28,156 @@ class _CropsScreenState extends State<CropsScreen> {
   }
 
   Future<void> _load() async {
+    final crops = await widget.db.getCrops();
+    final allPlots = await widget.db.getAllPlots();
     final locations = await widget.db.getLocations();
-    final crops = await widget.db.getCrops(locationId: _selectedLocationId);
     if (!mounted) return;
     setState(() {
-      _locations = locations;
       _crops = crops;
+      _allPlots = allPlots;
+      _locations = locations;
       _loading = false;
     });
   }
 
-  String _acquisitionLabel(AppLocalizations l, AcquisitionType type) {
-    switch (type) {
-      case AcquisitionType.seedSowing:
-        return l.acquisitionSeedSowing;
-      case AcquisitionType.seedlingPurchase:
-        return l.acquisitionSeedlingPurchase;
-      case AcquisitionType.seedlingTransplant:
-        return l.acquisitionSeedlingTransplant;
-      case AcquisitionType.directSowing:
-        return l.acquisitionDirectSowing;
-    }
+  String _plotDisplayName(String? plotId) {
+    if (plotId == null) return '';
+    final plot = _allPlots.where((p) => p.id == plotId).firstOrNull;
+    if (plot == null) return '';
+    final loc = _locations.where((l) => l.id == plot.locationId).firstOrNull;
+    return loc != null ? '${loc.name} / ${plot.name}' : plot.name;
   }
 
-  String _locationName(String locationId) {
-    final loc = _locations.where((l) => l.id == locationId).firstOrNull;
-    return loc?.name ?? '';
+  String _parentCropName(String? parentCropId) {
+    if (parentCropId == null) return '';
+    final crop = _crops.where((c) => c.id == parentCropId).firstOrNull;
+    return crop?.cultivationName ?? '';
   }
 
   Future<void> _showForm({Crop? existing}) async {
     final l = AppLocalizations.of(context)!;
 
-    if (_locations.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.noLocations)),
-      );
-      return;
-    }
-
+    final cultivationNameCtrl =
+        TextEditingController(text: existing?.cultivationName ?? '');
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
     final varietyCtrl = TextEditingController(text: existing?.variety ?? '');
-    var selectedLocationId = existing?.locationId ?? _locations.first.id;
-    var selectedAcquisition =
-        existing?.acquisitionType ?? AcquisitionType.seedSowing;
+    final memoCtrl = TextEditingController(text: existing?.memo ?? '');
+
+    String? selectedPlotId = existing?.plotId;
+    String? selectedParentCropId = existing?.parentCropId;
+
+    // Crops available as parent (exclude self)
+    final parentCandidates =
+        _crops.where((c) => c.id != existing?.id).toList();
 
     final saved = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(existing == null ? l.addCrop : l.editCrop),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  value: selectedLocationId,
-                  decoration: InputDecoration(labelText: l.selectLocation),
-                  items: _locations
-                      .map((loc) => DropdownMenuItem(
-                            value: loc.id,
-                            child: Text(loc.name),
-                          ))
-                      .toList(),
-                  onChanged: (v) =>
-                      setDialogState(() => selectedLocationId = v!),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: nameCtrl,
-                  decoration: InputDecoration(labelText: l.cropName),
-                  autofocus: true,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: varietyCtrl,
-                  decoration: InputDecoration(labelText: l.variety),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<AcquisitionType>(
-                  value: selectedAcquisition,
-                  decoration: InputDecoration(labelText: l.acquisitionType),
-                  items: AcquisitionType.values
-                      .map((t) => DropdownMenuItem(
-                            value: t,
-                            child: Text(_acquisitionLabel(l, t)),
-                          ))
-                      .toList(),
-                  onChanged: (v) =>
-                      setDialogState(() => selectedAcquisition = v!),
-                ),
-              ],
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            title: Text(existing == null ? l.addCrop : l.editCrop),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: cultivationNameCtrl,
+                    decoration:
+                        InputDecoration(labelText: l.cultivationName),
+                    autofocus: true,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: InputDecoration(labelText: l.cropName),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: varietyCtrl,
+                    decoration: InputDecoration(labelText: l.variety),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: memoCtrl,
+                    decoration: InputDecoration(labelText: l.memo),
+                    maxLines: 3,
+                  ),
+                  if (_allPlots.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String?>(
+                      initialValue: selectedPlotId,
+                      decoration: InputDecoration(labelText: l.selectPlot),
+                      items: [
+                        DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text(l.nonePlot),
+                        ),
+                        ..._allPlots.map((plot) {
+                          final loc = _locations
+                              .where((lo) => lo.id == plot.locationId)
+                              .firstOrNull;
+                          final label = loc != null
+                              ? '${loc.name} / ${plot.name}'
+                              : plot.name;
+                          return DropdownMenuItem<String?>(
+                            value: plot.id,
+                            child: Text(label),
+                          );
+                        }),
+                      ],
+                      onChanged: (v) =>
+                          setDialogState(() => selectedPlotId = v),
+                    ),
+                  ],
+                  if (parentCandidates.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String?>(
+                      initialValue: selectedParentCropId,
+                      decoration:
+                          InputDecoration(labelText: l.parentCrop),
+                      items: [
+                        DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text(l.nonePlot),
+                        ),
+                        ...parentCandidates.map((c) =>
+                            DropdownMenuItem<String?>(
+                              value: c.id,
+                              child: Text(c.cultivationName),
+                            )),
+                      ],
+                      onChanged: (v) =>
+                          setDialogState(() => selectedParentCropId = v),
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.save),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l.cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l.save),
+              ),
+            ],
+          );
+        },
       ),
     );
 
-    if (saved != true || nameCtrl.text.trim().isEmpty) return;
+    if (saved != true || cultivationNameCtrl.text.trim().isEmpty) return;
 
     final crop = Crop(
       id: existing?.id,
-      locationId: selectedLocationId,
+      cultivationName: cultivationNameCtrl.text.trim(),
       name: nameCtrl.text.trim(),
       variety: varietyCtrl.text.trim(),
-      acquisitionType: selectedAcquisition,
+      plotId: selectedPlotId,
+      parentCropId: selectedParentCropId,
+      memo: memoCtrl.text.trim(),
       startDate: existing?.startDate,
       createdAt: existing?.createdAt,
     );
@@ -149,6 +187,47 @@ class _CropsScreenState extends State<CropsScreen> {
     } else {
       await widget.db.updateCrop(crop);
     }
+
+    _load();
+  }
+
+  void _showCropMenu(Crop crop) {
+    final l = AppLocalizations.of(context)!;
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: Text(l.editCrop),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showForm(existing: crop);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: Text(l.delete),
+              onTap: () {
+                Navigator.pop(ctx);
+                _delete(crop);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openCropDetail(Crop crop) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CropDetailScreen(db: widget.db, crop: crop),
+      ),
+    );
     _load();
   }
 
@@ -181,29 +260,7 @@ class _CropsScreenState extends State<CropsScreen> {
     final l = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l.crops),
-        actions: [
-          if (_locations.isNotEmpty)
-            PopupMenuButton<String?>(
-              icon: const Icon(Icons.filter_list),
-              onSelected: (v) {
-                _selectedLocationId = v;
-                _load();
-              },
-              itemBuilder: (ctx) => [
-                PopupMenuItem(
-                  value: null,
-                  child: Text(l.allLocations),
-                ),
-                ..._locations.map((loc) => PopupMenuItem(
-                      value: loc.id,
-                      child: Text(loc.name),
-                    )),
-              ],
-            ),
-        ],
-      ),
+      appBar: AppBar(title: Text(l.crops)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _crops.isEmpty
@@ -213,22 +270,22 @@ class _CropsScreenState extends State<CropsScreen> {
                   itemCount: _crops.length,
                   itemBuilder: (context, index) {
                     final crop = _crops[index];
+                    final plotName = _plotDisplayName(crop.plotId);
+                    final parentName = _parentCropName(crop.parentCropId);
                     final subtitle = [
+                      if (crop.name.isNotEmpty) crop.name,
                       if (crop.variety.isNotEmpty) crop.variety,
-                      _acquisitionLabel(l, crop.acquisitionType),
-                      _locationName(crop.locationId),
+                      if (plotName.isNotEmpty) plotName,
+                      if (parentName.isNotEmpty) '← $parentName',
                     ].join(' / ');
 
                     return Card(
                       child: ListTile(
                         leading: const Icon(Icons.eco),
-                        title: Text(crop.name),
-                        subtitle: Text(subtitle),
-                        onTap: () => _showForm(existing: crop),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline),
-                          onPressed: () => _delete(crop),
-                        ),
+                        title: Text(crop.cultivationName),
+                        subtitle: subtitle.isNotEmpty ? Text(subtitle) : null,
+                        onTap: () => _openCropDetail(crop),
+                        onLongPress: () => _showCropMenu(crop),
                       ),
                     );
                   },

@@ -98,3 +98,13 @@ cython_debug/
 
 # AI research drafts (intermediate outputs before promotion to data/)
 drafts/
+
+# Cloudflare Workers (server/)
+server/node_modules/
+server/.dev.vars
+server/.wrangler/
+
+# Desktop Python server (desktop/)
+desktop/.venv/
+desktop/.env
+desktop/photos/
