@@ -355,7 +355,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createHomepage => 'Create homepage';
 
   @override
-  String get createHomepageDesc => 'Create a showcase page for this cultivation';
+  String get createHomepageDesc =>
+      'Create a showcase page for this cultivation';
 
   @override
   String get homepageComingSoon => 'Homepage creation is coming soon';
