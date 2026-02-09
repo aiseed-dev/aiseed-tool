@@ -1,4 +1,4 @@
--- Grow D1 Schema (mirrors Flutter SQLite v11)
+-- Grow D1 Schema (mirrors Flutter SQLite v13)
 -- Run: npx wrangler d1 execute grow-db --file=schema.sql
 
 CREATE TABLE IF NOT EXISTS locations (
@@ -88,6 +88,33 @@ CREATE TABLE IF NOT EXISTS observation_entries (
   FOREIGN KEY (observation_id) REFERENCES observations(id) ON DELETE CASCADE
 );
 
+-- Crop references (per-user, synced)
+CREATE TABLE IF NOT EXISTS crop_references (
+  id TEXT PRIMARY KEY,
+  crop_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  file_path TEXT,
+  url TEXT,
+  source_info_id TEXT,
+  title TEXT NOT NULL DEFAULT '',
+  content TEXT NOT NULL DEFAULT '',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (crop_id) REFERENCES crops(id) ON DELETE CASCADE
+);
+
+-- Shared cultivation info (community knowledge base)
+CREATE TABLE IF NOT EXISTS cultivation_info (
+  id TEXT PRIMARY KEY,
+  source_url TEXT,
+  source_type TEXT NOT NULL,
+  crop_name TEXT NOT NULL DEFAULT '',
+  variety TEXT NOT NULL DEFAULT '',
+  data TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+
 -- Deleted records tracking for sync
 CREATE TABLE IF NOT EXISTS deleted_records (
   id TEXT NOT NULL,
@@ -105,3 +132,7 @@ CREATE INDEX IF NOT EXISTS idx_record_photos_updated ON record_photos(updated_at
 CREATE INDEX IF NOT EXISTS idx_observations_updated ON observations(updated_at);
 CREATE INDEX IF NOT EXISTS idx_observation_entries_updated ON observation_entries(updated_at);
 CREATE INDEX IF NOT EXISTS idx_deleted_records_deleted ON deleted_records(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_crop_references_crop ON crop_references(crop_id);
+CREATE INDEX IF NOT EXISTS idx_crop_references_updated ON crop_references(updated_at);
+CREATE INDEX IF NOT EXISTS idx_cultivation_info_url ON cultivation_info(source_url);
+CREATE INDEX IF NOT EXISTS idx_cultivation_info_name ON cultivation_info(crop_name, variety);

@@ -1,11 +1,15 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../models/crop.dart';
+import '../models/crop_reference.dart';
 import '../models/location.dart';
 import '../models/plot.dart';
 import '../models/record.dart';
 import '../models/record_photo.dart';
+import '../services/cultivation_info_service.dart';
 import '../services/database_service.dart';
 
 class CropDetailScreen extends StatefulWidget {
@@ -21,6 +25,7 @@ class CropDetailScreen extends StatefulWidget {
 class _CropDetailScreenState extends State<CropDetailScreen> {
   late Crop _crop;
   List<_RecordWithPhotos> _timeline = [];
+  List<CropReference> _references = [];
   List<Crop> _allCrops = [];
   List<Plot> _allPlots = [];
   List<Location> _locations = [];
@@ -48,12 +53,14 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
       final photos = await widget.db.getPhotos(rec.id);
       timeline.add(_RecordWithPhotos(record: rec, photos: photos));
     }
+    final references = await widget.db.getCropReferences(_crop.id);
     if (!mounted) return;
     setState(() {
       _allCrops = allCrops;
       _allPlots = allPlots;
       _locations = locations;
       _timeline = timeline;
+      _references = references;
       _loading = false;
     });
   }
@@ -458,6 +465,7 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
           : Column(
               children: [
                 _buildCropInfo(l),
+                if (_references.isNotEmpty) _buildReferences(l),
                 _buildHomepageLink(l),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
@@ -474,6 +482,182 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
               ],
             ),
     );
+  }
+
+  Widget _buildReferences(AppLocalizations l) {
+    final seedPhotos =
+        _references.where((r) => r.type == CropReferenceType.seedPhoto).toList();
+    final seedInfos =
+        _references.where((r) => r.type == CropReferenceType.seedInfo).toList();
+    final webRefs =
+        _references.where((r) => r.type == CropReferenceType.web).toList();
+
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.info_outline, size: 20),
+                const SizedBox(width: 8),
+                Text(l.cultivationInfo,
+                    style: Theme.of(context).textTheme.titleSmall),
+              ],
+            ),
+
+            // Seed packet photos
+            if (seedPhotos.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(l.seedPacketPhotos,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  )),
+              const SizedBox(height: 4),
+              SizedBox(
+                height: 100,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: seedPhotos.length,
+                  itemBuilder: (context, index) {
+                    final ref = seedPhotos[index];
+                    final file = File(ref.filePath!);
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: GestureDetector(
+                        onTap: () => _showPhotoFullScreen(
+                          RecordPhoto(recordId: '', filePath: ref.filePath!),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: file.existsSync()
+                              ? Image.file(file,
+                                  height: 100, width: 100, fit: BoxFit.cover)
+                              : Container(
+                                  width: 100,
+                                  height: 100,
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.broken_image),
+                                ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+
+            // AI-extracted cultivation info
+            if (seedInfos.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              ...seedInfos.map((ref) {
+                CultivationData? data;
+                try {
+                  data = CultivationData.fromJson(jsonDecode(ref.content));
+                } catch (_) {}
+                if (data == null) {
+                  return Text(ref.content);
+                }
+                final fields = data.displayFields;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (ref.title.isNotEmpty)
+                      Text(ref.title,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 13)),
+                    ...fields.map((field) => Padding(
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                width: 90,
+                                child: Text(field.key,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    )),
+                              ),
+                              Expanded(
+                                child: Text(field.value,
+                                    style: const TextStyle(fontSize: 12)),
+                              ),
+                            ],
+                          ),
+                        )),
+                    if (ref.url != null) ...[
+                      const SizedBox(height: 2),
+                      GestureDetector(
+                        onTap: () => _openUrl(ref.url!),
+                        child: Text(
+                          ref.url!,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(context).colorScheme.primary,
+                            decoration: TextDecoration.underline,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ],
+                );
+              }),
+            ],
+
+            // Web references
+            if (webRefs.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(l.cultivationReferences,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  )),
+              const SizedBox(height: 4),
+              ...webRefs.map((ref) => InkWell(
+                    onTap: ref.url != null ? () => _openUrl(ref.url!) : null,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Row(
+                        children: [
+                          Icon(Icons.link,
+                              size: 16,
+                              color: Theme.of(context).colorScheme.primary),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              ref.title.isNotEmpty ? ref.title : (ref.url ?? ''),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri != null && await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 }
 

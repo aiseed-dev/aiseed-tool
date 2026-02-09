@@ -1,4 +1,9 @@
 import { Env, authenticate } from "./auth";
+import {
+  handleReadUrl,
+  handleReadImage,
+  handleSearch,
+} from "./cultivation_info";
 import { handleIdentify } from "./identify";
 import {
   handlePhotoUpload,
@@ -28,6 +33,25 @@ export default {
       // Routes
       if (path === "/identify" && request.method === "POST") {
         return withCors(await handleIdentify(request, env));
+      }
+
+      // Cultivation info endpoints
+      if (
+        path === "/cultivation-info/read-url" &&
+        request.method === "POST"
+      ) {
+        return withCors(await handleReadUrl(request, env));
+      }
+
+      if (
+        path === "/cultivation-info/read-image" &&
+        request.method === "POST"
+      ) {
+        return withCors(await handleReadImage(request, env));
+      }
+
+      if (path === "/cultivation-info" && request.method === "GET") {
+        return withCors(await handleSearch(request, env));
       }
 
       if (path === "/sync/pull" && request.method === "POST") {

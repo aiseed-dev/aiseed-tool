@@ -370,4 +370,79 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get searchHint => 'メモ、栽培名、場所名で検索';
+
+  @override
+  String get cultivationInfo => '栽培情報';
+
+  @override
+  String get seedPacketPhotos => '種袋の写真';
+
+  @override
+  String get readFromUrl => 'URLから栽培情報を取得';
+
+  @override
+  String get readFromSeedPhoto => '種袋を撮影して読み取る';
+
+  @override
+  String get saveSeedPhoto => '種袋の写真を保存（ローカル）';
+
+  @override
+  String get cultivationReferences => '参考情報';
+
+  @override
+  String get addReference => '参考URLを追加';
+
+  @override
+  String get referenceUrl => 'URL';
+
+  @override
+  String get referenceTitle => 'タイトル';
+
+  @override
+  String get noReferences => '参考情報はまだありません';
+
+  @override
+  String get readingUrl => 'URLから情報を読み取り中…';
+
+  @override
+  String get readingImage => '種袋を読み取り中…';
+
+  @override
+  String get readSuccess => '栽培情報を取得しました';
+
+  @override
+  String get readFailed => '情報の取得に失敗しました';
+
+  @override
+  String get serverRequired => 'この機能にはサーバー設定が必要です';
+
+  @override
+  String get autoFillConfirm => '作物名・品種を自動入力しますか？';
+
+  @override
+  String get sowingPeriod => '播種時期';
+
+  @override
+  String get harvestPeriod => '収穫時期';
+
+  @override
+  String get spacing => '株間';
+
+  @override
+  String get seedDepth => '播種深さ';
+
+  @override
+  String get sunlight => '日照';
+
+  @override
+  String get fertilizerInfo => '施肥';
+
+  @override
+  String get cultivationTips => '栽培のコツ';
+
+  @override
+  String get sourceUrl => '取得元URL';
+
+  @override
+  String get cachedInfo => '（共有データベースから取得）';
 }
