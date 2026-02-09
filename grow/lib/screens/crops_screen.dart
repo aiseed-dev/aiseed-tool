@@ -4,6 +4,7 @@ import '../models/location.dart';
 import '../models/plot.dart';
 import '../models/crop.dart';
 import '../services/database_service.dart';
+import 'crop_create_screen.dart';
 import 'crop_detail_screen.dart';
 
 class CropsScreen extends StatefulWidget {
@@ -291,7 +292,15 @@ class _CropsScreenState extends State<CropsScreen> {
                   },
                 ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showForm(),
+        onPressed: () async {
+          final result = await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CropCreateScreen(db: widget.db),
+            ),
+          );
+          if (result == true) _load();
+        },
         child: const Icon(Icons.add),
       ),
     );

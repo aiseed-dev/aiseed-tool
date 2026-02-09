@@ -811,6 +811,32 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'メモ、栽培名、場所名で検索'**
   String get searchHint;
+
+  String get cultivationInfo;
+  String get seedPacketPhotos;
+  String get readFromUrl;
+  String get readFromSeedPhoto;
+  String get saveSeedPhoto;
+  String get cultivationReferences;
+  String get addReference;
+  String get referenceUrl;
+  String get referenceTitle;
+  String get noReferences;
+  String get readingUrl;
+  String get readingImage;
+  String get readSuccess;
+  String get readFailed;
+  String get serverRequired;
+  String get autoFillConfirm;
+  String get sowingPeriod;
+  String get harvestPeriod;
+  String get spacing;
+  String get seedDepth;
+  String get sunlight;
+  String get fertilizerInfo;
+  String get cultivationTips;
+  String get sourceUrl;
+  String get cachedInfo;
 }
 
 class _AppLocalizationsDelegate

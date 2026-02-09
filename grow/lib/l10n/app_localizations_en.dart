@@ -372,4 +372,79 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchHint => 'Search by note, crop, or location';
+
+  @override
+  String get cultivationInfo => 'Cultivation info';
+
+  @override
+  String get seedPacketPhotos => 'Seed packet photos';
+
+  @override
+  String get readFromUrl => 'Get info from URL';
+
+  @override
+  String get readFromSeedPhoto => 'Read from seed packet photo';
+
+  @override
+  String get saveSeedPhoto => 'Save seed packet photo (local)';
+
+  @override
+  String get cultivationReferences => 'References';
+
+  @override
+  String get addReference => 'Add reference URL';
+
+  @override
+  String get referenceUrl => 'URL';
+
+  @override
+  String get referenceTitle => 'Title';
+
+  @override
+  String get noReferences => 'No references yet';
+
+  @override
+  String get readingUrl => 'Reading info from URL…';
+
+  @override
+  String get readingImage => 'Reading seed packet…';
+
+  @override
+  String get readSuccess => 'Cultivation info retrieved';
+
+  @override
+  String get readFailed => 'Failed to retrieve info';
+
+  @override
+  String get serverRequired => 'Server configuration required for this feature';
+
+  @override
+  String get autoFillConfirm => 'Auto-fill crop name and variety?';
+
+  @override
+  String get sowingPeriod => 'Sowing period';
+
+  @override
+  String get harvestPeriod => 'Harvest period';
+
+  @override
+  String get spacing => 'Spacing';
+
+  @override
+  String get seedDepth => 'Seed depth';
+
+  @override
+  String get sunlight => 'Sunlight';
+
+  @override
+  String get fertilizerInfo => 'Fertilizer';
+
+  @override
+  String get cultivationTips => 'Growing tips';
+
+  @override
+  String get sourceUrl => 'Source URL';
+
+  @override
+  String get cachedInfo => '(from shared database)';
 }

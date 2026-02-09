@@ -5,11 +5,12 @@ import '../models/plot.dart';
 import '../models/crop.dart';
 import '../models/record.dart';
 import '../models/record_photo.dart';
+import '../models/crop_reference.dart';
 import '../models/observation.dart';
 
 class DatabaseService {
   static const _dbName = 'grow.db';
-  static const _dbVersion = 12;
+  static const _dbVersion = 13;
 
   Database? _db;
 
@@ -230,6 +231,7 @@ class DatabaseService {
           ''');
         }
         if (oldVersion < 12) {
+          // v12: Remove location_id from crops
           // Remove location_id from crops table if it exists
           // SQLite doesn't support DROP COLUMN before 3.35.0, so recreate
           final cols = await db.rawQuery('PRAGMA table_info(crops)');
@@ -258,6 +260,24 @@ class DatabaseService {
             await db.execute('DROP TABLE crops');
             await db.execute('ALTER TABLE crops_new RENAME TO crops');
           }
+        }
+        if (oldVersion < 13) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS crop_references (
+              id TEXT PRIMARY KEY,
+              crop_id TEXT NOT NULL,
+              type TEXT NOT NULL,
+              file_path TEXT,
+              url TEXT,
+              source_info_id TEXT,
+              title TEXT NOT NULL DEFAULT '',
+              content TEXT NOT NULL DEFAULT '',
+              sort_order INTEGER NOT NULL DEFAULT 0,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              FOREIGN KEY (crop_id) REFERENCES crops(id) ON DELETE CASCADE
+            )
+          ''');
         }
       },
     );
@@ -356,6 +376,22 @@ class DatabaseService {
         unit TEXT NOT NULL DEFAULT '',
         updated_at TEXT NOT NULL,
         FOREIGN KEY (observation_id) REFERENCES observations(id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE crop_references (
+        id TEXT PRIMARY KEY,
+        crop_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        file_path TEXT,
+        url TEXT,
+        source_info_id TEXT,
+        title TEXT NOT NULL DEFAULT '',
+        content TEXT NOT NULL DEFAULT '',
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (crop_id) REFERENCES crops(id) ON DELETE CASCADE
       )
     ''');
     await db.execute('''
@@ -613,6 +649,28 @@ class DatabaseService {
     for (final entry in entries) {
       await d.insert('observation_entries', entry.toMap());
     }
+  }
+
+  // -- Crop References --
+
+  Future<List<CropReference>> getCropReferences(String cropId) async {
+    final d = await db;
+    final rows = await d.query('crop_references',
+        where: 'crop_id = ?',
+        whereArgs: [cropId],
+        orderBy: 'sort_order ASC, created_at ASC');
+    return rows.map(CropReference.fromMap).toList();
+  }
+
+  Future<void> insertCropReference(CropReference ref) async {
+    final d = await db;
+    await d.insert('crop_references', ref.toMap());
+  }
+
+  Future<void> deleteCropReference(String id) async {
+    final d = await db;
+    await d.delete('crop_references', where: 'id = ?', whereArgs: [id]);
+    await _trackDeletion(d, id, 'crop_references');
   }
 
   // -- Sync helpers --
