@@ -249,7 +249,7 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
               Row(
                 children: [
                   const SizedBox(width: 28),
-                  Text('${l.cropName}: ${_crop.name}'),
+                  Expanded(child: Text('${l.cropName}: ${_crop.name}')),
                 ],
               ),
             ],
@@ -258,7 +258,7 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
               Row(
                 children: [
                   const SizedBox(width: 28),
-                  Text('${l.variety}: ${_crop.variety}'),
+                  Expanded(child: Text('${l.variety}: ${_crop.variety}')),
                 ],
               ),
             ],
@@ -268,7 +268,7 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
                 children: [
                   const Icon(Icons.grid_view, size: 16),
                   const SizedBox(width: 6),
-                  Text(_plotDisplayName(_crop.plotId)),
+                  Expanded(child: Text(_plotDisplayName(_crop.plotId))),
                 ],
               ),
             ],
@@ -350,9 +350,11 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
                         color: Theme.of(context).colorScheme.primary,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        '$dateStr - $actLabel',
-                        style: Theme.of(context).textTheme.titleSmall,
+                      Expanded(
+                        child: Text(
+                          '$dateStr - $actLabel',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
                       ),
                     ],
                   ),
