@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24 * 30  # 30 days
 
+    # Social Auth
+    apple_client_id: str = ""   # Apple Services ID (e.g., dev.aiseed.grow)
+    google_client_id: str = ""  # Google OAuth 2.0 Client ID
+
     # GPU Models
     ocr_languages: list[str] = ["japan", "en", "it"]
     florence_model: str = "microsoft/Florence-2-base"

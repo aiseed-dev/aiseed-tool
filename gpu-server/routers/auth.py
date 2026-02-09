@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
@@ -11,6 +11,7 @@ from services.auth_service import (
     create_access_token,
     get_current_user,
 )
+from services.social_auth_service import social_login_apple, social_login_google
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -36,6 +37,11 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+
+
+class SocialLoginRequest(BaseModel):
+    id_token: str
+    display_name: str = ""
 
 
 class UpdateProfileRequest(BaseModel):
@@ -83,6 +89,42 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
     token = create_access_token(user.id)
+    return TokenResponse(
+        access_token=token,
+        user=UserResponse.model_validate(user),
+    )
+
+
+@router.post("/apple", response_model=TokenResponse)
+async def login_apple(
+    req: SocialLoginRequest, db: AsyncSession = Depends(get_db)
+):
+    """Login or register with Apple ID."""
+    try:
+        user, token = await social_login_apple(
+            db, req.id_token, req.display_name
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e)
+        )
+    return TokenResponse(
+        access_token=token,
+        user=UserResponse.model_validate(user),
+    )
+
+
+@router.post("/google", response_model=TokenResponse)
+async def login_google(
+    req: SocialLoginRequest, db: AsyncSession = Depends(get_db)
+):
+    """Login or register with Google ID."""
+    try:
+        user, token = await social_login_google(db, req.id_token)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e)
+        )
     return TokenResponse(
         access_token=token,
         user=UserResponse.model_validate(user),
