@@ -54,11 +54,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       body: screens[_index],
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openOnboarding,
-        tooltip: 'スキルファイルをつくる',
-        child: const Icon(Icons.auto_awesome),
-      ),
+      floatingActionButton: _index != 3
+          ? FloatingActionButton(
+              onPressed: _openOnboarding,
+              tooltip: 'スキルファイルをつくる',
+              child: const Icon(Icons.auto_awesome),
+            )
+          : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
