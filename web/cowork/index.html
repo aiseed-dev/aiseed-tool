@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grow — AI &times; 自然栽培の作物記録アプリ</title>
+    <meta name="description" content="写真を撮って、記録して、AIに相談。自然栽培をもっと楽しく、もっと賢く。">
+    <style>
+        :root {
+            --color-bg: #faf9f6;
+            --color-surface: #ffffff;
+            --color-text: #2c2c2c;
+            --color-text-sub: #5a5a5a;
+            --color-accent: #4a7c59;
+            --color-accent-light: #e8f0eb;
+            --color-accent-dark: #3a6247;
+            --color-border: #e0ddd8;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 16px; scroll-behavior: smooth; }
+
+        body {
+            font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            color: var(--color-text);
+            background: var(--color-bg);
+            line-height: 1.85;
+        }
+
+        .site-header {
+            background: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+            padding: 1rem 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-inner {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .logo {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--color-accent);
+            text-decoration: none;
+        }
+
+        .header-nav a {
+            font-size: 0.85rem;
+            color: var(--color-text-sub);
+            text-decoration: none;
+            margin-left: 1.2rem;
+        }
+        .header-nav a:hover { color: var(--color-accent); }
+
+        main {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2.5rem 1.5rem 4rem;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 2rem 0 3rem;
+        }
+
+        .hero h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--color-text);
+            margin-bottom: 0.8rem;
+            line-height: 1.4;
+        }
+
+        .hero p {
+            font-size: 1.05rem;
+            color: var(--color-text-sub);
+            margin-bottom: 1.5rem;
+        }
+
+        h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--color-accent);
+            margin-top: 2.5rem;
+            margin-bottom: 0.8rem;
+            padding-bottom: 0.3rem;
+            border-bottom: 2px solid var(--color-accent-light);
+        }
+
+        p { margin-bottom: 1rem; }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1.2rem;
+            margin: 1.5rem 0;
+        }
+
+        .feature-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 1.2rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--color-text);
+            margin-bottom: 0.4rem;
+        }
+
+        .feature-card p {
+            font-size: 0.9rem;
+            color: var(--color-text-sub);
+            margin-bottom: 0;
+        }
+
+        .cta-section {
+            text-align: center;
+            padding: 2.5rem;
+            background: var(--color-accent-light);
+            border-radius: 12px;
+            margin: 2.5rem 0;
+        }
+
+        .cta-section h2 {
+            border: none;
+            margin-top: 0;
+            text-align: center;
+        }
+
+        .link-list {
+            list-style: none;
+            padding: 0;
+            margin: 1.5rem 0;
+        }
+
+        .link-list li {
+            margin-bottom: 0.8rem;
+        }
+
+        .link-list a {
+            display: block;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 1rem 1.2rem;
+            text-decoration: none;
+            color: var(--color-text);
+            transition: border-color 0.2s;
+        }
+
+        .link-list a:hover {
+            border-color: var(--color-accent);
+        }
+
+        .link-list .link-title {
+            font-weight: 600;
+            color: var(--color-accent);
+        }
+
+        .link-list .link-desc {
+            font-size: 0.9rem;
+            color: var(--color-text-sub);
+        }
+
+        footer {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+            padding: 2rem 1.5rem;
+            font-size: 0.8rem;
+            color: var(--color-text-sub);
+            border-top: 1px solid var(--color-border);
+        }
+
+        @media (max-width: 640px) {
+            html { font-size: 15px; }
+            .header-inner { flex-direction: column; text-align: center; }
+            .header-nav a { margin: 0 0.5rem; }
+            main { padding: 1.5rem 1rem 3rem; }
+            .hero h1 { font-size: 1.6rem; }
+            .feature-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="site-header">
+    <div class="header-inner">
+        <a href="index.html" class="logo">Grow</a>
+        <nav class="header-nav">
+            <a href="index.html">アプリについて</a>
+            <a href="cloudflare-setup.html">Cloudflare設定</a>
+            <a href="privacy.html">プライバシーポリシー</a>
+        </nav>
+    </div>
+</header>
+
+<main>
+    <div class="hero">
+        <h1>畑の記録を、<br>もっとかんたんに。</h1>
+        <p>
+            写真を撮るだけで栽培記録。<br>
+            AIが植物を識別し、育て方をアドバイス。
+        </p>
+    </div>
+
+    <h2>Growでできること</h2>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h3>写真で記録</h3>
+            <p>撮影するだけで日付・場所を自動記録。EXIF情報から位置情報も取得します。</p>
+        </div>
+        <div class="feature-card">
+            <h3>作物管理</h3>
+            <p>品種・区画ごとに整理。播種から収穫まで、栽培の全記録をタイムラインで確認。</p>
+        </div>
+        <div class="feature-card">
+            <h3>AI相談</h3>
+            <p>栽培記録をもとにAIがアドバイス。「この虫は何？」「いつ収穫？」に答えます。</p>
+        </div>
+        <div class="feature-card">
+            <h3>植物識別</h3>
+            <p>写真を撮るだけで植物を識別。作物も雑草も、成長段階まで判定します。</p>
+        </div>
+        <div class="feature-card">
+            <h3>ホームページ作成</h3>
+            <p>あなたの農園紹介・販売ページを自動生成。Cloudflareで無料公開。</p>
+        </div>
+        <div class="feature-card">
+            <h3>クラウド同期</h3>
+            <p>複数端末でデータを共有。スマホで撮った写真をPCの大画面で確認できます。</p>
+        </div>
+    </div>
+
+    <h2>こんな方に</h2>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h3>自然栽培の実践者</h3>
+            <p>無農薬・無肥料の栽培記録を体系的に残したい方。</p>
+        </div>
+        <div class="feature-card">
+            <h3>家庭菜園の愛好家</h3>
+            <p>「去年いつ植えたっけ？」をなくしたい方。</p>
+        </div>
+        <div class="feature-card">
+            <h3>直売・販売をしたい方</h3>
+            <p>自分の農園ホームページを手軽に持ちたい方。</p>
+        </div>
+    </div>
+
+    <div class="cta-section">
+        <h2>テスト版公開中</h2>
+        <p>現在テスト版を公開中です。フィードバックをいただける方を募集しています。</p>
+    </div>
+
+    <h2>ガイド</h2>
+    <ul class="link-list">
+        <li>
+            <a href="cloudflare-setup.html">
+                <span class="link-title">Cloudflare設定ガイド</span>
+                <span class="link-desc">ホームページ機能を使うためのCloudflare設定手順</span>
+            </a>
+        </li>
+        <li>
+            <a href="privacy.html">
+                <span class="link-title">プライバシーポリシー</span>
+                <span class="link-desc">データの取り扱いについて</span>
+            </a>
+        </li>
+    </ul>
+</main>
+
+<footer>
+    <p>&copy; 2025 Grow — AI &times; 自然栽培</p>
+</footer>
+
+</body>
+</html>
