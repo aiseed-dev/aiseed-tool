@@ -6,6 +6,7 @@ import 'chat_screen.dart';
 import 'settings_screen.dart';
 import 'conversation_list_screen.dart';
 import 'weather_screen.dart';
+import 'onboarding_screen.dart';
 
 enum NavDestination { chat, weather }
 
@@ -340,6 +341,21 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _openOnboarding() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OnboardingScreen(
+          settings: widget.settings,
+          onSystemPromptGenerated: (_) => setState(() {}),
+        ),
+      ),
+    );
+    if (result == true) {
+      setState(() {});
+    }
+  }
+
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -357,6 +373,12 @@ class _HomeScreenState extends State<HomeScreen> {
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
+          ),
+          const SizedBox(height: 24),
+          FilledButton.tonalIcon(
+            onPressed: _openOnboarding,
+            icon: const Icon(Icons.auto_awesome),
+            label: const Text('あなた専用のAI設定をつくる'),
           ),
         ],
       ),
