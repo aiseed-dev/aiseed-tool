@@ -961,6 +961,9 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'（共有データベースから取得）'**
   String get cachedInfo;
+  String get skill;
+  String get farmingMethod;
+  String get inheritFromSkill;
 }
 
 class _AppLocalizationsDelegate

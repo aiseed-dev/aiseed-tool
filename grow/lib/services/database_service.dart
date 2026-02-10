@@ -10,7 +10,7 @@ import '../models/observation.dart';
 
 class DatabaseService {
   static const _dbName = 'grow.db';
-  static const _dbVersion = 13;
+  static const _dbVersion = 14;
 
   Database? _db;
 
@@ -279,6 +279,15 @@ class DatabaseService {
             )
           ''');
         }
+        if (oldVersion < 14) {
+          final cols = await db.rawQuery('PRAGMA table_info(crops)');
+          final colNames = cols.map((c) => c['name'] as String).toSet();
+          if (!colNames.contains('farming_method')) {
+            await db.execute(
+              'ALTER TABLE crops ADD COLUMN farming_method TEXT',
+            );
+          }
+        }
       },
     );
   }
@@ -317,6 +326,7 @@ class DatabaseService {
         variety TEXT NOT NULL DEFAULT '',
         plot_id TEXT,
         parent_crop_id TEXT,
+        farming_method TEXT,
         memo TEXT NOT NULL DEFAULT '',
         start_date TEXT NOT NULL,
         created_at TEXT NOT NULL,

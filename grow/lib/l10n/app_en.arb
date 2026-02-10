@@ -150,5 +150,8 @@
   "fertilizerInfo": "Fertilizer",
   "cultivationTips": "Growing tips",
   "sourceUrl": "Source URL",
-  "cachedInfo": "(from shared database)"
+  "cachedInfo": "(from shared database)",
+  "skill": "Skill",
+  "farmingMethod": "Farming method",
+  "inheritFromSkill": "Use skill defaults"
 }

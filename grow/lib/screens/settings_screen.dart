@@ -70,7 +70,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final l = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.settings)),
+      appBar: AppBar(title: const Text('システム設定')),
       body: ListView(
         children: [
           // Theme
@@ -123,7 +123,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const Divider(height: 1),
           ],
-          // Server URL & token (shown when server provider or cloudflare sync)
+          // Server URL & token
           if (_provider == PlantIdProvider.server ||
               _syncMode == SyncMode.cloudflare) ...[
             ListTile(
