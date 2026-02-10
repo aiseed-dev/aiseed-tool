@@ -4,6 +4,7 @@ import '../l10n/app_localizations.dart';
 import '../services/plant_identification_service.dart';
 import '../services/sync_service.dart';
 import '../services/database_service.dart';
+import 'onboarding_screen.dart';
 
 const kPlantIdProviderPref = 'plant_id_provider';
 const kPlantIdApiKeyPref = 'plant_id_api_key';
@@ -73,6 +74,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(title: Text(l.settings)),
       body: ListView(
         children: [
+          // AI Skill File
+          ListTile(
+            leading: const Icon(Icons.auto_awesome),
+            title: const Text('あなた専用のAI設定をつくる'),
+            subtitle: const Text('5つの質問で栽培スキルファイルを生成'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+            ),
+          ),
+          const Divider(height: 1),
           // Theme
           ListTile(
             leading: const Icon(Icons.brightness_6),
