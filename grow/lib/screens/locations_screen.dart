@@ -9,9 +9,8 @@ import 'crop_detail_screen.dart';
 
 class LocationsScreen extends StatefulWidget {
   final DatabaseService db;
-  final VoidCallback? onOpenSettings;
 
-  const LocationsScreen({super.key, required this.db, this.onOpenSettings});
+  const LocationsScreen({super.key, required this.db});
 
   @override
   State<LocationsScreen> createState() => _LocationsScreenState();
@@ -231,17 +230,7 @@ class _LocationsScreenState extends State<LocationsScreen> {
     final l = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l.locations),
-        actions: [
-          if (widget.onOpenSettings != null)
-            IconButton(
-              icon: const Icon(Icons.settings_outlined),
-              tooltip: l.settings,
-              onPressed: widget.onOpenSettings,
-            ),
-        ],
-      ),
+      appBar: AppBar(title: Text(l.locations)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _locations.isEmpty

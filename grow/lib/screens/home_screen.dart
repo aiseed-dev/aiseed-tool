@@ -3,10 +3,9 @@ import '../l10n/app_localizations.dart';
 import 'locations_screen.dart';
 import 'crops_screen.dart';
 import 'records_screen.dart';
-import 'chat_screen.dart';
+import 'onboarding_screen.dart';
 import 'settings_screen.dart';
 import '../services/database_service.dart';
-import '../services/chat_conversation_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final DatabaseService db;
@@ -30,43 +29,11 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _index = 0;
-  final _chatConversationService = ChatConversationService();
 
-  void _openSettings() {
+  void _openOnboarding() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => SettingsScreen(
-          onThemeModeChanged: widget.onThemeModeChanged,
-          onLocaleChanged: widget.onLocaleChanged,
-          themeMode: widget.themeMode,
-          locale: widget.locale,
-        ),
-      ),
-    );
-  }
-
-  void _openChat() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => Scaffold(
-          body: ChatScreen(
-            conversationService: _chatConversationService,
-            onOpenSettings: () => Navigator.push(
-              _,
-              MaterialPageRoute(
-                builder: (__) => SettingsScreen(
-                  onThemeModeChanged: widget.onThemeModeChanged,
-                  onLocaleChanged: widget.onLocaleChanged,
-                  themeMode: widget.themeMode,
-                  locale: widget.locale,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => const OnboardingScreen()),
     );
   }
 
@@ -74,16 +41,22 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     final screens = [
-      RecordsScreen(db: widget.db, onOpenSettings: _openSettings),
-      CropsScreen(db: widget.db, onOpenSettings: _openSettings),
-      LocationsScreen(db: widget.db, onOpenSettings: _openSettings),
+      RecordsScreen(db: widget.db),
+      CropsScreen(db: widget.db),
+      LocationsScreen(db: widget.db),
+      SettingsScreen(
+        onThemeModeChanged: widget.onThemeModeChanged,
+        onLocaleChanged: widget.onLocaleChanged,
+        themeMode: widget.themeMode,
+        locale: widget.locale,
+      ),
     ];
 
     return Scaffold(
       body: screens[_index],
       floatingActionButton: FloatingActionButton(
-        onPressed: _openChat,
-        tooltip: 'AI Cowork',
+        onPressed: _openOnboarding,
+        tooltip: 'スキルファイルをつくる',
         child: const Icon(Icons.auto_awesome),
       ),
       bottomNavigationBar: NavigationBar(
@@ -104,6 +77,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.place_outlined),
             selectedIcon: const Icon(Icons.place),
             label: l.locations,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.settings_outlined),
+            selectedIcon: const Icon(Icons.settings),
+            label: l.settings,
           ),
         ],
       ),
