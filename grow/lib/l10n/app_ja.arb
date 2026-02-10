@@ -160,5 +160,8 @@
   "fertilizerInfo": "施肥",
   "cultivationTips": "栽培のコツ",
   "sourceUrl": "取得元URL",
-  "cachedInfo": "（共有データベースから取得）"
+  "cachedInfo": "（共有データベースから取得）",
+  "skill": "スキル",
+  "farmingMethod": "農法",
+  "inheritFromSkill": "スキル設定を使う"
 }

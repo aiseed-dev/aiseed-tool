@@ -8,9 +8,6 @@ import '../services/ai_chat_service.dart';
 import '../services/chat_conversation_service.dart';
 import 'onboarding_screen.dart';
 
-const kAiProviderPref = 'ai_provider';
-const kAiApiKeyPref = 'ai_api_key';
-const kAiModelPref = 'ai_model';
 const kAiSystemPromptPref = 'ai_system_prompt';
 
 class ChatScreen extends StatefulWidget {

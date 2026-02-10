@@ -3,6 +3,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/chat_message.dart';
 
+// SharedPreferences keys for AI settings
+const kAiProviderPref = 'ai_provider';
+const kAiApiKeyPref = 'ai_api_key';
+const kAiModelPref = 'ai_model';
+
 enum AiProvider { gemini, claude }
 
 class AiChatException implements Exception {

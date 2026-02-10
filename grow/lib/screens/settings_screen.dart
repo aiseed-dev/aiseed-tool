@@ -4,9 +4,6 @@ import '../l10n/app_localizations.dart';
 import '../services/plant_identification_service.dart';
 import '../services/sync_service.dart';
 import '../services/database_service.dart';
-import '../services/ai_chat_service.dart';
-import 'onboarding_screen.dart';
-import 'chat_screen.dart';
 
 const kPlantIdProviderPref = 'plant_id_provider';
 const kPlantIdApiKeyPref = 'plant_id_api_key';
@@ -39,11 +36,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _serverToken = '';
   bool _syncing = false;
 
-  // AI chat settings
-  AiProvider _aiProvider = AiProvider.gemini;
-  String _aiApiKey = '';
-  String _aiModel = '';
-
   @override
   void initState() {
     super.initState();
@@ -63,11 +55,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _plantIdApiKey = prefs.getString(kPlantIdApiKeyPref) ?? '';
       _serverUrl = prefs.getString(kServerUrlPref) ?? '';
       _serverToken = prefs.getString(kServerTokenPref) ?? '';
-      final aiProviderIndex = prefs.getInt(kAiProviderPref) ?? 0;
-      _aiProvider = AiProvider
-          .values[aiProviderIndex.clamp(0, AiProvider.values.length - 1)];
-      _aiApiKey = prefs.getString(kAiApiKeyPref) ?? '';
-      _aiModel = prefs.getString(kAiModelPref) ?? '';
     });
   }
 
@@ -83,67 +70,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final l = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.settings)),
+      appBar: AppBar(title: const Text('システム設定')),
       body: ListView(
         children: [
-          // AI Skill File
-          ListTile(
-            leading: const Icon(Icons.auto_awesome),
-            title: const Text('あなた専用のAI設定をつくる'),
-            subtitle: const Text('5つの質問で栽培スキルファイルを生成'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-            ),
-          ),
-          const Divider(height: 1),
-          // AI Provider
-          ListTile(
-            leading: const Icon(Icons.smart_toy),
-            title: const Text('AIプロバイダー'),
-            subtitle: Text(_aiProvider == AiProvider.gemini
-                ? 'Gemini (無料枠あり)'
-                : 'Claude (従量課金)'),
-            onTap: () => _showAiProviderDialog(context),
-          ),
-          const Divider(height: 1),
-          // AI API Key
-          ListTile(
-            leading: const SizedBox(width: 24),
-            title: const Text('AI APIキー'),
-            subtitle: Text(
-              _aiApiKey.isEmpty
-                  ? _aiProvider == AiProvider.gemini
-                      ? 'Google AI Studio で取得'
-                      : 'Anthropic Console で取得'
-                  : _maskedKey(_aiApiKey),
-            ),
-            onTap: () => _showTextDialog(
-              context, AppLocalizations.of(context)!,
-              title: 'AI APIキー',
-              hint: _aiProvider == AiProvider.gemini
-                  ? 'AIza...'
-                  : 'sk-ant-...',
-              currentValue: _aiApiKey,
-              obscure: true,
-              onSave: (v) async {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setString(kAiApiKeyPref, v);
-                if (!mounted) return;
-                setState(() => _aiApiKey = v);
-              },
-            ),
-          ),
-          const Divider(height: 1),
-          // AI Model
-          ListTile(
-            leading: const SizedBox(width: 24),
-            title: const Text('AIモデル'),
-            subtitle: Text(_aiModelLabel()),
-            onTap: () => _showAiModelDialog(context),
-          ),
-          const Divider(height: 1),
           // Theme
           ListTile(
             leading: const Icon(Icons.brightness_6),
@@ -194,7 +123,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const Divider(height: 1),
           ],
-          // Server URL & token (shown when server provider or cloudflare sync)
+          // Server URL & token
           if (_provider == PlantIdProvider.server ||
               _syncMode == SyncMode.cloudflare) ...[
             ListTile(
@@ -437,138 +366,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  String _aiModelLabel() {
-    if (_aiModel.isEmpty) return 'デフォルト';
-    final models = AiChatService.modelsFor(_aiProvider);
-    for (final m in models) {
-      if (m.$1 == _aiModel) return m.$2;
-    }
-    return _aiModel;
-  }
-
-  void _showAiProviderDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => SimpleDialog(
-        title: const Text('AIプロバイダー'),
-        children: [
-          SimpleDialogOption(
-            onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setInt(kAiProviderPref, AiProvider.gemini.index);
-              await prefs.setString(kAiModelPref, '');
-              if (!mounted) return;
-              setState(() {
-                _aiProvider = AiProvider.gemini;
-                _aiModel = '';
-              });
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: Row(
-              children: [
-                Icon(
-                  _aiProvider == AiProvider.gemini
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_off,
-                  size: 20,
-                  color: _aiProvider == AiProvider.gemini
-                      ? Theme.of(ctx).colorScheme.primary
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Gemini'),
-                      Text('Google AI - 無料枠あり',
-                          style: TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SimpleDialogOption(
-            onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setInt(kAiProviderPref, AiProvider.claude.index);
-              await prefs.setString(kAiModelPref, '');
-              if (!mounted) return;
-              setState(() {
-                _aiProvider = AiProvider.claude;
-                _aiModel = '';
-              });
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: Row(
-              children: [
-                Icon(
-                  _aiProvider == AiProvider.claude
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_off,
-                  size: 20,
-                  color: _aiProvider == AiProvider.claude
-                      ? Theme.of(ctx).colorScheme.primary
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Claude'),
-                      Text('Anthropic - 従量課金',
-                          style: TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAiModelDialog(BuildContext context) {
-    final models = AiChatService.modelsFor(_aiProvider);
-    showDialog(
-      context: context,
-      builder: (ctx) => SimpleDialog(
-        title: const Text('AIモデル'),
-        children: models.map((m) {
-          final isSelected = _aiModel == m.$1 ||
-              (_aiModel.isEmpty && m == models.first);
-          return SimpleDialogOption(
-            onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setString(kAiModelPref, m.$1);
-              if (!mounted) return;
-              setState(() => _aiModel = m.$1);
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: Row(
-              children: [
-                Icon(
-                  isSelected
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_off,
-                  size: 20,
-                  color: isSelected
-                      ? Theme.of(ctx).colorScheme.primary
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                Text(m.$2),
-              ],
-            ),
-          );
-        }).toList(),
       ),
     );
   }

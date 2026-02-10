@@ -447,4 +447,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cachedInfo => '(from shared database)';
+
+  @override
+  String get skill => 'Skill';
+
+  @override
+  String get farmingMethod => 'Farming method';
+
+  @override
+  String get inheritFromSkill => 'Use skill defaults';
 }

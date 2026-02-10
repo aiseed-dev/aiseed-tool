@@ -837,6 +837,9 @@ abstract class AppLocalizations {
   String get cultivationTips;
   String get sourceUrl;
   String get cachedInfo;
+  String get skill;
+  String get farmingMethod;
+  String get inheritFromSkill;
 }
 
 class _AppLocalizationsDelegate

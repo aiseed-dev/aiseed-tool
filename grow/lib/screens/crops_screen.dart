@@ -4,6 +4,7 @@ import '../models/location.dart';
 import '../models/plot.dart';
 import '../models/crop.dart';
 import '../services/database_service.dart';
+import '../services/skill_file_generator.dart';
 import 'crop_create_screen.dart';
 import 'crop_detail_screen.dart';
 
@@ -66,6 +67,7 @@ class _CropsScreenState extends State<CropsScreen> {
 
     String? selectedPlotId = existing?.plotId;
     String? selectedParentCropId = existing?.parentCropId;
+    String? selectedFarmingMethod = existing?.farmingMethod;
 
     // Crops available as parent (exclude self)
     final parentCandidates =
@@ -151,6 +153,25 @@ class _CropsScreenState extends State<CropsScreen> {
                           setDialogState(() => selectedParentCropId = v),
                     ),
                   ],
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String?>(
+                    initialValue: selectedFarmingMethod,
+                    decoration:
+                        InputDecoration(labelText: l.farmingMethod),
+                    items: [
+                      DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text(l.inheritFromSkill),
+                      ),
+                      ...SkillFileGenerator.farmingMethods.entries
+                          .map((e) => DropdownMenuItem<String?>(
+                                value: e.key,
+                                child: Text(e.value),
+                              )),
+                    ],
+                    onChanged: (v) =>
+                        setDialogState(() => selectedFarmingMethod = v),
+                  ),
                 ],
               ),
             ),
@@ -178,6 +199,7 @@ class _CropsScreenState extends State<CropsScreen> {
       variety: varietyCtrl.text.trim(),
       plotId: selectedPlotId,
       parentCropId: selectedParentCropId,
+      farmingMethod: selectedFarmingMethod,
       memo: memoCtrl.text.trim(),
       startDate: existing?.startDate,
       createdAt: existing?.createdAt,
@@ -273,11 +295,17 @@ class _CropsScreenState extends State<CropsScreen> {
                     final crop = _crops[index];
                     final plotName = _plotDisplayName(crop.plotId);
                     final parentName = _parentCropName(crop.parentCropId);
+                    final methodLabel = crop.farmingMethod != null
+                        ? SkillFileGenerator
+                                .farmingMethods[crop.farmingMethod!] ??
+                            crop.farmingMethod!
+                        : null;
                     final subtitle = [
                       if (crop.name.isNotEmpty) crop.name,
                       if (crop.variety.isNotEmpty) crop.variety,
                       if (plotName.isNotEmpty) plotName,
                       if (parentName.isNotEmpty) '← $parentName',
+                      if (methodLabel != null) methodLabel,
                     ].join(' / ');
 
                     return Card(

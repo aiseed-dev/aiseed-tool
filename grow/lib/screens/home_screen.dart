@@ -3,8 +3,7 @@ import '../l10n/app_localizations.dart';
 import 'locations_screen.dart';
 import 'crops_screen.dart';
 import 'records_screen.dart';
-import 'onboarding_screen.dart';
-import 'settings_screen.dart';
+import 'skill_screen.dart';
 import '../services/database_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -30,13 +29,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _index = 0;
 
-  void _openOnboarding() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
@@ -44,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
       RecordsScreen(db: widget.db),
       CropsScreen(db: widget.db),
       LocationsScreen(db: widget.db),
-      SettingsScreen(
+      SkillScreen(
         onThemeModeChanged: widget.onThemeModeChanged,
         onLocaleChanged: widget.onLocaleChanged,
         themeMode: widget.themeMode,
@@ -54,13 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       body: screens[_index],
-      floatingActionButton: _index != 3
-          ? FloatingActionButton(
-              onPressed: _openOnboarding,
-              tooltip: 'スキルファイルをつくる',
-              child: const Icon(Icons.auto_awesome),
-            )
-          : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
@@ -81,9 +66,9 @@ class _HomeScreenState extends State<HomeScreen> {
             label: l.locations,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.settings_outlined),
-            selectedIcon: const Icon(Icons.settings),
-            label: l.settings,
+            icon: const Icon(Icons.auto_awesome_outlined),
+            selectedIcon: const Icon(Icons.auto_awesome),
+            label: l.skill,
           ),
         ],
       ),

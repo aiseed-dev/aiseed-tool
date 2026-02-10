@@ -445,4 +445,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get cachedInfo => '（共有データベースから取得）';
+
+  @override
+  String get skill => 'スキル';
+
+  @override
+  String get farmingMethod => '農法';
+
+  @override
+  String get inheritFromSkill => 'スキル設定を使う';
 }

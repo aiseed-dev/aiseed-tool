@@ -10,6 +10,7 @@ import '../models/plot.dart';
 import '../services/cultivation_info_service.dart';
 import '../services/database_service.dart';
 import '../services/photo_service.dart';
+import '../services/skill_file_generator.dart';
 
 class CropCreateScreen extends StatefulWidget {
   final DatabaseService db;
@@ -32,6 +33,7 @@ class _CropCreateScreenState extends State<CropCreateScreen> {
 
   String? _selectedPlotId;
   String? _selectedParentCropId;
+  String? _selectedFarmingMethod;
   List<Plot> _allPlots = [];
   List<Location> _locations = [];
   List<Crop> _allCrops = [];
@@ -359,6 +361,7 @@ class _CropCreateScreenState extends State<CropCreateScreen> {
       variety: _varietyCtrl.text.trim(),
       plotId: _selectedPlotId,
       parentCropId: _selectedParentCropId,
+      farmingMethod: _selectedFarmingMethod,
       memo: _memoCtrl.text.trim(),
     );
 
@@ -536,6 +539,27 @@ class _CropCreateScreenState extends State<CropCreateScreen> {
                           setState(() => _selectedParentCropId = v),
                     ),
                   ],
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String?>(
+                    value: _selectedFarmingMethod,
+                    decoration: InputDecoration(
+                      labelText: l.farmingMethod,
+                      border: const OutlineInputBorder(),
+                    ),
+                    items: [
+                      DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text(l.inheritFromSkill),
+                      ),
+                      ...SkillFileGenerator.farmingMethods.entries
+                          .map((e) => DropdownMenuItem<String?>(
+                                value: e.key,
+                                child: Text(e.value),
+                              )),
+                    ],
+                    onChanged: (v) =>
+                        setState(() => _selectedFarmingMethod = v),
+                  ),
 
                   const SizedBox(height: 24),
                   const Divider(),

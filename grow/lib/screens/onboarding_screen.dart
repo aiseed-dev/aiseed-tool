@@ -6,6 +6,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/skill_file_generator.dart';
+import 'skill_screen.dart';
 
 const kSkillFileKey = 'generated_skill_file';
 
@@ -101,10 +102,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       challenges: _challengesController.text.trim(),
     );
 
+    // Save structured profile data
+    _saveProfile(allCrops);
+
     setState(() {
       _generatedSkillFile = SkillFileGenerator.generate(profile);
       _step = _totalSteps;
     });
+  }
+
+  Future<void> _saveProfile(List<String> allCrops) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(kSkillCropsPref, allCrops.join(','));
+    await prefs.setString(
+        kSkillLocationPref, _locationController.text.trim());
+    await prefs.setString(kSkillMethodPref, _farmingMethod);
+    await prefs.setString(kSkillExperiencePref, _experience);
+    await prefs.setString(
+        kSkillChallengesPref, _challengesController.text.trim());
   }
 
   @override
