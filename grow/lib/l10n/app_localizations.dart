@@ -788,6 +788,27 @@ abstract class AppLocalizations {
   /// **'ホームページ作成機能は準備中です'**
   String get homepageComingSoon;
 
+  // Site creation
+  String get siteInfoFarm;
+  String get siteFarmName;
+  String get siteFarmDesc;
+  String get siteFarmLocation;
+  String get siteFarmPolicy;
+  String get siteInfoCrops;
+  String get siteInfoSales;
+  String get siteSalesDesc;
+  String get siteSalesContact;
+  String get siteGenerate;
+  String get siteHtmlReady;
+  String get siteCopyHtml;
+  String get siteDeploySection;
+  String get siteDeployDesc;
+  String get siteCfAccountId;
+  String get siteCfApiToken;
+  String get siteCfProjectName;
+  String get siteDeploy;
+  String get siteDeployDone;
+
   /// No description provided for @searchRecords.
   ///
   /// In ja, this message translates to:

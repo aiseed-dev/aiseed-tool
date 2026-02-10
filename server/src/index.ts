@@ -12,6 +12,7 @@ import {
   handlePhotoList,
 } from "./photos";
 import { handleSyncPull, handleSyncPush } from "./sync";
+import { handleSiteGenerate, handleSiteDeploy } from "./sites";
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -78,6 +79,15 @@ export default {
       if (path.startsWith("/photos/") && request.method === "DELETE") {
         const key = decodeURIComponent(path.slice("/photos/".length));
         return withCors(await handlePhotoDelete(key, env));
+      }
+
+      // Site generation & deployment
+      if (path === "/sites/generate" && request.method === "POST") {
+        return withCors(await handleSiteGenerate(request, env));
+      }
+
+      if (path === "/sites/deploy" && request.method === "POST") {
+        return withCors(await handleSiteDeploy(request, env));
       }
 
       // Health check

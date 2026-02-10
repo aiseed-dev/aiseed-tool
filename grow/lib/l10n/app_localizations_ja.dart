@@ -359,6 +359,46 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get homepageComingSoon => 'ホームページ作成機能は準備中です';
 
+  // ホームページ作成画面
+  @override
+  String get siteInfoFarm => '農園情報';
+  @override
+  String get siteFarmName => '農園名';
+  @override
+  String get siteFarmDesc => '農園の紹介文';
+  @override
+  String get siteFarmLocation => '所在地';
+  @override
+  String get siteFarmPolicy => '栽培方針（例: 自然栽培）';
+  @override
+  String get siteInfoCrops => '掲載する作物';
+  @override
+  String get siteInfoSales => '販売情報';
+  @override
+  String get siteSalesDesc => '販売方法の説明';
+  @override
+  String get siteSalesContact => '連絡先（メール、電話など）';
+  @override
+  String get siteGenerate => 'HTMLを生成';
+  @override
+  String get siteHtmlReady => 'HTMLが生成されました';
+  @override
+  String get siteCopyHtml => 'HTMLをコピー';
+  @override
+  String get siteDeploySection => 'Cloudflareに自動デプロイ';
+  @override
+  String get siteDeployDesc => 'Cloudflare Pagesに直接デプロイします。アカウントIDとAPIトークンが必要です。';
+  @override
+  String get siteCfAccountId => 'Cloudflare Account ID';
+  @override
+  String get siteCfApiToken => 'Cloudflare API Token';
+  @override
+  String get siteCfProjectName => 'プロジェクト名（サイトURL）';
+  @override
+  String get siteDeploy => 'デプロイ';
+  @override
+  String get siteDeployDone => 'デプロイ完了';
+
   @override
   String get searchRecords => '記録を検索';
 

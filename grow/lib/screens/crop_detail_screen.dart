@@ -11,6 +11,7 @@ import '../models/record.dart';
 import '../models/record_photo.dart';
 import '../services/cultivation_info_service.dart';
 import '../services/database_service.dart';
+import 'site_screen.dart';
 
 class CropDetailScreen extends StatefulWidget {
   final DatabaseService db;
@@ -308,8 +309,14 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
         subtitle: Text(l.createHomepageDesc),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l.homepageComingSoon)),
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SiteScreen(
+                db: widget.db,
+                initialCrop: _crop,
+              ),
+            ),
           );
         },
       ),
