@@ -812,30 +812,154 @@ abstract class AppLocalizations {
   /// **'メモ、栽培名、場所名で検索'**
   String get searchHint;
 
+  /// No description provided for @cultivationInfo.
+  ///
+  /// In ja, this message translates to:
+  /// **'栽培情報'**
   String get cultivationInfo;
+
+  /// No description provided for @seedPacketPhotos.
+  ///
+  /// In ja, this message translates to:
+  /// **'種袋の写真'**
   String get seedPacketPhotos;
+
+  /// No description provided for @readFromUrl.
+  ///
+  /// In ja, this message translates to:
+  /// **'URLから栽培情報を取得'**
   String get readFromUrl;
+
+  /// No description provided for @readFromSeedPhoto.
+  ///
+  /// In ja, this message translates to:
+  /// **'種袋を撮影して読み取る'**
   String get readFromSeedPhoto;
+
+  /// No description provided for @saveSeedPhoto.
+  ///
+  /// In ja, this message translates to:
+  /// **'種袋の写真を保存（ローカル）'**
   String get saveSeedPhoto;
+
+  /// No description provided for @cultivationReferences.
+  ///
+  /// In ja, this message translates to:
+  /// **'参考情報'**
   String get cultivationReferences;
+
+  /// No description provided for @addReference.
+  ///
+  /// In ja, this message translates to:
+  /// **'参考URLを追加'**
   String get addReference;
+
+  /// No description provided for @referenceUrl.
+  ///
+  /// In ja, this message translates to:
+  /// **'URL'**
   String get referenceUrl;
+
+  /// No description provided for @referenceTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'タイトル'**
   String get referenceTitle;
+
+  /// No description provided for @noReferences.
+  ///
+  /// In ja, this message translates to:
+  /// **'参考情報はまだありません'**
   String get noReferences;
+
+  /// No description provided for @readingUrl.
+  ///
+  /// In ja, this message translates to:
+  /// **'URLから情報を読み取り中…'**
   String get readingUrl;
+
+  /// No description provided for @readingImage.
+  ///
+  /// In ja, this message translates to:
+  /// **'種袋を読み取り中…'**
   String get readingImage;
+
+  /// No description provided for @readSuccess.
+  ///
+  /// In ja, this message translates to:
+  /// **'栽培情報を取得しました'**
   String get readSuccess;
+
+  /// No description provided for @readFailed.
+  ///
+  /// In ja, this message translates to:
+  /// **'情報の取得に失敗しました'**
   String get readFailed;
+
+  /// No description provided for @serverRequired.
+  ///
+  /// In ja, this message translates to:
+  /// **'この機能にはサーバー設定が必要です'**
   String get serverRequired;
+
+  /// No description provided for @autoFillConfirm.
+  ///
+  /// In ja, this message translates to:
+  /// **'作物名・品種を自動入力しますか？'**
   String get autoFillConfirm;
+
+  /// No description provided for @sowingPeriod.
+  ///
+  /// In ja, this message translates to:
+  /// **'播種時期'**
   String get sowingPeriod;
+
+  /// No description provided for @harvestPeriod.
+  ///
+  /// In ja, this message translates to:
+  /// **'収穫時期'**
   String get harvestPeriod;
+
+  /// No description provided for @spacing.
+  ///
+  /// In ja, this message translates to:
+  /// **'株間'**
   String get spacing;
+
+  /// No description provided for @seedDepth.
+  ///
+  /// In ja, this message translates to:
+  /// **'播種深さ'**
   String get seedDepth;
+
+  /// No description provided for @sunlight.
+  ///
+  /// In ja, this message translates to:
+  /// **'日照'**
   String get sunlight;
+
+  /// No description provided for @fertilizerInfo.
+  ///
+  /// In ja, this message translates to:
+  /// **'施肥'**
   String get fertilizerInfo;
+
+  /// No description provided for @cultivationTips.
+  ///
+  /// In ja, this message translates to:
+  /// **'栽培のコツ'**
   String get cultivationTips;
+
+  /// No description provided for @sourceUrl.
+  ///
+  /// In ja, this message translates to:
+  /// **'取得元URL'**
   String get sourceUrl;
+
+  /// No description provided for @cachedInfo.
+  ///
+  /// In ja, this message translates to:
+  /// **'（共有データベースから取得）'**
   String get cachedInfo;
 }
 
