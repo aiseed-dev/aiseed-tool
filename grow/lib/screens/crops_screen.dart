@@ -154,23 +154,21 @@ class _CropsScreenState extends State<CropsScreen> {
                     ),
                   ],
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<String?>(
+                  DropdownButtonFormField<String>(
                     initialValue: selectedFarmingMethod,
                     decoration:
                         InputDecoration(labelText: l.farmingMethod),
-                    items: [
-                      DropdownMenuItem<String?>(
-                        value: null,
-                        child: Text(l.inheritFromSkill),
-                      ),
-                      ...SkillFileGenerator.farmingMethods.entries
-                          .map((e) => DropdownMenuItem<String?>(
-                                value: e.key,
-                                child: Text(e.value),
-                              )),
-                    ],
-                    onChanged: (v) =>
-                        setDialogState(() => selectedFarmingMethod = v),
+                    items: SkillFileGenerator.farmingMethods.entries
+                        .map((e) => DropdownMenuItem<String>(
+                              value: e.key,
+                              child: Text(e.value),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) {
+                        setDialogState(() => selectedFarmingMethod = v);
+                      }
+                    },
                   ),
                 ],
               ),
