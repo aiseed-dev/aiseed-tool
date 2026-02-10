@@ -51,7 +51,20 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => Scaffold(
-          body: ChatScreen(conversationService: _chatConversationService),
+          body: ChatScreen(
+            conversationService: _chatConversationService,
+            onOpenSettings: () => Navigator.push(
+              _,
+              MaterialPageRoute(
+                builder: (__) => SettingsScreen(
+                  onThemeModeChanged: widget.onThemeModeChanged,
+                  onLocaleChanged: widget.onLocaleChanged,
+                  themeMode: widget.themeMode,
+                  locale: widget.locale,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

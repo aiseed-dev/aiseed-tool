@@ -15,8 +15,13 @@ const kAiSystemPromptPref = 'ai_system_prompt';
 
 class ChatScreen extends StatefulWidget {
   final ChatConversationService conversationService;
+  final VoidCallback? onOpenSettings;
 
-  const ChatScreen({super.key, required this.conversationService});
+  const ChatScreen({
+    super.key,
+    required this.conversationService,
+    this.onOpenSettings,
+  });
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -261,11 +266,18 @@ class _ChatScreenState extends State<ChatScreen> {
                       ?.copyWith(fontWeight: FontWeight.bold)),
               const Spacer(),
               if (!_isConfigured)
+                Icon(Icons.warning_amber,
+                    color: Theme.of(context).colorScheme.error, size: 20),
+              if (widget.onOpenSettings != null)
                 IconButton(
-                  icon: Icon(Icons.warning_amber,
-                      color: Theme.of(context).colorScheme.error, size: 20),
-                  onPressed: _showApiKeyHint,
-                  tooltip: 'APIキー未設定',
+                  icon: const Icon(Icons.settings_outlined, size: 20),
+                  onPressed: () async {
+                    widget.onOpenSettings!();
+                    // Reload settings when coming back
+                    await Future.delayed(const Duration(milliseconds: 300));
+                    _loadSettings();
+                  },
+                  tooltip: '設定',
                 ),
             ],
           ),
