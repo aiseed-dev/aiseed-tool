@@ -20,8 +20,9 @@ enum _LinkType { location, plot, crop }
 
 class RecordsScreen extends StatefulWidget {
   final DatabaseService db;
+  final VoidCallback? onOpenSettings;
 
-  const RecordsScreen({super.key, required this.db});
+  const RecordsScreen({super.key, required this.db, this.onOpenSettings});
 
   @override
   State<RecordsScreen> createState() => _RecordsScreenState();
@@ -949,6 +950,12 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   tooltip: l.searchRecords,
                   onPressed: () => setState(() => _isSearching = true),
                 ),
+                if (widget.onOpenSettings != null)
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined),
+                    tooltip: l.settings,
+                    onPressed: widget.onOpenSettings,
+                  ),
               ],
             ),
       body: _loading

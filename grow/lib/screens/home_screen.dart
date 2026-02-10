@@ -32,24 +32,47 @@ class _HomeScreenState extends State<HomeScreen> {
   int _index = 0;
   final _chatConversationService = ChatConversationService();
 
+  void _openSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SettingsScreen(
+          onThemeModeChanged: widget.onThemeModeChanged,
+          onLocaleChanged: widget.onLocaleChanged,
+          themeMode: widget.themeMode,
+          locale: widget.locale,
+        ),
+      ),
+    );
+  }
+
+  void _openChat() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          body: ChatScreen(conversationService: _chatConversationService),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     final screens = [
-      RecordsScreen(db: widget.db),
-      CropsScreen(db: widget.db),
-      ChatScreen(conversationService: _chatConversationService),
-      LocationsScreen(db: widget.db),
-      SettingsScreen(
-        onThemeModeChanged: widget.onThemeModeChanged,
-        onLocaleChanged: widget.onLocaleChanged,
-        themeMode: widget.themeMode,
-        locale: widget.locale,
-      ),
+      RecordsScreen(db: widget.db, onOpenSettings: _openSettings),
+      CropsScreen(db: widget.db, onOpenSettings: _openSettings),
+      LocationsScreen(db: widget.db, onOpenSettings: _openSettings),
     ];
 
     return Scaffold(
       body: screens[_index],
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openChat,
+        tooltip: 'AI Cowork',
+        child: const Icon(Icons.auto_awesome),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
@@ -64,20 +87,10 @@ class _HomeScreenState extends State<HomeScreen> {
             selectedIcon: const Icon(Icons.eco),
             label: l.crops,
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.chat_outlined),
-            selectedIcon: Icon(Icons.chat),
-            label: 'AI',
-          ),
           NavigationDestination(
             icon: const Icon(Icons.place_outlined),
             selectedIcon: const Icon(Icons.place),
             label: l.locations,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.settings_outlined),
-            selectedIcon: const Icon(Icons.settings),
-            label: l.settings,
           ),
         ],
       ),

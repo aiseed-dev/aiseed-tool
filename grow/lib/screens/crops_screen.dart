@@ -9,8 +9,9 @@ import 'crop_detail_screen.dart';
 
 class CropsScreen extends StatefulWidget {
   final DatabaseService db;
+  final VoidCallback? onOpenSettings;
 
-  const CropsScreen({super.key, required this.db});
+  const CropsScreen({super.key, required this.db, this.onOpenSettings});
 
   @override
   State<CropsScreen> createState() => _CropsScreenState();
@@ -261,7 +262,17 @@ class _CropsScreenState extends State<CropsScreen> {
     final l = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.crops)),
+      appBar: AppBar(
+        title: Text(l.crops),
+        actions: [
+          if (widget.onOpenSettings != null)
+            IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: l.settings,
+              onPressed: widget.onOpenSettings,
+            ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _crops.isEmpty
