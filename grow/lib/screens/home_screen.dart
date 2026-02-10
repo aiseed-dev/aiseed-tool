@@ -3,8 +3,10 @@ import '../l10n/app_localizations.dart';
 import 'locations_screen.dart';
 import 'crops_screen.dart';
 import 'records_screen.dart';
+import 'chat_screen.dart';
 import 'settings_screen.dart';
 import '../services/database_service.dart';
+import '../services/chat_conversation_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final DatabaseService db;
@@ -28,6 +30,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _index = 0;
+  final _chatConversationService = ChatConversationService();
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final screens = [
       RecordsScreen(db: widget.db),
       CropsScreen(db: widget.db),
+      ChatScreen(conversationService: _chatConversationService),
       LocationsScreen(db: widget.db),
       SettingsScreen(
         onThemeModeChanged: widget.onThemeModeChanged,
@@ -59,6 +63,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.eco_outlined),
             selectedIcon: const Icon(Icons.eco),
             label: l.crops,
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.chat_outlined),
+            selectedIcon: Icon(Icons.chat),
+            label: 'AI',
           ),
           NavigationDestination(
             icon: const Icon(Icons.place_outlined),
