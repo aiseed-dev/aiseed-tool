@@ -171,6 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       onConversationSelected: _onConversationSelected,
                       onNewConversation: _onNewConversation,
                       onOpenSettings: _openSettings,
+                      onOpenOnboarding: _openOnboarding,
                     ),
                   )
                 else
@@ -226,6 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onConversationSelected: _onConversationSelected,
             onNewConversation: _onNewConversation,
             onOpenSettings: _openSettings,
+            onOpenOnboarding: _openOnboarding,
           );
         }
         if (_currentConversation != null) {

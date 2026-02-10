@@ -8,6 +8,7 @@ class ConversationListScreen extends StatefulWidget {
   final ValueChanged<Conversation> onConversationSelected;
   final VoidCallback onNewConversation;
   final VoidCallback onOpenSettings;
+  final VoidCallback? onOpenOnboarding;
 
   const ConversationListScreen({
     super.key,
@@ -16,6 +17,7 @@ class ConversationListScreen extends StatefulWidget {
     required this.onConversationSelected,
     required this.onNewConversation,
     required this.onOpenSettings,
+    this.onOpenOnboarding,
   });
 
   @override
@@ -94,6 +96,12 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                     ),
               ),
               const Spacer(),
+              if (widget.onOpenOnboarding != null)
+                IconButton(
+                  icon: const Icon(Icons.auto_awesome, size: 20),
+                  onPressed: widget.onOpenOnboarding,
+                  tooltip: 'AI設定をつくる',
+                ),
               IconButton(
                 icon: const Icon(Icons.settings, size: 20),
                 onPressed: widget.onOpenSettings,
@@ -116,12 +124,30 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
         Expanded(
           child: _conversations.isEmpty
               ? Center(
-                  child: Text(
-                    '会話がありません',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant,
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '会話がありません',
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
                         ),
+                        if (widget.onOpenOnboarding != null) ...[
+                          const SizedBox(height: 20),
+                          FilledButton.tonalIcon(
+                            onPressed: widget.onOpenOnboarding,
+                            icon: const Icon(Icons.auto_awesome, size: 18),
+                            label: const Text('あなた専用のAI設定をつくる'),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 )
               : ListView.builder(
