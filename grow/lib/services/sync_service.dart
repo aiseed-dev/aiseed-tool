@@ -8,6 +8,7 @@ import 'database_service.dart';
 enum SyncMode {
   local,      // ローカルのみ（同期なし）
   cloudflare, // Cloudflare Workers + R2 + D1
+  fastapi,    // FastAPI (ローカル PC / 共有サーバー)
 }
 
 const kSyncModePref = 'sync_mode';
@@ -18,16 +19,22 @@ class SyncService {
   final DatabaseService _db;
   final String _serverUrl;
   final String _serverToken;
+  final SyncMode _mode;
 
   SyncService({
     required DatabaseService db,
     required String serverUrl,
     required String serverToken,
+    SyncMode mode = SyncMode.cloudflare,
   })  : _db = db,
         _serverUrl = serverUrl.endsWith('/')
             ? serverUrl.substring(0, serverUrl.length - 1)
             : serverUrl,
-        _serverToken = serverToken;
+        _serverToken = serverToken,
+        _mode = mode;
+
+  /// API パスのプレフィックス（FastAPI は /grow 配下）
+  String get _prefix => _mode == SyncMode.fastapi ? '/grow' : '';
 
   static const _syncTables = [
     'locations',
@@ -71,7 +78,7 @@ class SyncService {
 
   Future<_PullResult> _pull(String since) async {
     final response = await http.post(
-      Uri.parse('$_serverUrl/sync/pull'),
+      Uri.parse('$_serverUrl$_prefix/sync/pull'),
       headers: _headers,
       body: jsonEncode({'since': since}),
     );
@@ -135,7 +142,7 @@ class SyncService {
     if (count == 0) return _PushResult(count: 0, timestamp: null);
 
     final response = await http.post(
-      Uri.parse('$_serverUrl/sync/push'),
+      Uri.parse('$_serverUrl$_prefix/sync/push'),
       headers: _headers,
       body: jsonEncode(body),
     );
@@ -167,7 +174,7 @@ class SyncService {
       // Upload to server
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('$_serverUrl/photos'),
+        Uri.parse('$_serverUrl$_prefix/photos'),
       );
       request.headers['Authorization'] = 'Bearer $_serverToken';
       request.files.add(await http.MultipartFile.fromPath('image', filePath));
@@ -177,7 +184,8 @@ class SyncService {
 
       final responseBody = await response.stream.bytesToString();
       final data = jsonDecode(responseBody) as Map<String, dynamic>;
-      final r2Key = data['key'] as String?;
+      // Cloudflare returns 'key', FastAPI returns 'path'
+      final r2Key = data['key'] as String? ?? data['path'] as String?;
 
       if (r2Key != null) {
         // Update local record with r2_key

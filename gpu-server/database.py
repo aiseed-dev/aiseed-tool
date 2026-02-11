@@ -17,6 +17,7 @@ async def init_db():
     import models.weather  # noqa: F401
     import models.amedas  # noqa: F401
     import models.forecast  # noqa: F401
+    import models.grow  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

@@ -320,6 +320,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncModeLocalDesc => 'Data stays on this device only';
 
   @override
+  String get syncModeFastapi => 'FastAPI sync';
+
+  @override
+  String get syncModeFastapiDesc => 'Sync with local PC / shared server';
+
+  @override
   String get syncModeCloudflare => 'Cloudflare sync';
 
   @override

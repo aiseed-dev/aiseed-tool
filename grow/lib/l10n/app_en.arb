@@ -102,6 +102,8 @@
   "dataSync": "Data sync",
   "syncModeLocal": "Local only",
   "syncModeLocalDesc": "Data stays on this device only",
+  "syncModeFastapi": "FastAPI sync",
+  "syncModeFastapiDesc": "Sync with local PC / shared server",
   "syncModeCloudflare": "Cloudflare sync",
   "syncModeCloudflareDesc": "Sync data and photos via server",
   "syncNow": "Sync now",

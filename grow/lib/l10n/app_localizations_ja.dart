@@ -319,6 +319,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncModeLocalDesc => 'データはこの端末のみに保存';
 
   @override
+  String get syncModeFastapi => 'FastAPI 同期';
+
+  @override
+  String get syncModeFastapiDesc => 'ローカル PC / 共有サーバーと同期';
+
+  @override
   String get syncModeCloudflare => 'Cloudflare 同期';
 
   @override

@@ -112,6 +112,8 @@
   "dataSync": "データ同期",
   "syncModeLocal": "ローカルのみ",
   "syncModeLocalDesc": "データはこの端末のみに保存",
+  "syncModeFastapi": "FastAPI 同期",
+  "syncModeFastapiDesc": "ローカル PC / 共有サーバーと同期",
   "syncModeCloudflare": "Cloudflare 同期",
   "syncModeCloudflareDesc": "サーバー経由でデータ・写真を同期",
   "syncNow": "今すぐ同期",

@@ -710,6 +710,18 @@ abstract class AppLocalizations {
   /// **'データはこの端末のみに保存'**
   String get syncModeLocalDesc;
 
+  /// No description provided for @syncModeFastapi.
+  ///
+  /// In ja, this message translates to:
+  /// **'FastAPI 同期'**
+  String get syncModeFastapi;
+
+  /// No description provided for @syncModeFastapiDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'ローカル PC / 共有サーバーと同期'**
+  String get syncModeFastapiDesc;
+
   /// No description provided for @syncModeCloudflare.
   ///
   /// In ja, this message translates to:
