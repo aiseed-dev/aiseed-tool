@@ -1,24 +1,22 @@
-"""AI チャットプロキシ — Claude API をサーバー経由で呼び出す
+"""AI チャット — Claude Agent SDK 経由（Max 定額プラン対応）
 
-スマホ側に API キーを持たせず、サーバーの Anthropic API キーで処理する。
-ストリーミング対応。
+サーバー上の Claude Code（claude login 済み）を利用し、
+Max サブスクの定額枠で AI チャットを提供する。
+スマホ側に API キーは不要。
 """
 
+import json
 import logging
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from config import settings
 from routers.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ai", tags=["ai"])
-
-ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 
 
 class ChatMessage(BaseModel):
@@ -29,60 +27,92 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
     system: str | None = None
-    model: str | None = None
     max_tokens: int = 4096
     stream: bool = True
 
 
+def _build_prompt(req: ChatRequest) -> str:
+    """会話履歴を Agent SDK 用の単一プロンプトに変換する。"""
+    parts: list[str] = []
+
+    if req.system:
+        parts.append(req.system)
+
+    for msg in req.messages:
+        if msg.role == "user":
+            parts.append(f"User: {msg.content}")
+        elif msg.role == "assistant":
+            parts.append(f"Assistant: {msg.content}")
+
+    return "\n\n".join(parts)
+
+
 @router.post("/chat")
 async def chat(req: ChatRequest, user=Depends(get_current_user)):
-    """Claude API へのプロキシ。認証済みユーザーのみ使用可。"""
-    if not settings.anthropic_api_key:
+    """Claude Agent SDK 経由でチャット。Max 定額プランで従量課金なし。"""
+    try:
+        from claude_agent_sdk import (  # noqa: E402
+            AssistantMessage,
+            ClaudeAgentOptions,
+            TextBlock,
+            query,
+        )
+    except ImportError:
         raise HTTPException(
             status_code=503,
-            detail="Anthropic API key not configured on server",
+            detail="claude-agent-sdk is not installed. Run: pip install claude-agent-sdk",
         )
 
-    model = req.model or settings.ai_model
+    prompt = _build_prompt(req)
 
-    body: dict = {
-        "model": model,
-        "max_tokens": req.max_tokens,
-        "messages": [m.model_dump() for m in req.messages],
-        "stream": req.stream,
-    }
-    if req.system:
-        body["system"] = req.system
-
-    headers = {
-        "x-api-key": settings.anthropic_api_key,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-    }
+    options = ClaudeAgentOptions(
+        allowed_tools=[],
+        permission_mode="bypassPermissions",
+        max_tokens=req.max_tokens,
+    )
 
     if not req.stream:
-        async with httpx.AsyncClient(timeout=120) as client:
-            resp = await client.post(ANTHROPIC_API_URL, json=body, headers=headers)
-            if resp.status_code != 200:
-                raise HTTPException(status_code=resp.status_code, detail=resp.text)
-            return resp.json()
+        try:
+            result_parts: list[str] = []
+            async for message in query(prompt=prompt, options=options):
+                if isinstance(message, AssistantMessage):
+                    for block in message.content:
+                        if isinstance(block, TextBlock):
+                            result_parts.append(block.text)
+            return {
+                "content": [{"type": "text", "text": "".join(result_parts)}],
+                "role": "assistant",
+            }
+        except Exception as e:
+            logger.error("Agent SDK error: %s", e)
+            raise HTTPException(status_code=500, detail=str(e))
 
-    # Streaming response
-    async def stream_proxy():
-        async with httpx.AsyncClient(timeout=120) as client:
-            async with client.stream(
-                "POST", ANTHROPIC_API_URL, json=body, headers=headers
-            ) as resp:
-                if resp.status_code != 200:
-                    error_body = await resp.aread()
-                    logger.error("Claude API error %d: %s", resp.status_code, error_body)
-                    yield f'data: {{"type":"error","error":{{"message":"Claude API {resp.status_code}"}}}}\n\n'
-                    return
-                async for line in resp.aiter_lines():
-                    yield f"{line}\n"
+    # ── Streaming — Claude SSE 互換フォーマット ──
+    async def stream_response():
+        try:
+            async for message in query(prompt=prompt, options=options):
+                if isinstance(message, AssistantMessage):
+                    for block in message.content:
+                        if isinstance(block, TextBlock):
+                            event = {
+                                "type": "content_block_delta",
+                                "delta": {
+                                    "type": "text_delta",
+                                    "text": block.text,
+                                },
+                            }
+                            yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            logger.error("Agent SDK stream error: %s", e)
+            error_event = {
+                "type": "error",
+                "error": {"message": str(e)},
+            }
+            yield f"data: {json.dumps(error_event, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(
-        stream_proxy(),
+        stream_response(),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

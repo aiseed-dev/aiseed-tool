@@ -318,7 +318,7 @@
         <ol>
             <li><a href="#setup">サーバーのセットアップ</a></li>
             <li><a href="#auth">認証 (/auth)</a></li>
-            <li><a href="#ai">AIチャット (/ai) — APIキー不要</a></li>
+            <li><a href="#ai">AIチャット (/ai) — Claude Agent SDK</a></li>
             <li><a href="#grow-sync">栽培データ同期 (/grow)</a></li>
             <li><a href="#ocr">OCR — 種袋読み取り (/ocr)</a></li>
             <li><a href="#vision">画像分析 (/vision)</a></li>
@@ -357,8 +357,7 @@ pip install -r requirements.txt</pre>
 <pre><span class="comment"># .env (gpu-server ディレクトリ直下)</span>
 GROW_GPU_SECRET_KEY=<span class="string">your-secret-key-here</span>
 GROW_GPU_HOST=<span class="string">0.0.0.0</span>
-GROW_GPU_PORT=<span class="number">8000</span>
-GROW_GPU_ANTHROPIC_API_KEY=<span class="string">sk-ant-...</span>  <span class="comment"># AIチャット用（定額プランで取得）</span></pre>
+GROW_GPU_PORT=<span class="number">8000</span></pre>
 
     <table>
         <tr><th>変数名</th><th>デフォルト</th><th>説明</th></tr>
@@ -368,15 +367,13 @@ GROW_GPU_ANTHROPIC_API_KEY=<span class="string">sk-ant-...</span>  <span class="
         <tr><td><code>GROW_GPU_DATABASE_URL</code></td><td><code>sqlite+aiosqlite:///./grow_gpu.db</code></td><td>データベースURL</td></tr>
         <tr><td><code>GROW_GPU_UPLOAD_DIR</code></td><td><code>./uploads</code></td><td>写真アップロード先</td></tr>
         <tr><td><code>GROW_GPU_MAX_UPLOAD_SIZE</code></td><td><code>20971520</code> (20MB)</td><td>最大アップロードサイズ</td></tr>
-        <tr><td><code>GROW_GPU_ANTHROPIC_API_KEY</code></td><td>(空)</td><td>Anthropic APIキー（AIチャット用）</td></tr>
-        <tr><td><code>GROW_GPU_AI_MODEL</code></td><td><code>claude-haiku-4-5-20251001</code></td><td>デフォルトAIモデル</td></tr>
     </table>
 
     <div class="info-box">
-        <strong>スマホ側のAPIキーは不要です。</strong><br>
-        Anthropic APIキーはサーバーの <code>.env</code> に1箇所だけ設定します。
-        スマホアプリは FastAPI サーバー経由で AI を使うため、端末側の設定は「サーバーURL」のみです。<br>
-        APIキーは <a href="https://console.anthropic.com/" target="_blank">Anthropic Console</a> から取得できます（定額プランに含まれます）。
+        <strong>API キーは一切不要です。</strong><br>
+        AI チャットは <a href="https://docs.anthropic.com/en/docs/claude-code/sdk" target="_blank">Claude Agent SDK</a> 経由で動作します。
+        サーバーで <code>claude login</code> を実行して Max プランで認証すれば、定額で使い放題です。<br>
+        スマホアプリは FastAPI サーバー経由で AI を使うため、端末側の設定は「サーバーURL」のみです。
     </div>
 
     <h3>起動</h3>
@@ -473,9 +470,14 @@ curl -X POST http://localhost:8000/auth/login \
     </div>
 
     <!-- ========== 3. AI CHAT ========== -->
-    <h2 id="ai">3. AIチャット (/ai) — APIキー不要</h2>
-    <p>サーバーが Anthropic API を代理するため、スマホ側に API キーは不要です。<br>
-    ストリーミング対応。Claude API と同じ SSE 形式でレスポンスを返します。</p>
+    <h2 id="ai">3. AIチャット (/ai) — Claude Agent SDK</h2>
+    <p>サーバー上の Claude Agent SDK（Max 定額プラン）を利用。API キーは不要です。<br>
+    ストリーミング対応。Claude SSE 互換フォーマットでレスポンスを返します。</p>
+
+    <div class="info-box">
+        <strong>前提条件:</strong> サーバーで <code>curl -fsSL https://claude.ai/install.sh | bash</code> → <code>claude login</code> を実行済みであること。<br>
+        <code>pip install claude-agent-sdk</code> も必要です。
+    </div>
 
     <h3>チャット（ストリーミング）</h3>
     <div class="endpoint">
@@ -500,13 +502,13 @@ curl -X POST http://localhost:8000/ai/chat \
                 <tr><th>パラメータ</th><th>必須</th><th>説明</th></tr>
                 <tr><td><code>messages</code></td><td>はい</td><td>会話履歴（role: user/assistant）</td></tr>
                 <tr><td><code>system</code></td><td>いいえ</td><td>システムプロンプト</td></tr>
-                <tr><td><code>model</code></td><td>いいえ</td><td>モデル名（省略時: サーバーのデフォルト）</td></tr>
                 <tr><td><code>max_tokens</code></td><td>いいえ</td><td>最大トークン数（デフォルト: 4096）</td></tr>
                 <tr><td><code>stream</code></td><td>いいえ</td><td>ストリーミング（デフォルト: true）</td></tr>
             </table>
             <div class="info-box">
-                レスポンスは Claude API の SSE 形式です。<code>content_block_delta</code> イベントの <code>text_delta</code> にテキストが含まれます。<br>
-                <code>stream: false</code> にすると、通常の JSON レスポンスを返します。
+                レスポンスは Claude SSE 互換形式です。<code>content_block_delta</code> イベントの <code>text_delta</code> にテキストが含まれます。<br>
+                <code>stream: false</code> にすると、通常の JSON レスポンスを返します。<br>
+                モデルは Claude Agent SDK の認証アカウント（Max プラン）に依存します。
             </div>
         </div>
     </div>
