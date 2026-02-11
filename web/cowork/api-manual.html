@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grow API マニュアル — FastAPI サーバー</title>
+    <meta name="description" content="Grow FastAPI サーバーのセットアップ・全エンドポイントリファレンス">
+    <style>
+        :root {
+            --color-bg: #faf9f6;
+            --color-surface: #ffffff;
+            --color-text: #2c2c2c;
+            --color-text-sub: #5a5a5a;
+            --color-accent: #4a7c59;
+            --color-accent-light: #e8f0eb;
+            --color-accent-dark: #3a6247;
+            --color-border: #e0ddd8;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 16px; scroll-behavior: smooth; }
+
+        body {
+            font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            color: var(--color-text);
+            background: var(--color-bg);
+            line-height: 1.85;
+        }
+
+        .site-header {
+            background: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+            padding: 1rem 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .logo {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--color-accent);
+            text-decoration: none;
+        }
+
+        .header-nav a {
+            font-size: 0.85rem;
+            color: var(--color-text-sub);
+            text-decoration: none;
+            margin-left: 1.2rem;
+        }
+        .header-nav a:hover { color: var(--color-accent); }
+
+        main {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 1.5rem 0 2rem;
+        }
+
+        .hero h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--color-text);
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .hero p {
+            font-size: 1rem;
+            color: var(--color-text-sub);
+        }
+
+        /* Table of Contents */
+        .toc {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0 2.5rem;
+        }
+
+        .toc h2 {
+            font-size: 1rem;
+            margin: 0 0 0.8rem;
+            border: none;
+            padding: 0;
+        }
+
+        .toc ol {
+            padding-left: 1.3rem;
+            margin: 0;
+        }
+
+        .toc li {
+            margin-bottom: 0.3rem;
+        }
+
+        .toc a {
+            color: var(--color-accent);
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        .toc a:hover { text-decoration: underline; }
+
+        h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--color-accent);
+            margin-top: 3rem;
+            margin-bottom: 0.8rem;
+            padding-bottom: 0.3rem;
+            border-bottom: 2px solid var(--color-accent-light);
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--color-text);
+            margin-top: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p { margin-bottom: 1rem; }
+
+        /* Endpoint blocks */
+        .endpoint {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            overflow: hidden;
+        }
+
+        .endpoint-header {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.8rem 1.2rem;
+            border-bottom: 1px solid var(--color-border);
+            flex-wrap: wrap;
+        }
+
+        .method {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-family: monospace;
+            letter-spacing: 0.02em;
+        }
+
+        .method-get { background: #dbeafe; color: #1e40af; }
+        .method-post { background: #dcfce7; color: #166534; }
+        .method-put { background: #fef3c7; color: #92400e; }
+
+        .endpoint-path {
+            font-family: "SFMono-Regular", Consolas, monospace;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .endpoint-auth {
+            font-size: 0.75rem;
+            color: var(--color-text-sub);
+            background: var(--color-accent-light);
+            padding: 0.15rem 0.5rem;
+            border-radius: 10px;
+            margin-left: auto;
+        }
+
+        .endpoint-body {
+            padding: 1rem 1.2rem;
+        }
+
+        .endpoint-body p {
+            font-size: 0.95rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .endpoint-desc {
+            font-size: 0.9rem;
+            color: var(--color-text-sub);
+            margin: 0;
+        }
+
+        /* Code blocks */
+        pre {
+            background: #1e1e2e;
+            color: #cdd6f4;
+            padding: 1rem 1.2rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            margin: 0.8rem 0 1rem;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        }
+
+        pre .comment { color: #6c7086; }
+        pre .string { color: #a6e3a1; }
+        pre .key { color: #89b4fa; }
+        pre .number { color: #fab387; }
+
+        code {
+            font-family: "SFMono-Regular", Consolas, monospace;
+            font-size: 0.9em;
+            background: var(--color-accent-light);
+            padding: 0.15rem 0.4rem;
+            border-radius: 3px;
+        }
+
+        /* Info / Warning boxes */
+        .info-box {
+            background: var(--color-accent-light);
+            border-left: 4px solid var(--color-accent);
+            padding: 1rem 1.2rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95rem;
+        }
+
+        .warn-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 1rem 1.2rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95rem;
+        }
+
+        /* Data tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: 0.5rem 0.8rem;
+            text-align: left;
+        }
+
+        th {
+            background: var(--color-accent-light);
+            font-weight: 600;
+            color: var(--color-accent-dark);
+        }
+
+        td code {
+            font-size: 0.85em;
+        }
+
+        footer {
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+            padding: 2rem 1.5rem;
+            font-size: 0.8rem;
+            color: var(--color-text-sub);
+            border-top: 1px solid var(--color-border);
+        }
+
+        @media (max-width: 640px) {
+            html { font-size: 15px; }
+            .header-inner { flex-direction: column; text-align: center; }
+            .header-nav a { margin: 0 0.5rem; }
+            main { padding: 1.5rem 1rem 3rem; }
+            .hero h1 { font-size: 1.4rem; }
+            .endpoint-header { flex-direction: column; align-items: flex-start; }
+            .endpoint-auth { margin-left: 0; }
+            pre { font-size: 0.78rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="site-header">
+    <div class="header-inner">
+        <a href="index.html" class="logo">Grow</a>
+        <nav class="header-nav">
+            <a href="index.html">アプリについて</a>
+            <a href="api-manual.html">APIマニュアル</a>
+            <a href="cloudflare-setup.html">Cloudflare設定</a>
+            <a href="privacy.html">プライバシー</a>
+        </nav>
+    </div>
+</header>
+
+<main>
+    <div class="hero">
+        <h1>Grow API マニュアル</h1>
+        <p>FastAPI サーバーのセットアップと全エンドポイントのリファレンスです。<br>
+        スマホ・PC・CLI から共通で使えます。</p>
+    </div>
+
+    <nav class="toc">
+        <h2>目次</h2>
+        <ol>
+            <li><a href="#setup">サーバーのセットアップ</a></li>
+            <li><a href="#auth">認証 (/auth)</a></li>
+            <li><a href="#grow-sync">栽培データ同期 (/grow)</a></li>
+            <li><a href="#ocr">OCR — 種袋読み取り (/ocr)</a></li>
+            <li><a href="#vision">画像分析 (/vision)</a></li>
+            <li><a href="#weather">気象観測 (/weather)</a></li>
+            <li><a href="#amedas">AMeDAS (/amedas)</a></li>
+            <li><a href="#forecast">天気予報 (/forecast)</a></li>
+            <li><a href="#skillfile">スキルファイル (/skillfile)</a></li>
+            <li><a href="#health">ヘルスチェック (/health)</a></li>
+        </ol>
+    </nav>
+
+    <!-- ========== 1. SETUP ========== -->
+    <h2 id="setup">1. サーバーのセットアップ</h2>
+
+    <h3>必要なもの</h3>
+    <table>
+        <tr><th>項目</th><th>要件</th></tr>
+        <tr><td>Python</td><td>3.11 以上</td></tr>
+        <tr><td>GPU (任意)</td><td>CUDA 対応 NVIDIA GPU（OCR・画像分析に使用）</td></tr>
+        <tr><td>ディスク</td><td>モデル用に約 5GB + データ領域</td></tr>
+    </table>
+
+    <h3>インストール</h3>
+<pre><span class="comment"># リポジトリに移動</span>
+cd gpu-server
+
+<span class="comment"># 仮想環境を作成</span>
+python -m venv .venv
+source .venv/bin/activate   <span class="comment"># Windows: .venv\Scripts\activate</span>
+
+<span class="comment"># 依存パッケージをインストール</span>
+pip install -r requirements.txt</pre>
+
+    <h3>環境変数の設定</h3>
+    <p><code>.env</code> ファイルを作成するか、環境変数で設定します。</p>
+<pre><span class="comment"># .env (gpu-server ディレクトリ直下)</span>
+GROW_GPU_SECRET_KEY=<span class="string">your-secret-key-here</span>
+GROW_GPU_HOST=<span class="string">0.0.0.0</span>
+GROW_GPU_PORT=<span class="number">8000</span></pre>
+
+    <table>
+        <tr><th>変数名</th><th>デフォルト</th><th>説明</th></tr>
+        <tr><td><code>GROW_GPU_SECRET_KEY</code></td><td><code>change-me-in-production</code></td><td>JWT署名キー（必ず変更すること）</td></tr>
+        <tr><td><code>GROW_GPU_HOST</code></td><td><code>0.0.0.0</code></td><td>バインドアドレス</td></tr>
+        <tr><td><code>GROW_GPU_PORT</code></td><td><code>8000</code></td><td>ポート番号</td></tr>
+        <tr><td><code>GROW_GPU_DATABASE_URL</code></td><td><code>sqlite+aiosqlite:///./grow_gpu.db</code></td><td>データベースURL</td></tr>
+        <tr><td><code>GROW_GPU_UPLOAD_DIR</code></td><td><code>./uploads</code></td><td>写真アップロード先</td></tr>
+        <tr><td><code>GROW_GPU_MAX_UPLOAD_SIZE</code></td><td><code>20971520</code> (20MB)</td><td>最大アップロードサイズ</td></tr>
+    </table>
+
+    <h3>起動</h3>
+<pre><span class="comment"># 方法1: main.py を直接実行（リロードあり）</span>
+python main.py
+
+<span class="comment"># 方法2: uvicorn で起動</span>
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+<span class="comment"># 起動確認</span>
+curl http://localhost:8000/health</pre>
+
+    <div class="info-box">
+        起動すると自動的に SQLite データベースが作成され、全テーブルが初期化されます。<br>
+        OpenAPI ドキュメントは <code>http://localhost:8000/docs</code> で確認できます。
+    </div>
+
+    <!-- ========== 2. AUTH ========== -->
+    <h2 id="auth">2. 認証 (/auth)</h2>
+    <p>ユーザー登録・ログインで JWT トークンを取得します。<br>
+    認証が必要なエンドポイントにはヘッダー <code>Authorization: Bearer &lt;token&gt;</code> を付けます。</p>
+
+    <h3>ユーザー登録</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/auth/register</span>
+        </div>
+        <div class="endpoint-body">
+            <p class="endpoint-desc">新規ユーザーを作成し、JWT トークンを返します。</p>
+<pre><span class="comment"># リクエスト</span>
+curl -X POST http://localhost:8000/auth/register \
+  -H <span class="string">"Content-Type: application/json"</span> \
+  -d <span class="string">'{
+    "username": "farmer1",
+    "email": "farmer@example.com",
+    "password": "mypassword123",
+    "display_name": "田中太郎"
+  }'</span></pre>
+<pre><span class="comment"># レスポンス (200)</span>
+{
+  <span class="key">"access_token"</span>: <span class="string">"eyJ0eXAiOiJKV1Qi..."</span>,
+  <span class="key">"token_type"</span>: <span class="string">"bearer"</span>,
+  <span class="key">"user"</span>: {
+    <span class="key">"id"</span>: <span class="string">"uuid..."</span>,
+    <span class="key">"username"</span>: <span class="string">"farmer1"</span>,
+    <span class="key">"email"</span>: <span class="string">"farmer@example.com"</span>,
+    <span class="key">"display_name"</span>: <span class="string">"田中太郎"</span>
+  }
+}</pre>
+            <table>
+                <tr><th>エラー</th><th>原因</th></tr>
+                <tr><td><code>409</code></td><td>ユーザー名またはメールアドレスが既に存在</td></tr>
+                <tr><td><code>422</code></td><td>ユーザー名3文字未満 / パスワード8文字未満</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <h3>ログイン</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/auth/login</span>
+        </div>
+        <div class="endpoint-body">
+            <p class="endpoint-desc">ユーザー名とパスワードでログインします（フォーム形式）。</p>
+<pre><span class="comment"># リクエスト</span>
+curl -X POST http://localhost:8000/auth/login \
+  -d <span class="string">"username=farmer1&amp;password=mypassword123"</span></pre>
+<pre><span class="comment"># レスポンス (200)</span>
+{
+  <span class="key">"access_token"</span>: <span class="string">"eyJ0eXAiOiJKV1Qi..."</span>,
+  <span class="key">"token_type"</span>: <span class="string">"bearer"</span>,
+  <span class="key">"user"</span>: { ... }
+}</pre>
+            <div class="info-box">
+                取得した <code>access_token</code> は30日間有効です。<br>
+                以降の例では <code>$TOKEN</code> としてこの値を使用します。
+            </div>
+        </div>
+    </div>
+
+    <h3>プロフィール確認</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-get">GET</span>
+            <span class="endpoint-path">/auth/me</span>
+            <span class="endpoint-auth">認証必須</span>
+        </div>
+        <div class="endpoint-body">
+<pre>curl http://localhost:8000/auth/me \
+  -H <span class="string">"Authorization: Bearer $TOKEN"</span></pre>
+        </div>
+    </div>
+
+    <!-- ========== 3. GROW SYNC ========== -->
+    <h2 id="grow-sync">3. 栽培データ同期 (/grow)</h2>
+    <p>スマホ・PC アプリとの栽培データ同期に使います。<br>
+    7つのテーブル（locations, plots, crops, records, record_photos, observations, observation_entries）を一括で同期できます。</p>
+
+    <h3>データ取得（Pull）</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/grow/sync/pull</span>
+            <span class="endpoint-auth">認証必須</span>
+        </div>
+        <div class="endpoint-body">
+            <p class="endpoint-desc">指定タイムスタンプ以降に更新されたデータを取得します。</p>
+<pre><span class="comment"># すべてのデータを取得（初回同期）</span>
+curl -X POST http://localhost:8000/grow/sync/pull \
+  -H <span class="string">"Authorization: Bearer $TOKEN"</span> \
+  -H <span class="string">"Content-Type: application/json"</span> \
+  -d <span class="string">'{"since": "1970-01-01T00:00:00"}'</span></pre>
+<pre><span class="comment"># レスポンス (200)</span>
+{
+  <span class="key">"locations"</span>: [ ... ],
+  <span class="key">"plots"</span>: [ ... ],
+  <span class="key">"crops"</span>: [
+    {
+      <span class="key">"id"</span>: <span class="string">"uuid"</span>,
+      <span class="key">"cultivation_name"</span>: <span class="string">"ミニトマト 2025"</span>,
+      <span class="key">"name"</span>: <span class="string">"トマト"</span>,
+      <span class="key">"variety"</span>: <span class="string">"アイコ"</span>,
+      <span class="key">"farming_method"</span>: <span class="string">"自然農"</span>,
+      <span class="key">"start_date"</span>: <span class="string">"2025-04-01T00:00:00"</span>,
+      <span class="key">"updated_at"</span>: <span class="string">"2025-04-01T10:00:00"</span>
+    }
+  ],
+  <span class="key">"records"</span>: [ ... ],
+  <span class="key">"record_photos"</span>: [ ... ],
+  <span class="key">"observations"</span>: [ ... ],
+  <span class="key">"observation_entries"</span>: [ ... ],
+  <span class="key">"timestamp"</span>: <span class="string">"2026-02-11T10:30:00"</span>
+}</pre>
+        </div>
+    </div>
+
+    <h3>データ送信（Push）</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/grow/sync/push</span>
+            <span class="endpoint-auth">認証必須</span>
+        </div>
+        <div class="endpoint-body">
+            <p class="endpoint-desc">ローカルの変更をサーバーに送信します。Upsert 方式（存在すれば更新、なければ作成）。</p>
+<pre><span class="comment"># 作物データを送信</span>
+curl -X POST http://localhost:8000/grow/sync/push \
+  -H <span class="string">"Authorization: Bearer $TOKEN"</span> \
+  -H <span class="string">"Content-Type: application/json"</span> \
+  -d <span class="string">'{
+    "crops": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "cultivation_name": "ミニトマト 2025",
+        "name": "トマト",
+        "variety": "アイコ",
+        "plot_id": null,
+        "parent_crop_id": null,
+        "farming_method": "自然農",
+        "memo": "",
+        "start_date": "2025-04-01T00:00:00",
+        "created_at": "2025-04-01T10:00:00",
+        "updated_at": "2025-04-01T10:00:00"
+      }
+    ],
+    "records": [
+      {
+        "id": "660e8400-e29b-41d4-a716-446655440001",
+        "crop_id": "550e8400-e29b-41d4-a716-446655440000",
+        "location_id": null,
+        "plot_id": null,
+        "activity_type": "sowing",
+        "date": "2025-04-01T00:00:00",
+        "note": "セルトレイに播種",
+        "created_at": "2025-04-01T10:00:00",
+        "updated_at": "2025-04-01T10:00:00"
+      }
+    ],
+    "deleted": []
+  }'</span></pre>
+<pre><span class="comment"># レスポンス (200)</span>
+{
+  <span class="key">"ok"</span>: true,
+  <span class="key">"timestamp"</span>: <span class="string">"2026-02-11T10:30:00"</span>
+}</pre>
+            <div class="warn-box">
+                <code>deleted</code> 配列に含まれた ID のレコードはサーバーから削除されます。<br>
+                <code>{"id": "uuid", "table_name": "crops"}</code> の形式で指定します。
+            </div>
+        </div>
+    </div>
+
+    <h3>写真アップロード</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/grow/photos</span>
+            <span class="endpoint-auth">認証必須</span>
+        </div>
+        <div class="endpoint-body">
+            <p class="endpoint-desc">写真をサーバーにアップロードします。日付別ディレクトリに保存されます。</p>
+<pre>curl -X POST http://localhost:8000/grow/photos \
+  -H <span class="string">"Authorization: Bearer $TOKEN"</span> \
+  -F <span class="string">"image=@/path/to/photo.jpg"</span></pre>
+<pre><span class="comment"># レスポンス (200)</span>
+{
+  <span class="key">"path"</span>: <span class="string">"2026/02/11/103000-abc12def.jpg"</span>,
+  <span class="key">"size"</span>: <span class="number">523456</span>
+}</pre>
+        </div>
+    </div>
+
+    <h3>写真取得</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-get">GET</span>
+            <span class="endpoint-path">/grow/photos/{path}</span>
+        </div>
+        <div class="endpoint-body">
+            <p class="endpoint-desc">アップロードした写真を取得します。1年間のキャッシュヘッダー付き。</p>
+<pre>curl http://localhost:8000/grow/photos/2026/02/11/103000-abc12def.jpg \
+  --output photo.jpg</pre>
+        </div>
+    </div>
+
+    <!-- ========== 4. OCR ========== -->
+    <h2 id="ocr">4. OCR — 種袋読み取り (/ocr)</h2>
+    <p>PaddleOCR (GPU) を使って画像からテキストを読み取ります。日本語・英語・イタリア語に対応。</p>
+
+    <h3>テキスト読み取り</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/ocr/read</span>
+            <span class="endpoint-auth">認証必須</span>
+        </div>
+        <div class="endpoint-body">
+<pre>curl -X POST http://localhost:8000/ocr/read \
+  -H <span class="string">"Authorization: Bearer $TOKEN"</span> \
+  -F <span class="string">"file=@seed_packet.jpg"</span></pre>
+<pre><span class="comment"># レスポンス (200)</span>
+{
+  <span class="key">"lines"</span>: [
+    {
+      <span class="key">"text"</span>: <span class="string">"トマト"</span>,
+      <span class="key">"confidence"</span>: <span class="number">0.95</span>,
+      <span class="key">"box"</span>: { <span class="key">"top_left"</span>: [<span class="number">100</span>, <span class="number">50</span>], ... }
+    }
+  ],
+  <span class="key">"raw_text"</span>: <span class="string">"トマト\n中玉トマト\n..."</span>
+}</pre>
+        </div>
+    </div>
+
+    <h3>種袋情報の抽出</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/ocr/seed-packet</span>
+            <span class="endpoint-auth">認証必須</span>
+        </div>
+        <div class="endpoint-body">
+            <p class="endpoint-desc">種袋画像から作物名・品種を自動抽出します。</p>
+<pre>curl -X POST http://localhost:8000/ocr/seed-packet \
+  -H <span class="string">"Authorization: Bearer $TOKEN"</span> \
+  -F <span class="string">"file=@seed_packet.jpg"</span></pre>
+<pre><span class="comment"># レスポンス (200)</span>
+{
+  <span class="key">"raw_text"</span>: <span class="string">"トマト\n中玉..."</span>,
+  <span class="key">"crop_name"</span>: <span class="string">"トマト"</span>,
+  <span class="key">"variety"</span>: <span class="string">"中玉トマト"</span>,
+  <span class="key">"crop_name_candidates"</span>: [<span class="string">"トマト"</span>, <span class="string">"中玉トマト"</span>]
+}</pre>
+        </div>
+    </div>
+
+    <!-- ========== 5. VISION ========== -->
+    <h2 id="vision">5. 画像分析 (/vision)</h2>
+    <p>Florence-2 (GPU) を使って植物写真の説明生成・物体検出を行います。</p>
+
+    <h3>画像キャプション</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/vision/caption</span>
+            <span class="endpoint-auth">認証必須</span>
+        </div>
+        <div class="endpoint-body">
+<pre>curl -X POST http://localhost:8000/vision/caption \
+  -H <span class="string">"Authorization: Bearer $TOKEN"</span> \
+  -F <span class="string">"file=@plant_photo.jpg"</span></pre>
+<pre>{
+  <span class="key">"caption"</span>: <span class="string">"A healthy tomato plant with red ripe fruits..."</span>
+}</pre>
+        </div>
+    </div>
+
+    <h3>物体検出</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/vision/detect</span>
+            <span class="endpoint-auth">認証必須</span>
+        </div>
+        <div class="endpoint-body">
+<pre><span class="comment"># 特定の対象を検出</span>
+curl -X POST <span class="string">"http://localhost:8000/vision/detect?target=pest"</span> \
+  -H <span class="string">"Authorization: Bearer $TOKEN"</span> \
+  -F <span class="string">"file=@leaf.jpg"</span></pre>
+<pre>{
+  <span class="key">"detections"</span>: {
+    <span class="key">"bboxes"</span>: [[<span class="number">100</span>, <span class="number">50</span>, <span class="number">200</span>, <span class="number">150</span>]],
+    <span class="key">"labels"</span>: [<span class="string">"pest"</span>]
+  }
+}</pre>
+        </div>
+    </div>
+
+    <h3>総合分析</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/vision/analyze</span>
+            <span class="endpoint-auth">認証必須</span>
+        </div>
+        <div class="endpoint-body">
+            <p class="endpoint-desc">キャプション + 物体検出を同時に実行します。</p>
+<pre>curl -X POST http://localhost:8000/vision/analyze \
+  -H <span class="string">"Authorization: Bearer $TOKEN"</span> \
+  -F <span class="string">"file=@garden.jpg"</span></pre>
+        </div>
+    </div>
+
+    <!-- ========== 6. WEATHER ========== -->
+    <h2 id="weather">6. 気象観測 (/weather)</h2>
+    <p>Ecowitt GW3000 気象ステーションのデータを管理します。認証不要。</p>
+
+    <h3>最新データ</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-get">GET</span>
+            <span class="endpoint-path">/weather/latest</span>
+        </div>
+        <div class="endpoint-body">
+<pre>curl http://localhost:8000/weather/latest</pre>
+<pre>{
+  <span class="key">"recorded_at"</span>: <span class="string">"2026-02-11T10:30:00"</span>,
+  <span class="key">"temp_outdoor_c"</span>: <span class="number">15.3</span>,
+  <span class="key">"humidity_outdoor"</span>: <span class="number">68.0</span>,
+  <span class="key">"wind_speed_ms"</span>: <span class="number">2.5</span>,
+  <span class="key">"solar_radiation"</span>: <span class="number">450.0</span>,
+  <span class="key">"rain_daily_mm"</span>: <span class="number">2.3</span>,
+  ...
+}</pre>
+        </div>
+    </div>
+
+    <h3>履歴データ</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-get">GET</span>
+            <span class="endpoint-path">/weather/history</span>
+        </div>
+        <div class="endpoint-body">
+<pre><span class="comment"># 直近 48 時間のデータ</span>
+curl <span class="string">"http://localhost:8000/weather/history?hours=48&amp;limit=500"</span></pre>
+        </div>
+    </div>
+
+    <h3>集計サマリー</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-get">GET</span>
+            <span class="endpoint-path">/weather/summary</span>
+        </div>
+        <div class="endpoint-body">
+<pre>curl <span class="string">"http://localhost:8000/weather/summary?hours=24"</span></pre>
+<pre>{
+  <span class="key">"period"</span>: <span class="string">"last_24h"</span>,
+  <span class="key">"temp_outdoor_min"</span>: <span class="number">10.5</span>,
+  <span class="key">"temp_outdoor_max"</span>: <span class="number">18.2</span>,
+  <span class="key">"temp_outdoor_avg"</span>: <span class="number">14.3</span>,
+  <span class="key">"rain_daily_max"</span>: <span class="number">2.5</span>,
+  ...
+}</pre>
+        </div>
+    </div>
+
+    <!-- ========== 7. AMEDAS ========== -->
+    <h2 id="amedas">7. AMeDAS (/amedas)</h2>
+    <p>気象庁のアメダス観測データを取得・キャッシュします。認証不要。</p>
+
+    <h3>観測点マスタの同期</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/amedas/stations/sync</span>
+        </div>
+        <div class="endpoint-body">
+            <p class="endpoint-desc">気象庁からアメダス観測点マスタを取得してDBに保存します（初回に実行）。</p>
+<pre>curl -X POST http://localhost:8000/amedas/stations/sync</pre>
+<pre>{ <span class="key">"status"</span>: <span class="string">"ok"</span>, <span class="key">"stations_synced"</span>: <span class="number">1234</span> }</pre>
+        </div>
+    </div>
+
+    <h3>観測点検索</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-get">GET</span>
+            <span class="endpoint-path">/amedas/stations</span>
+        </div>
+        <div class="endpoint-body">
+<pre><span class="comment"># 名前で検索</span>
+curl <span class="string">"http://localhost:8000/amedas/stations?q=東京"</span>
+
+<span class="comment"># 緯度・経度で最寄り検索</span>
+curl <span class="string">"http://localhost:8000/amedas/stations?lat=35.68&amp;lon=139.77&amp;limit=5"</span></pre>
+        </div>
+    </div>
+
+    <h3>観測データの取得</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/amedas/fetch</span>
+        </div>
+        <div class="endpoint-body">
+            <p class="endpoint-desc">指定日のアメダスデータを気象庁からフェッチしてDBにキャッシュします。</p>
+<pre>curl -X POST <span class="string">"http://localhost:8000/amedas/fetch?station_id=44132&amp;date=2026-02-11"</span></pre>
+<pre>{ <span class="key">"station_id"</span>: <span class="string">"44132"</span>, <span class="key">"date"</span>: <span class="string">"2026-02-11"</span>, <span class="key">"records_stored"</span>: <span class="number">144</span> }</pre>
+        </div>
+    </div>
+
+    <h3>最新観測値</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-get">GET</span>
+            <span class="endpoint-path">/amedas/data/latest</span>
+        </div>
+        <div class="endpoint-body">
+<pre>curl <span class="string">"http://localhost:8000/amedas/data/latest?station_id=44132"</span></pre>
+<pre>{
+  <span class="key">"station_id"</span>: <span class="string">"44132"</span>,
+  <span class="key">"observed_at"</span>: <span class="string">"2026-02-11T10:30:00"</span>,
+  <span class="key">"temp"</span>: <span class="number">15.3</span>,
+  <span class="key">"humidity"</span>: <span class="number">68.0</span>,
+  <span class="key">"precipitation_1h"</span>: <span class="number">0.5</span>,
+  <span class="key">"wind_direction_label"</span>: <span class="string">"南東"</span>,
+  ...
+}</pre>
+        </div>
+    </div>
+
+    <h3>日次サマリー</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-get">GET</span>
+            <span class="endpoint-path">/amedas/data/summary</span>
+        </div>
+        <div class="endpoint-body">
+<pre>curl <span class="string">"http://localhost:8000/amedas/data/summary?station_id=44132&amp;date=2026-02-11"</span></pre>
+        </div>
+    </div>
+
+    <!-- ========== 8. FORECAST ========== -->
+    <h2 id="forecast">8. 天気予報 (/forecast)</h2>
+    <p>Open-Meteo API から ECMWF 予報データを取得します。土壌温度・土壌水分も含まれます。認証不要。</p>
+
+    <h3>ECMWF 予報</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-get">GET</span>
+            <span class="endpoint-path">/forecast/ecmwf</span>
+        </div>
+        <div class="endpoint-body">
+<pre>curl <span class="string">"http://localhost:8000/forecast/ecmwf?lat=35.68&amp;lon=139.77&amp;days=7"</span></pre>
+<pre>{
+  <span class="key">"hourly"</span>: [
+    {
+      <span class="key">"time"</span>: <span class="string">"2026-02-11T00:00"</span>,
+      <span class="key">"temperature_2m"</span>: <span class="number">14.5</span>,
+      <span class="key">"precipitation"</span>: <span class="number">0.0</span>,
+      <span class="key">"weather_label"</span>: <span class="string">"晴れ"</span>,
+      <span class="key">"soil_temperature_0_to_7cm"</span>: <span class="number">10.5</span>,
+      <span class="key">"soil_moisture_0_to_7cm"</span>: <span class="number">0.25</span>,
+      ...
+    }
+  ],
+  <span class="key">"daily"</span>: [
+    {
+      <span class="key">"date"</span>: <span class="string">"2026-02-11"</span>,
+      <span class="key">"temp_min"</span>: <span class="number">10.5</span>,
+      <span class="key">"temp_max"</span>: <span class="number">18.2</span>,
+      <span class="key">"precipitation_total"</span>: <span class="number">0.0</span>,
+      ...
+    }
+  ]
+}</pre>
+        </div>
+    </div>
+
+    <h3>土壌データ</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-get">GET</span>
+            <span class="endpoint-path">/forecast/soil</span>
+        </div>
+        <div class="endpoint-body">
+<pre>curl <span class="string">"http://localhost:8000/forecast/soil?lat=35.68&amp;lon=139.77&amp;days=3"</span></pre>
+        </div>
+    </div>
+
+    <h3>日別サマリー</h3>
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-get">GET</span>
+            <span class="endpoint-path">/forecast/daily</span>
+        </div>
+        <div class="endpoint-body">
+<pre>curl <span class="string">"http://localhost:8000/forecast/daily?lat=35.68&amp;lon=139.77&amp;days=7"</span></pre>
+        </div>
+    </div>
+
+    <!-- ========== 9. SKILLFILE ========== -->
+    <h2 id="skillfile">9. スキルファイル (/skillfile)</h2>
+    <p>AIアドバイザー用のプロンプトを自動生成します。認証不要。</p>
+
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/skillfile/generate</span>
+        </div>
+        <div class="endpoint-body">
+<pre>curl -X POST http://localhost:8000/skillfile/generate \
+  -H <span class="string">"Content-Type: application/json"</span> \
+  -d <span class="string">'{
+    "crops": ["トマト", "ナス", "キュウリ"],
+    "location": "東京都目黒区",
+    "farming_method": "natural",
+    "experience": "intermediate",
+    "challenges": "害虫被害が多い"
+  }'</span></pre>
+<pre>{
+  <span class="key">"skill_file"</span>: <span class="string">"# 栽培AIスキルファイル\n\n..."</span>,
+  <span class="key">"system_prompt"</span>: <span class="string">"あなたは栽培の専門家..."</span>
+}</pre>
+            <table>
+                <tr><th>farming_method</th><th>説明</th></tr>
+                <tr><td><code>natural</code></td><td>自然農（不耕起・無施肥・無農薬）</td></tr>
+                <tr><td><code>organic</code></td><td>有機農業</td></tr>
+                <tr><td><code>conventional</code></td><td>慣行農業</td></tr>
+                <tr><td><code>permaculture</code></td><td>パーマカルチャー</td></tr>
+                <tr><td><code>other</code></td><td>その他</td></tr>
+            </table>
+            <table>
+                <tr><th>experience</th><th>説明</th></tr>
+                <tr><td><code>beginner</code></td><td>初心者（1年未満）</td></tr>
+                <tr><td><code>intermediate</code></td><td>中級者（1〜3年）</td></tr>
+                <tr><td><code>experienced</code></td><td>経験者（3〜10年）</td></tr>
+                <tr><td><code>expert</code></td><td>熟練者（10年以上）</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========== 10. HEALTH ========== -->
+    <h2 id="health">10. ヘルスチェック (/health)</h2>
+
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method method-get">GET</span>
+            <span class="endpoint-path">/health</span>
+        </div>
+        <div class="endpoint-body">
+            <p class="endpoint-desc">サーバーの稼働状態と GPU の有無を確認します。</p>
+<pre>curl http://localhost:8000/health</pre>
+<pre>{
+  <span class="key">"status"</span>: <span class="string">"ok"</span>,
+  <span class="key">"gpu_available"</span>: true,
+  <span class="key">"gpu_name"</span>: <span class="string">"NVIDIA RTX 4090"</span>,
+  <span class="key">"gpu_memory"</span>: <span class="string">"24.0 GB"</span>
+}</pre>
+            <div class="info-box">
+                GPU が無い環境では <code>gpu_available: false</code> になります。<br>
+                OCR・Vision 以外の機能は GPU なしでも動作します。
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<footer>
+    <p>&copy; 2025 Grow — AI &times; 自然栽培</p>
+</footer>
+
+</body>
+</html>
