@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 from database import init_db
-from routers import auth, ocr, vision, weather, amedas, forecast, skillfile, grow
+from routers import ai, auth, ocr, vision, weather, amedas, forecast, skillfile, grow
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,6 +47,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(ai.router)
 app.include_router(auth.router)
 app.include_router(ocr.router)
 app.include_router(vision.router)

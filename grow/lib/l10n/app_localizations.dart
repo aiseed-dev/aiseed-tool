@@ -647,13 +647,13 @@ abstract class AppLocalizations {
   /// No description provided for @plantIdProviderServer.
   ///
   /// In ja, this message translates to:
-  /// **'サーバー経由（高精度）'**
+  /// **'サーバー経由（APIキー不要）'**
   String get plantIdProviderServer;
 
   /// No description provided for @plantIdProviderServerDesc.
   ///
   /// In ja, this message translates to:
-  /// **'Claude / GPT-4V、雑草も同定可能'**
+  /// **'FastAPIサーバーで処理、スマホ側の設定不要'**
   String get plantIdProviderServerDesc;
 
   /// No description provided for @plantIdApiKey.

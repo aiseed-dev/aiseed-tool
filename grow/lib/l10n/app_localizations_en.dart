@@ -287,10 +287,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Plant-specialized DB, low cost (200/month free)';
 
   @override
-  String get plantIdProviderServer => 'Server (high accuracy)';
+  String get plantIdProviderServer => 'Server (no API key needed)';
 
   @override
-  String get plantIdProviderServerDesc => 'Claude / GPT-4V, can identify weeds';
+  String get plantIdProviderServerDesc => 'Processed on FastAPI server, no phone-side setup';
 
   @override
   String get plantIdApiKey => 'Plant.id API Key';

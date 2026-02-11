@@ -286,10 +286,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get plantIdProviderPlantIdDesc => '植物特化DB、コスト低め（月200回無料）';
 
   @override
-  String get plantIdProviderServer => 'サーバー経由（高精度）';
+  String get plantIdProviderServer => 'サーバー経由（APIキー不要）';
 
   @override
-  String get plantIdProviderServerDesc => 'Claude / GPT-4V、雑草も同定可能';
+  String get plantIdProviderServerDesc => 'FastAPIサーバーで処理、スマホ側の設定不要';
 
   @override
   String get plantIdApiKey => 'Plant.id APIキー';

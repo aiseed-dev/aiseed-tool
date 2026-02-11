@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     apple_client_id: str = ""   # Apple Services ID (e.g., dev.aiseed.grow)
     google_client_id: str = ""  # Google OAuth 2.0 Client ID
 
+    # AI (Claude API)
+    anthropic_api_key: str = ""
+    ai_model: str = "claude-haiku-4-5-20251001"
+
     # GPU Models
     ocr_languages: list[str] = ["japan", "en", "it"]
     florence_model: str = "microsoft/Florence-2-base"
