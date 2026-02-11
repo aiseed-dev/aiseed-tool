@@ -539,7 +539,7 @@ curl -X POST http://localhost:8000/grow/sync/push \
         "crop_id": "550e8400-e29b-41d4-a716-446655440000",
         "location_id": null,
         "plot_id": null,
-        "activity_type": "sowing",
+        "activity_type": 0,
         "date": "2025-04-01T00:00:00",
         "note": "セルトレイに播種",
         "created_at": "2025-04-01T10:00:00",
@@ -557,6 +557,15 @@ curl -X POST http://localhost:8000/grow/sync/push \
                 <code>deleted</code> 配列に含まれた ID のレコードはサーバーから削除されます。<br>
                 <code>{"id": "uuid", "table_name": "crops"}</code> の形式で指定します。
             </div>
+            <table>
+                <tr><th>activity_type</th><th>意味</th></tr>
+                <tr><td><code>0</code></td><td>播種 (sowing)</td></tr>
+                <tr><td><code>1</code></td><td>定植 (transplanting)</td></tr>
+                <tr><td><code>2</code></td><td>水やり (watering)</td></tr>
+                <tr><td><code>3</code></td><td>観察 (observation)</td></tr>
+                <tr><td><code>4</code></td><td>収穫 (harvest)</td></tr>
+                <tr><td><code>5</code></td><td>その他 (other)</td></tr>
+            </table>
         </div>
     </div>
 
