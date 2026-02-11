@@ -286,10 +286,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get plantIdProviderPlantIdDesc => '植物特化DB、コスト低め（月200回無料）';
 
   @override
-  String get plantIdProviderServer => 'サーバー経由（高精度）';
+  String get plantIdProviderServer => 'サーバー経由（APIキー不要）';
 
   @override
-  String get plantIdProviderServerDesc => 'Claude / GPT-4V、雑草も同定可能';
+  String get plantIdProviderServerDesc => 'FastAPIサーバーで処理、スマホ側の設定不要';
 
   @override
   String get plantIdApiKey => 'Plant.id APIキー';
@@ -317,6 +317,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get syncModeLocalDesc => 'データはこの端末のみに保存';
+
+  @override
+  String get syncModeFastapi => 'FastAPI 同期';
+
+  @override
+  String get syncModeFastapiDesc => 'ローカル PC / 共有サーバーと同期';
 
   @override
   String get syncModeCloudflare => 'Cloudflare 同期';
@@ -358,6 +364,46 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get homepageComingSoon => 'ホームページ作成機能は準備中です';
+
+  // ホームページ作成画面
+  @override
+  String get siteInfoFarm => '農園情報';
+  @override
+  String get siteFarmName => '農園名';
+  @override
+  String get siteFarmDesc => '農園の紹介文';
+  @override
+  String get siteFarmLocation => '所在地';
+  @override
+  String get siteFarmPolicy => '栽培方針（例: 自然栽培）';
+  @override
+  String get siteInfoCrops => '掲載する作物';
+  @override
+  String get siteInfoSales => '販売情報';
+  @override
+  String get siteSalesDesc => '販売方法の説明';
+  @override
+  String get siteSalesContact => '連絡先（メール、電話など）';
+  @override
+  String get siteGenerate => 'HTMLを生成';
+  @override
+  String get siteHtmlReady => 'HTMLが生成されました';
+  @override
+  String get siteCopyHtml => 'HTMLをコピー';
+  @override
+  String get siteDeploySection => 'Cloudflareに自動デプロイ';
+  @override
+  String get siteDeployDesc => 'Cloudflare Pagesに直接デプロイします。アカウントIDとAPIトークンが必要です。';
+  @override
+  String get siteCfAccountId => 'Cloudflare Account ID';
+  @override
+  String get siteCfApiToken => 'Cloudflare API Token';
+  @override
+  String get siteCfProjectName => 'プロジェクト名（サイトURL）';
+  @override
+  String get siteDeploy => 'デプロイ';
+  @override
+  String get siteDeployDone => 'デプロイ完了';
 
   @override
   String get searchRecords => '記録を検索';
@@ -445,4 +491,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get cachedInfo => '（共有データベースから取得）';
+
+  @override
+  String get skill => 'スキル';
+
+  @override
+  String get farmingMethod => '農法';
+
+  @override
+  String get inheritFromSkill => 'スキル設定を使う';
 }

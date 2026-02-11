@@ -7,6 +7,7 @@ class Crop {
   final String variety;
   final String? plotId;
   final String? parentCropId;
+  final String? farmingMethod;
   final String memo;
   final DateTime startDate;
   final DateTime createdAt;
@@ -19,6 +20,7 @@ class Crop {
     this.variety = '',
     this.plotId,
     this.parentCropId,
+    this.farmingMethod,
     this.memo = '',
     DateTime? startDate,
     DateTime? createdAt,
@@ -35,6 +37,7 @@ class Crop {
         'variety': variety,
         'plot_id': plotId,
         'parent_crop_id': parentCropId,
+        'farming_method': farmingMethod,
         'memo': memo,
         'start_date': startDate.toIso8601String(),
         'created_at': createdAt.toIso8601String(),
@@ -48,6 +51,7 @@ class Crop {
         variety: (map['variety'] as String?) ?? '',
         plotId: map['plot_id'] as String?,
         parentCropId: map['parent_crop_id'] as String?,
+        farmingMethod: map['farming_method'] as String?,
         memo: (map['memo'] as String?) ?? '',
         startDate: DateTime.parse(map['start_date'] as String),
         createdAt: DateTime.parse(map['created_at'] as String),

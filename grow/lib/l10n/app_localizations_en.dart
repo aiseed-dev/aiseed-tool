@@ -287,10 +287,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Plant-specialized DB, low cost (200/month free)';
 
   @override
-  String get plantIdProviderServer => 'Server (high accuracy)';
+  String get plantIdProviderServer => 'Server (no API key needed)';
 
   @override
-  String get plantIdProviderServerDesc => 'Claude / GPT-4V, can identify weeds';
+  String get plantIdProviderServerDesc => 'Processed on FastAPI server, no phone-side setup';
 
   @override
   String get plantIdApiKey => 'Plant.id API Key';
@@ -318,6 +318,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncModeLocalDesc => 'Data stays on this device only';
+
+  @override
+  String get syncModeFastapi => 'FastAPI sync';
+
+  @override
+  String get syncModeFastapiDesc => 'Sync with local PC / shared server';
 
   @override
   String get syncModeCloudflare => 'Cloudflare sync';
@@ -360,6 +366,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homepageComingSoon => 'Homepage creation is coming soon';
+
+  // Site creation screen
+  @override
+  String get siteInfoFarm => 'Farm info';
+  @override
+  String get siteFarmName => 'Farm name';
+  @override
+  String get siteFarmDesc => 'Farm description';
+  @override
+  String get siteFarmLocation => 'Location';
+  @override
+  String get siteFarmPolicy => 'Farming method (e.g. Natural farming)';
+  @override
+  String get siteInfoCrops => 'Crops to include';
+  @override
+  String get siteInfoSales => 'Sales info';
+  @override
+  String get siteSalesDesc => 'How to purchase';
+  @override
+  String get siteSalesContact => 'Contact (email, phone, etc.)';
+  @override
+  String get siteGenerate => 'Generate HTML';
+  @override
+  String get siteHtmlReady => 'HTML has been generated';
+  @override
+  String get siteCopyHtml => 'Copy HTML';
+  @override
+  String get siteDeploySection => 'Auto-deploy to Cloudflare';
+  @override
+  String get siteDeployDesc => 'Deploy directly to Cloudflare Pages. Requires Account ID and API Token.';
+  @override
+  String get siteCfAccountId => 'Cloudflare Account ID';
+  @override
+  String get siteCfApiToken => 'Cloudflare API Token';
+  @override
+  String get siteCfProjectName => 'Project name (site URL)';
+  @override
+  String get siteDeploy => 'Deploy';
+  @override
+  String get siteDeployDone => 'Deployed successfully';
 
   @override
   String get searchRecords => 'Search records';
@@ -447,4 +493,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cachedInfo => '(from shared database)';
+
+  @override
+  String get skill => 'Skill';
+
+  @override
+  String get farmingMethod => 'Farming method';
+
+  @override
+  String get inheritFromSkill => 'Use skill defaults';
 }

@@ -11,6 +11,7 @@ import '../models/record.dart';
 import '../models/record_photo.dart';
 import '../services/cultivation_info_service.dart';
 import '../services/database_service.dart';
+import 'site_screen.dart';
 
 class CropDetailScreen extends StatefulWidget {
   final DatabaseService db;
@@ -249,7 +250,7 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
               Row(
                 children: [
                   const SizedBox(width: 28),
-                  Text('${l.cropName}: ${_crop.name}'),
+                  Expanded(child: Text('${l.cropName}: ${_crop.name}')),
                 ],
               ),
             ],
@@ -258,7 +259,7 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
               Row(
                 children: [
                   const SizedBox(width: 28),
-                  Text('${l.variety}: ${_crop.variety}'),
+                  Expanded(child: Text('${l.variety}: ${_crop.variety}')),
                 ],
               ),
             ],
@@ -268,7 +269,7 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
                 children: [
                   const Icon(Icons.grid_view, size: 16),
                   const SizedBox(width: 6),
-                  Text(_plotDisplayName(_crop.plotId)),
+                  Expanded(child: Text(_plotDisplayName(_crop.plotId))),
                 ],
               ),
             ],
@@ -308,8 +309,14 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
         subtitle: Text(l.createHomepageDesc),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l.homepageComingSoon)),
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SiteScreen(
+                db: widget.db,
+                initialCrop: _crop,
+              ),
+            ),
           );
         },
       ),
@@ -350,9 +357,11 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
                         color: Theme.of(context).colorScheme.primary,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        '$dateStr - $actLabel',
-                        style: Theme.of(context).textTheme.titleSmall,
+                      Expanded(
+                        child: Text(
+                          '$dateStr - $actLabel',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
                       ),
                     ],
                   ),

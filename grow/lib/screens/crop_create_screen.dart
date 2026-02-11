@@ -10,6 +10,9 @@ import '../models/plot.dart';
 import '../services/cultivation_info_service.dart';
 import '../services/database_service.dart';
 import '../services/photo_service.dart';
+import '../services/skill_file_generator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'skill_screen.dart';
 
 class CropCreateScreen extends StatefulWidget {
   final DatabaseService db;
@@ -32,6 +35,7 @@ class _CropCreateScreenState extends State<CropCreateScreen> {
 
   String? _selectedPlotId;
   String? _selectedParentCropId;
+  String? _selectedFarmingMethod;
   List<Plot> _allPlots = [];
   List<Location> _locations = [];
   List<Crop> _allCrops = [];
@@ -71,10 +75,16 @@ class _CropCreateScreenState extends State<CropCreateScreen> {
     final locations = await widget.db.getLocations();
     final allCrops = await widget.db.getCrops();
     final serverAvailable = await _cultivationInfoService.isAvailable;
+    // Pre-fill farming method from skill defaults
+    final prefs = await SharedPreferences.getInstance();
+    final skillMethod = prefs.getString(kSkillMethodPref) ?? '';
     if (!mounted) return;
     setState(() {
       _allPlots = allPlots;
       _locations = locations;
+      if (skillMethod.isNotEmpty) {
+        _selectedFarmingMethod = skillMethod;
+      }
       _allCrops = allCrops;
       _serverAvailable = serverAvailable;
       _loading = false;
@@ -359,6 +369,7 @@ class _CropCreateScreenState extends State<CropCreateScreen> {
       variety: _varietyCtrl.text.trim(),
       plotId: _selectedPlotId,
       parentCropId: _selectedParentCropId,
+      farmingMethod: _selectedFarmingMethod,
       memo: _memoCtrl.text.trim(),
     );
 
@@ -536,6 +547,25 @@ class _CropCreateScreenState extends State<CropCreateScreen> {
                           setState(() => _selectedParentCropId = v),
                     ),
                   ],
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: _selectedFarmingMethod,
+                    decoration: InputDecoration(
+                      labelText: l.farmingMethod,
+                      border: const OutlineInputBorder(),
+                    ),
+                    items: SkillFileGenerator.farmingMethods.entries
+                        .map((e) => DropdownMenuItem<String>(
+                              value: e.key,
+                              child: Text(e.value),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) {
+                        setState(() => _selectedFarmingMethod = v);
+                      }
+                    },
+                  ),
 
                   const SizedBox(height: 24),
                   const Divider(),

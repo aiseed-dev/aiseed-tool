@@ -70,7 +70,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final l = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.settings)),
+      appBar: AppBar(title: const Text('システム設定')),
       body: ListView(
         children: [
           // Theme
@@ -123,9 +123,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const Divider(height: 1),
           ],
-          // Server URL & token (shown when server provider or cloudflare sync)
+          // Server URL & token
           if (_provider == PlantIdProvider.server ||
-              _syncMode == SyncMode.cloudflare) ...[
+              _syncMode == SyncMode.cloudflare ||
+              _syncMode == SyncMode.fastapi) ...[
             ListTile(
               leading: const Icon(Icons.dns),
               title: Text(l.serverUrl),
@@ -179,7 +180,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: () => _showSyncModeDialog(context, l),
           ),
           const Divider(height: 1),
-          if (_syncMode == SyncMode.cloudflare) ...[
+          if (_syncMode == SyncMode.cloudflare ||
+              _syncMode == SyncMode.fastapi) ...[
             ListTile(
               leading: const SizedBox(width: 24),
               title: Text(l.syncNow),
@@ -376,6 +378,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return l.syncModeLocal;
       case SyncMode.cloudflare:
         return l.syncModeCloudflare;
+      case SyncMode.fastapi:
+        return l.syncModeFastapi;
     }
   }
 
@@ -389,6 +393,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               mode: SyncMode.local,
               title: l.syncModeLocal,
               subtitle: l.syncModeLocalDesc),
+          _syncModeOption(ctx, l,
+              mode: SyncMode.fastapi,
+              title: l.syncModeFastapi,
+              subtitle: l.syncModeFastapiDesc),
           _syncModeOption(ctx, l,
               mode: SyncMode.cloudflare,
               title: l.syncModeCloudflare,
@@ -451,6 +459,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         db: DatabaseService(),
         serverUrl: _serverUrl,
         serverToken: _serverToken,
+        mode: _syncMode,
       );
       final result = await syncService.sync();
       if (!mounted) return;

@@ -11,7 +11,7 @@ enum PlantIdProvider {
   /// Plant.id API（直接）- 植物特化、コスト低め
   plantId,
 
-  /// サーバー経由（Claude Vision / GPT-4V）- 高精度、雑草も対応
+  /// サーバー経由（FastAPI）- APIキー不要、サーバー側で処理
   server,
 }
 
@@ -115,8 +115,8 @@ class PlantIdService extends PlantIdentificationService {
 }
 
 /// サーバー経由の植物同定サービス
-/// サーバー側で Claude Vision / GPT-4 Vision 等を呼び出す
-/// サーバーがAPIキー管理・利用量制御・課金を担当
+/// FastAPIサーバー側で Claude 等を呼び出す
+/// サーバーがAI処理を担当（スマホ側のAPIキー不要）
 ///
 /// サーバーAPI仕様:
 ///   POST {serverUrl}

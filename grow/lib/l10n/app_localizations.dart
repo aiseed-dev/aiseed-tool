@@ -647,13 +647,13 @@ abstract class AppLocalizations {
   /// No description provided for @plantIdProviderServer.
   ///
   /// In ja, this message translates to:
-  /// **'サーバー経由（高精度）'**
+  /// **'サーバー経由（APIキー不要）'**
   String get plantIdProviderServer;
 
   /// No description provided for @plantIdProviderServerDesc.
   ///
   /// In ja, this message translates to:
-  /// **'Claude / GPT-4V、雑草も同定可能'**
+  /// **'FastAPIサーバーで処理、スマホ側の設定不要'**
   String get plantIdProviderServerDesc;
 
   /// No description provided for @plantIdApiKey.
@@ -709,6 +709,18 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'データはこの端末のみに保存'**
   String get syncModeLocalDesc;
+
+  /// No description provided for @syncModeFastapi.
+  ///
+  /// In ja, this message translates to:
+  /// **'FastAPI 同期'**
+  String get syncModeFastapi;
+
+  /// No description provided for @syncModeFastapiDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'ローカル PC / 共有サーバーと同期'**
+  String get syncModeFastapiDesc;
 
   /// No description provided for @syncModeCloudflare.
   ///
@@ -788,6 +800,27 @@ abstract class AppLocalizations {
   /// **'ホームページ作成機能は準備中です'**
   String get homepageComingSoon;
 
+  // Site creation
+  String get siteInfoFarm;
+  String get siteFarmName;
+  String get siteFarmDesc;
+  String get siteFarmLocation;
+  String get siteFarmPolicy;
+  String get siteInfoCrops;
+  String get siteInfoSales;
+  String get siteSalesDesc;
+  String get siteSalesContact;
+  String get siteGenerate;
+  String get siteHtmlReady;
+  String get siteCopyHtml;
+  String get siteDeploySection;
+  String get siteDeployDesc;
+  String get siteCfAccountId;
+  String get siteCfApiToken;
+  String get siteCfProjectName;
+  String get siteDeploy;
+  String get siteDeployDone;
+
   /// No description provided for @searchRecords.
   ///
   /// In ja, this message translates to:
@@ -812,31 +845,158 @@ abstract class AppLocalizations {
   /// **'メモ、栽培名、場所名で検索'**
   String get searchHint;
 
+  /// No description provided for @cultivationInfo.
+  ///
+  /// In ja, this message translates to:
+  /// **'栽培情報'**
   String get cultivationInfo;
+
+  /// No description provided for @seedPacketPhotos.
+  ///
+  /// In ja, this message translates to:
+  /// **'種袋の写真'**
   String get seedPacketPhotos;
+
+  /// No description provided for @readFromUrl.
+  ///
+  /// In ja, this message translates to:
+  /// **'URLから栽培情報を取得'**
   String get readFromUrl;
+
+  /// No description provided for @readFromSeedPhoto.
+  ///
+  /// In ja, this message translates to:
+  /// **'種袋を撮影して読み取る'**
   String get readFromSeedPhoto;
+
+  /// No description provided for @saveSeedPhoto.
+  ///
+  /// In ja, this message translates to:
+  /// **'種袋の写真を保存（ローカル）'**
   String get saveSeedPhoto;
+
+  /// No description provided for @cultivationReferences.
+  ///
+  /// In ja, this message translates to:
+  /// **'参考情報'**
   String get cultivationReferences;
+
+  /// No description provided for @addReference.
+  ///
+  /// In ja, this message translates to:
+  /// **'参考URLを追加'**
   String get addReference;
+
+  /// No description provided for @referenceUrl.
+  ///
+  /// In ja, this message translates to:
+  /// **'URL'**
   String get referenceUrl;
+
+  /// No description provided for @referenceTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'タイトル'**
   String get referenceTitle;
+
+  /// No description provided for @noReferences.
+  ///
+  /// In ja, this message translates to:
+  /// **'参考情報はまだありません'**
   String get noReferences;
+
+  /// No description provided for @readingUrl.
+  ///
+  /// In ja, this message translates to:
+  /// **'URLから情報を読み取り中…'**
   String get readingUrl;
+
+  /// No description provided for @readingImage.
+  ///
+  /// In ja, this message translates to:
+  /// **'種袋を読み取り中…'**
   String get readingImage;
+
+  /// No description provided for @readSuccess.
+  ///
+  /// In ja, this message translates to:
+  /// **'栽培情報を取得しました'**
   String get readSuccess;
+
+  /// No description provided for @readFailed.
+  ///
+  /// In ja, this message translates to:
+  /// **'情報の取得に失敗しました'**
   String get readFailed;
+
+  /// No description provided for @serverRequired.
+  ///
+  /// In ja, this message translates to:
+  /// **'この機能にはサーバー設定が必要です'**
   String get serverRequired;
+
+  /// No description provided for @autoFillConfirm.
+  ///
+  /// In ja, this message translates to:
+  /// **'作物名・品種を自動入力しますか？'**
   String get autoFillConfirm;
+
+  /// No description provided for @sowingPeriod.
+  ///
+  /// In ja, this message translates to:
+  /// **'播種時期'**
   String get sowingPeriod;
+
+  /// No description provided for @harvestPeriod.
+  ///
+  /// In ja, this message translates to:
+  /// **'収穫時期'**
   String get harvestPeriod;
+
+  /// No description provided for @spacing.
+  ///
+  /// In ja, this message translates to:
+  /// **'株間'**
   String get spacing;
+
+  /// No description provided for @seedDepth.
+  ///
+  /// In ja, this message translates to:
+  /// **'播種深さ'**
   String get seedDepth;
+
+  /// No description provided for @sunlight.
+  ///
+  /// In ja, this message translates to:
+  /// **'日照'**
   String get sunlight;
+
+  /// No description provided for @fertilizerInfo.
+  ///
+  /// In ja, this message translates to:
+  /// **'施肥'**
   String get fertilizerInfo;
+
+  /// No description provided for @cultivationTips.
+  ///
+  /// In ja, this message translates to:
+  /// **'栽培のコツ'**
   String get cultivationTips;
+
+  /// No description provided for @sourceUrl.
+  ///
+  /// In ja, this message translates to:
+  /// **'取得元URL'**
   String get sourceUrl;
+
+  /// No description provided for @cachedInfo.
+  ///
+  /// In ja, this message translates to:
+  /// **'（共有データベースから取得）'**
   String get cachedInfo;
+  String get skill;
+  String get farmingMethod;
+  String get inheritFromSkill;
 }
 
 class _AppLocalizationsDelegate

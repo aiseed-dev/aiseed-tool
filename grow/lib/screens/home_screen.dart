@@ -3,7 +3,7 @@ import '../l10n/app_localizations.dart';
 import 'locations_screen.dart';
 import 'crops_screen.dart';
 import 'records_screen.dart';
-import 'settings_screen.dart';
+import 'skill_screen.dart';
 import '../services/database_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -36,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
       RecordsScreen(db: widget.db),
       CropsScreen(db: widget.db),
       LocationsScreen(db: widget.db),
-      SettingsScreen(
+      SkillScreen(
         onThemeModeChanged: widget.onThemeModeChanged,
         onLocaleChanged: widget.onLocaleChanged,
         themeMode: widget.themeMode,
@@ -66,9 +66,9 @@ class _HomeScreenState extends State<HomeScreen> {
             label: l.locations,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.settings_outlined),
-            selectedIcon: const Icon(Icons.settings),
-            label: l.settings,
+            icon: const Icon(Icons.auto_awesome_outlined),
+            selectedIcon: const Icon(Icons.auto_awesome),
+            label: l.skill,
           ),
         ],
       ),
