@@ -46,13 +46,18 @@ pip install --upgrade pip
 pip install -r requirements.txt
 
 # 7b. Miniforge3を使用する場合
+cd aiseed-tool/gpu-server
 conda env update -f environment.yml -p ./.venv --prune
 conda activate ./.venv
 
-# 8. .env 作成
+# 8. PaddlePaddle GPU インストール（CUDA バージョンに合わせる）
+# nvidia-smi で CUDA Version を確認して選択
+# cu118 / cu126 / cu129 / cu130
+pip install paddlepaddle-gpu==3.3.0 -i https://www.paddlepaddle.org.cn/packages/stable/cu130/
+
+# 9. .env 作成
 cp .env.example .env
 vi .env  # SECRET_KEY を設定
 
-# 9. 動作確認
+# 10. 動作確認
 python main.py
-
