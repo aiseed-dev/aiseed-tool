@@ -20,7 +20,6 @@ channels:
 
 dependencies:
   - python=3.12
-  - nodejs>=18              # Claude Agent SDK が必要
 
   # FastAPI
   - fastapi>=0.115.0
