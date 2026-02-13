@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>「硬い＝まずい」は日本野菜、「硬い＝旨味が詰まっている」はイタリア野菜 — Grow</title>
+    <meta name="description" content="日本野菜とイタリア野菜の違いを進化・土壌・調理法の観点から解説。粘土質土壌や乾燥地でも美味しい野菜が作れる理由。">
+    <style>
+        :root {
+            --color-bg: #faf9f6;
+            --color-surface: #ffffff;
+            --color-text: #2c2c2c;
+            --color-text-sub: #5a5a5a;
+            --color-accent: #4a7c59;
+            --color-accent-light: #e8f0eb;
+            --color-accent-dark: #3a6247;
+            --color-border: #e0ddd8;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 16px; scroll-behavior: smooth; }
+
+        body {
+            font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            color: var(--color-text);
+            background: var(--color-bg);
+            line-height: 1.85;
+        }
+
+        .site-header {
+            background: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+            padding: 1rem 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-inner {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .logo {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--color-accent);
+            text-decoration: none;
+        }
+
+        .header-nav a {
+            font-size: 0.85rem;
+            color: var(--color-text-sub);
+            text-decoration: none;
+            margin-left: 1.2rem;
+        }
+        .header-nav a:hover { color: var(--color-accent); }
+
+        main {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2.5rem 1.5rem 4rem;
+        }
+
+        .article-header {
+            padding: 1.5rem 0 2rem;
+        }
+
+        .article-header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--color-text);
+            line-height: 1.4;
+            margin-bottom: 0.6rem;
+        }
+
+        .article-meta {
+            font-size: 0.9rem;
+            color: var(--color-text-sub);
+        }
+
+        h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--color-accent);
+            margin-top: 2.5rem;
+            margin-bottom: 0.8rem;
+            padding-bottom: 0.3rem;
+            border-bottom: 2px solid var(--color-accent-light);
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--color-text);
+            margin-top: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p { margin-bottom: 1rem; }
+
+        ul, ol {
+            margin: 0.5rem 0 1rem 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.3rem;
+        }
+
+        strong {
+            color: var(--color-accent-dark);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0 1.5rem;
+            font-size: 0.92rem;
+        }
+
+        thead th {
+            background: var(--color-accent-light);
+            color: var(--color-accent-dark);
+            font-weight: 600;
+            text-align: left;
+            padding: 0.6rem 0.8rem;
+            border-bottom: 2px solid var(--color-accent);
+        }
+
+        tbody td {
+            padding: 0.6rem 0.8rem;
+            border-bottom: 1px solid var(--color-border);
+            vertical-align: top;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .highlight-box {
+            background: var(--color-accent-light);
+            border-left: 4px solid var(--color-accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1.2rem 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .highlight-box p {
+            margin-bottom: 0.5rem;
+        }
+        .highlight-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        .summary-box {
+            background: var(--color-surface);
+            border: 2px solid var(--color-accent);
+            border-radius: 12px;
+            padding: 1.5rem 2rem;
+            margin: 2rem 0;
+        }
+
+        .summary-box h2 {
+            border: none;
+            margin-top: 0;
+        }
+
+        .summary-box ul {
+            margin-bottom: 0;
+        }
+
+        .cta-section {
+            text-align: center;
+            padding: 2rem;
+            background: var(--color-accent-light);
+            border-radius: 12px;
+            margin: 2.5rem 0;
+        }
+
+        .cta-section h2 {
+            border: none;
+            margin-top: 0;
+            text-align: center;
+        }
+
+        .cta-section p {
+            margin-bottom: 0.5rem;
+        }
+
+        footer {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+            padding: 2rem 1.5rem;
+            font-size: 0.8rem;
+            color: var(--color-text-sub);
+            border-top: 1px solid var(--color-border);
+        }
+
+        @media (max-width: 640px) {
+            html { font-size: 15px; }
+            .header-inner { flex-direction: column; text-align: center; }
+            .header-nav a { margin: 0 0.5rem; }
+            main { padding: 1.5rem 1rem 3rem; }
+            .article-header h1 { font-size: 1.4rem; }
+            table { font-size: 0.85rem; }
+            thead th, tbody td { padding: 0.4rem 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="site-header">
+    <div class="header-inner">
+        <a href="index.html" class="logo">Grow</a>
+        <nav class="header-nav">
+            <a href="index.html">アプリについて</a>
+            <a href="japanese-italian-vegetables.html">記事</a>
+            <a href="api-manual.html">APIマニュアル</a>
+            <a href="privacy.html">プライバシー</a>
+        </nav>
+    </div>
+</header>
+
+<main>
+    <div class="article-header">
+        <h1>「硬い＝まずい」は日本野菜、<br>「硬い＝旨味が詰まっている」はイタリア野菜</h1>
+        <p class="article-meta">にじ やすひろ</p>
+    </div>
+
+    <h2>はじめに</h2>
+    <p>日本では、「柔らかくてみずみずしい野菜」が良い野菜とされる。しかし、土壌や気候によっては、どうしても硬い野菜になってしまうことがある。そんなとき、「失敗した」と思う必要はない。視点を変えれば、「イタリア野菜だと成功」するかもしれない。</p>
+
+    <h2>日本とイタリアの野菜観の違い</h2>
+    <table>
+        <thead>
+            <tr><th></th><th>日本</th><th>イタリア</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>食感の好み</td><td>柔らかい・みずみずしい</td><td>歯ごたえ・しっかり</td></tr>
+            <tr><td>硬さの評価</td><td>筋っぽい＝失敗</td><td>凝縮＝旨味</td></tr>
+            <tr><td>栽培スタイル</td><td>多窒素・多水・速成</td><td>痩せ地・乾燥・ゆっくり</td></tr>
+            <tr><td>代表的野菜</td><td>白菜、小松菜、ほうれん草</td><td>アーティチョーク、チコリ、ルッコラ</td></tr>
+            <tr><td>調理法</td><td>生食・軽く加熱</td><td>しっかり加熱・オリーブオイル</td></tr>
+        </tbody>
+    </table>
+
+    <h2>なぜ同じ「硬い」でも違うのか</h2>
+
+    <h3>気候と植物の進化</h3>
+
+    <p><strong>日本野菜の進化環境</strong></p>
+    <ul>
+        <li>多雨・多湿</li>
+        <li>乾燥ストレスは稀</li>
+        <li>乾燥対応の「美味しくなる仕組み」を発達させる必要がなかった</li>
+    </ul>
+
+    <p><strong>イタリア野菜の進化環境</strong></p>
+    <ul>
+        <li>夏は高温・乾燥</li>
+        <li>毎年乾燥ストレスを経験</li>
+        <li>ストレス時に糖・抗酸化物質・香気成分を蓄積する仕組みを発達</li>
+    </ul>
+
+    <h3>ストレス応答の違い</h3>
+    <p>乾燥や痩せ地というストレスに対して、日本野菜とイタリア野菜では反応が異なる。</p>
+    <ul>
+        <li><strong>日本野菜</strong> → 繊維を増やして耐える（防御のみ）</li>
+        <li><strong>イタリア野菜</strong> → 糖・旨味・香り成分を蓄積する（防御＋貯蔵）</li>
+    </ul>
+    <p>日本野菜は「水が豊富な環境」で選抜されてきたので、乾燥するとただ硬くなる。イタリア野菜は「乾燥が当たり前の環境」で選抜されてきたので、乾燥すると美味しさを凝縮する。</p>
+
+    <h3>ストレス応答で蓄積される物質</h3>
+    <table>
+        <thead>
+            <tr><th>物質</th><th>植物にとって</th><th>人間にとって</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>糖</td><td>細胞の浸透圧調整</td><td>甘味</td></tr>
+            <tr><td>ポリフェノール</td><td>紫外線・乾燥から保護</td><td>旨味・深み</td></tr>
+            <tr><td>香気成分</td><td>虫除け・抗菌</td><td>香り・風味</td></tr>
+            <tr><td>グルタミン酸</td><td>窒素の貯蔵</td><td>旨味</td></tr>
+        </tbody>
+    </table>
+
+    <h2>細胞壁成分の違い：リグニンとペクチン</h2>
+
+    <h3>硬くなる成分</h3>
+    <table>
+        <thead>
+            <tr><th>成分</th><th>役割</th><th>加熱での変化</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>セルロース</td><td>細胞壁の基本構造</td><td>軟化する</td></tr>
+            <tr><td>リグニン</td><td>木質化・強度</td><td>ほぼ変わらない</td></tr>
+            <tr><td>ペクチン</td><td>細胞同士の接着</td><td>分解して柔らかくなる</td></tr>
+        </tbody>
+    </table>
+
+    <h3>イタリア野菜はペクチンが多い</h3>
+    <p>イタリア野菜が加熱で美味しくなる重要な理由の一つは、ペクチン含量が高いことにある。</p>
+
+    <p><strong>イタリア野菜</strong></p>
+    <ul>
+        <li>ペクチン多い → 加熱でトロッと軟化</li>
+        <li>糖・旨味が蓄積</li>
+        <li>リグニンは維管束に集中</li>
+        <li>→ 煮込むと「ホロホロ」「トロトロ」に</li>
+    </ul>
+
+    <p><strong>日本野菜（乾燥ストレス下）</strong></p>
+    <ul>
+        <li>セルロース・リグニンが増加</li>
+        <li>ペクチンは少ない</li>
+        <li>全体が繊維化</li>
+        <li>→ 加熱しても「スジっぽい」まま</li>
+    </ul>
+
+    <p>ペクチンは乾燥適応としても機能する。水を保持する力があり、乾燥環境で細胞を保護する役割を持つ。地中海の植物は、この特性を発達させてきた。</p>
+
+    <div class="highlight-box">
+        <p><strong>イタリア野菜が加熱で美味しくなる理由（まとめ）</strong></p>
+        <p>・<strong>旨味成分が多い</strong> — ストレス応答で蓄積<br>
+        ・<strong>ペクチンが多い</strong> — 加熱で良い食感になる<br>
+        ・<strong>リグニンの配置が適切</strong> — 維管束に集中し、果肉は柔らかくなる</p>
+    </div>
+
+    <h2>「素材を活かす」の意味が違う</h2>
+    <p>日本料理もイタリア料理も「素材を活かす」と言われる。しかし、その意味するところは根本的に異なる。</p>
+
+    <h3>日本料理：素材に手を加えない</h3>
+    <p>日本料理は、野菜そのものの繊細な味わいを損なわないことを重視する。だし、薄味の煮物、おひたし、浅漬け。調理は最小限にとどめ、素材のみずみずしさや淡い甘みをそのまま引き出す。</p>
+    <p>この「引き算の美学」は、多雨・多湿の環境で育った柔らかくて水分の多い日本野菜だからこそ成り立つ。生食や軽い加熱で十分に美味しいのだから、余計な手を加える必要がない。</p>
+
+    <h3>イタリア料理：素材の旨味を引き出す</h3>
+    <p>一方、イタリア料理は素材に積極的に働きかけることで旨味を「引き出す」。オリーブオイルでじっくりソテーすることで、野菜に蓄積された糖やグルタミン酸がメイラード反応を起こし、旨味が何層にも重なる。</p>
+    <p>典型的なのがソフリット（soffritto）だ。玉ねぎ、セロリ、ニンジンをオリーブオイルで20〜30分かけてゆっくり炒める。日本料理の感覚だと「火を通しすぎ」だが、イタリア料理ではこの工程で野菜の旨味を凝縮させ、料理全体の土台を作る。</p>
+    <p>ここでペクチンの多さが活きてくる。加熱するとペクチンが分解されてトロッとした食感に変わり、硬さが「濃厚さ」に転換される。乾燥ストレスで蓄積された旨味成分が、加熱によって一気に開花するわけだ。</p>
+
+    <h3>苦味の評価も違う</h3>
+    <p>もう一つ興味深いのは、苦味に対する評価の違いだ。</p>
+    <p>日本では苦味は「えぐみ」として避けられることが多い。アク抜きをし、水にさらし、苦味を取り除いてから調理する。</p>
+    <p>イタリアでは、チコリやラディッキオの苦味はむしろ歓迎される。オリーブオイルの脂肪分と合わせることで、苦味が心地よい複雑さに変わる。グリルしたラディッキオにバルサミコ酢をかける、苦味のあるプンタレッレをアンチョビドレッシングで和える。苦味は味の「深み」として積極的に活用される。</p>
+    <p>これも進化の違いに根ざしている。イタリア野菜の苦味成分であるポリフェノールは、ストレス応答で蓄積された抗酸化物質だ。苦味があるということは、それだけ防御物質＝栄養成分が詰まっているということでもある。</p>
+
+    <h3>調理法と野菜は一体</h3>
+    <table>
+        <thead>
+            <tr><th></th><th>日本</th><th>イタリア</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>野菜の特性</td><td>柔らかい・水分が多い</td><td>硬い・旨味が凝縮</td></tr>
+            <tr><td>調理の哲学</td><td>引き算（手を加えない）</td><td>足し算（加熱で引き出す）</td></tr>
+            <tr><td>油の使い方</td><td>最小限</td><td>オリーブオイルが基本</td></tr>
+            <tr><td>苦味の扱い</td><td>アク抜きで除去</td><td>脂肪分と合わせて活用</td></tr>
+            <tr><td>加熱時間</td><td>短い</td><td>長い</td></tr>
+        </tbody>
+    </table>
+
+    <div class="highlight-box">
+        <p>硬い野菜を日本料理の調理法で食べようとするから「まずい」と感じる。同じ野菜をイタリア料理の調理法で食べれば、「旨味が詰まっている」と感じる。<strong>野菜だけでなく、調理法も変えることが重要だ。</strong></p>
+    </div>
+
+    <h2>菌根菌との関係</h2>
+
+    <h3>植物科別の菌根菌共生</h3>
+    <p><strong>菌根菌と共生する（イタリア野菜に多い）</strong></p>
+    <table>
+        <thead>
+            <tr><th>科</th><th>代表的な野菜</th><th>AM菌との共生</th><th>窒素要求量</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>キク科</td><td>アーティチョーク、レタス、春菊</td><td>する</td><td>低〜中</td></tr>
+            <tr><td>ナス科</td><td>トマト、ナス</td><td>する</td><td>中</td></tr>
+            <tr><td>ウリ科</td><td>カボチャ</td><td>する</td><td>中</td></tr>
+        </tbody>
+    </table>
+
+    <p><strong>菌根菌と共生しない（日本野菜に多い）</strong></p>
+    <table>
+        <thead>
+            <tr><th>科</th><th>代表的な野菜</th><th>AM菌との共生</th><th>窒素要求量</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>アブラナ科</td><td>小松菜、白菜、キャベツ</td><td>しない</td><td>高</td></tr>
+            <tr><td>アカザ科</td><td>ホウレンソウ</td><td>しない</td><td>高</td></tr>
+        </tbody>
+    </table>
+
+    <p>イタリア野菜の多くはAM菌（アーバスキュラー菌根菌）と共生する。痩せ地でも菌根菌ネットワークから養分を得ることができるため、低窒素環境でも育つことができる。</p>
+    <p>一方、日本で好まれるアブラナ科やアカザ科の葉物野菜は、菌根菌と共生しない。そのため、窒素が豊富な環境を必要とし、痩せ地では育ちにくい。</p>
+
+    <h3>菌根菌が旨味を作る</h3>
+    <p>菌根菌の有無は、単に「育つか育たないか」だけの問題ではない。実は、野菜の旨味そのものに深く関わっている。</p>
+
+    <p><strong>ミネラル供給と旨味合成</strong></p>
+    <p>菌根菌はリン、亜鉛、銅、マンガンなどの微量元素を植物に運ぶ。これらは、グルタミン酸（旨味の主成分）を合成する酵素の補因子として不可欠な物質だ。菌根菌が活発に働いている植物は、旨味成分を作るための「材料と道具」を十分に持っていることになる。</p>
+
+    <p><strong>窒素の届け方が味を変える</strong></p>
+    <p>同じ「窒素」でも、届け方によって味が変わる。化学肥料の硝酸態窒素は、植物体内で水っぽい成長を促す。一方、菌根菌経由の有機態窒素はアミノ酸として直接供給される場合があり、グルタミン酸やアスパラギン酸といった旨味系アミノ酸の蓄積につながりやすい。</p>
+
+    <p><strong>光合成速度と糖の蓄積</strong></p>
+    <p>菌根菌に共生された植物は光合成速度が上がることが知られている。光合成速度が上がれば糖の生産量が増え、Brix値（糖度）が高くなる。糖が多いということは、旨味の土台が厚いということだ。</p>
+
+    <h3>イタリア野菜の旨味は二重構造</h3>
+    <table>
+        <thead>
+            <tr><th>エンジン</th><th>仕組み</th><th>蓄積される物質</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>乾燥ストレス</td><td>ストレス応答で防御物質を蓄積</td><td>糖、ポリフェノール、香気成分</td></tr>
+            <tr><td>菌根菌共生</td><td>微量元素の供給とアミノ酸合成の促進</td><td>グルタミン酸、ミネラル</td></tr>
+        </tbody>
+    </table>
+    <p>この二つが同時に働くから、イタリア野菜は痩せた乾燥地でも味が濃くなる。乾燥ストレスが旨味成分を蓄積させ、菌根菌がその合成を後押しする。相乗効果だ。</p>
+
+    <h2>ひび割れ粘土質土壌とイタリア野菜</h2>
+
+    <h3>ひび割れ粘土質土壌の特徴</h3>
+    <p>乾燥するとセメントのように硬くなり、ひび割れる。雨が降ると泥濘になる。多くの人がこの土壌を「問題のある土」と考え、なんとかフカフカの土に改良しようとする。</p>
+    <p>しかし、この土壌には独自の強みがある。</p>
+
+    <p><strong>強み</strong></p>
+    <ul>
+        <li>亀裂が深根性植物の「道」になる</li>
+        <li>深層では菌根菌ネットワークが機能しやすい</li>
+        <li>乾燥適応植物に向く</li>
+    </ul>
+
+    <p><strong>日本野菜には課題</strong></p>
+    <ul>
+        <li>表層の乾湿変動が激しい</li>
+        <li>窒素が少ない</li>
+        <li>浅根性の植物には厳しい</li>
+    </ul>
+
+    <h3>この土壌で育つもの・育たないもの</h3>
+    <p><strong>よく育つ</strong></p>
+    <ul>
+        <li><strong>アーティチョーク</strong> — 深根性、地中海原産、菌根菌共生</li>
+        <li><strong>オリーブ</strong> — 深根性、乾燥に強い</li>
+        <li><strong>カボチャ・ズッキーニ</strong> — 強健な根、乾燥耐性、菌根菌共生</li>
+        <li><strong>キク科葉物</strong> — 低窒素適応、菌根菌共生</li>
+        <li><strong>根菜類</strong> — 亀裂に沿って根が伸びる</li>
+    </ul>
+
+    <p><strong>育たない</strong></p>
+    <ul>
+        <li><strong>キュウリ</strong> — 浅根、表層の乾湿変動に耐えられない</li>
+        <li><strong>高窒素葉物</strong> — 窒素不足、菌根菌非共生</li>
+    </ul>
+
+    <div class="highlight-box">
+        <p><strong>粘土質土壌で悩んでいる人へ</strong></p>
+        <p>フカフカの土にする必要はない。その土壌は、地中海野菜にとっては理想的な環境かもしれない。</p>
+    </div>
+
+    <h2>気候変動という追い風</h2>
+    <p>日本は「多湿な国」と言われてきた。しかし、近年の気候変動により、状況は変わりつつある。</p>
+    <ul>
+        <li>梅雨明け後の猛暑と少雨</li>
+        <li>秋の長期乾燥</li>
+        <li>冬の降水量減少</li>
+    </ul>
+    <p>かつては日本野菜に適していた気候が、徐々に地中海型に近づいているかもしれない。日本野菜が育ちにくくなっているのは、土だけでなく気候の変化も影響している。</p>
+    <p>逆に言えば、<strong>今こそイタリア野菜を始める好機</strong>とも言える。乾燥に強く、暑さにも耐える地中海野菜は、変わりゆく日本の気候に適応しやすい。</p>
+
+    <h2>試してみてほしい作物と調理法</h2>
+    <p>作物を変えるなら、調理法も一緒に変えよう。</p>
+    <table>
+        <thead>
+            <tr><th>作物</th><th>特徴</th><th>おすすめの調理法</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>アーティチョーク</td><td>地中海原産の多年草。一度植えれば毎年収穫</td><td>オリーブオイルでローストし、レモンを絞る</td></tr>
+            <tr><td>チコリ・エンダイブ</td><td>キク科の葉物。苦味が持ち味</td><td>グリルしてバルサミコ酢とオリーブオイルで</td></tr>
+            <tr><td>カボチャ</td><td>深根性で乾燥に強い</td><td>オーブンでじっくりローストして甘みを凝縮</td></tr>
+            <tr><td>ゴボウ</td><td>キク科で根菜。日本の土壌に合う</td><td>オリーブオイルでソテー、バルサミコ酢で仕上げ</td></tr>
+            <tr><td>トマト・ナス</td><td>水を控えめにすると味が濃くなる</td><td>グリルやオーブン焼きで旨味を引き出す</td></tr>
+            <tr><td>ルッコラ</td><td>辛味と苦味が特徴のアブラナ科</td><td>生食もよいが、パスタに加えてしんなりさせても</td></tr>
+        </tbody>
+    </table>
+    <p>ポイントは、<strong>オリーブオイル、加熱、そして時間</strong>。硬さが気になる野菜も、しっかり火を通すことで本来の旨味が引き出される。</p>
+
+    <div class="summary-box">
+        <h2>まとめ</h2>
+        <ul>
+            <li>日本野菜とイタリア野菜は、進化の過程で異なるストレス応答を発達させた</li>
+            <li>イタリア野菜は乾燥ストレスで旨味成分とペクチンを蓄積する</li>
+            <li>日本料理は「手を加えない」、イタリア料理は「加熱で引き出す」――素材の活かし方が違う</li>
+            <li>硬い野菜は、調理法を変えれば「旨味の塊」になる</li>
+            <li>ひび割れ粘土質土壌は、イタリア野菜にとって理想的な環境</li>
+            <li>土を変えようとするより、土に合った作物と調理法を選ぶ方が賢明</li>
+        </ul>
+        <p style="margin-top: 1rem; margin-bottom: 0;"><strong>フカフカの土にする必要はない。その土壌の個性を活かそう。<br>そして、調理法も一緒に変えよう。</strong></p>
+    </div>
+
+    <div class="cta-section">
+        <h2>Grow で栽培記録を始めよう</h2>
+        <p>AI が土壌・気候に合った作物選びをアドバイス。<br>あなたの畑に合った野菜が見つかります。</p>
+        <p><a href="index.html" style="color: var(--color-accent); font-weight: 600;">アプリについて詳しく →</a></p>
+    </div>
+</main>
+
+<footer>
+    <p>&copy; 2025 Grow — AI &times; 自然栽培</p>
+</footer>
+
+</body>
+</html>
