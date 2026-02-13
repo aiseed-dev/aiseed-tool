@@ -19,7 +19,7 @@ channels:
   - nvidia
 
 dependencies:
-  - python=3.13
+  - python=3.12
 
   # FastAPI
   - fastapi>=0.115.0
@@ -36,8 +36,8 @@ dependencies:
   - aiosqlite>=0.20.0
 
   # PyTorch (CUDA 12.x)
-  - pytorch::pytorch>=2.4
-  - pytorch::torchvision
+  - pytorch::pytorch>=2.5
+  - pytorch::torchvision>=0.25.0
   - pytorch::pytorch-cuda=12.4
 
   # Vision

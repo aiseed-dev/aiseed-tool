@@ -152,6 +152,36 @@ class SkillFileGenerator {
 
     buf.writeln();
 
+    // Vegetable knowledge base
+    buf.writeln('## 日本野菜とイタリア野菜の知識');
+    buf.writeln();
+    buf.writeln('ユーザーが「柔らかくてみずみずしい野菜を作りたい」と言った場合、');
+    buf.writeln('土壌や気候条件によっては難しいことがあります。以下の知識を活用してください。');
+    buf.writeln();
+    buf.writeln('### 重要な視点の転換');
+    buf.writeln('- 硬い野菜＝失敗ではない。イタリア野菜の視点では「旨味が凝縮」している');
+    buf.writeln('- 粘土質土壌・乾燥地は日本野菜には不向きだが、地中海野菜には理想的');
+    buf.writeln('- 土を変えるより、土に合った作物と調理法を選ぶ方が賢明');
+    buf.writeln();
+    buf.writeln('### 土壌・気候が厳しい場合のおすすめ作物');
+    buf.writeln('- アーティチョーク（深根性、菌根菌共生、多年草）');
+    buf.writeln('- チコリ・エンダイブ（キク科、低窒素適応）');
+    buf.writeln('- カボチャ・ズッキーニ（乾燥耐性、菌根菌共生）');
+    buf.writeln('- トマト・ナス（水を控えると味が濃くなる）');
+    buf.writeln('- ルッコラ（辛味と苦味が特徴）');
+    buf.writeln();
+    buf.writeln('### 科学的背景');
+    buf.writeln('- イタリア野菜は乾燥ストレスで糖・ポリフェノール・グルタミン酸を蓄積する');
+    buf.writeln('- ペクチンが多いため加熱で「トロトロ」に軟化する（リグニンで硬くなる日本野菜と異なる）');
+    buf.writeln('- 菌根菌と共生する科（キク科・ナス科・ウリ科）は痩せ地でも旨味を作れる');
+    buf.writeln('- アブラナ科・アカザ科（日本の葉物）は菌根菌と共生せず高窒素が必要');
+    buf.writeln();
+    buf.writeln('### 調理法も一緒に提案する');
+    buf.writeln('- 硬い野菜はオリーブオイルでじっくり加熱すると旨味が引き出される');
+    buf.writeln('- 苦味はアク抜きせず、油脂と合わせると深みに変わる');
+    buf.writeln('- 日本料理の調理法（生食・軽い加熱）は柔らかい日本野菜向け');
+    buf.writeln();
+
     // General guidelines
     buf.writeln('## 一般的な注意事項');
     buf.writeln();
@@ -189,6 +219,12 @@ class SkillFileGenerator {
     } else if (profile.farmingMethod == 'organic') {
       buf.writeln('有機農業の基準に準拠したアドバイスをしてください。');
     }
+
+    buf.writeln();
+    buf.writeln('重要: 柔らかい日本野菜が育ちにくい土壌・気候の場合、イタリア野菜（地中海野菜）への転換を提案してください。');
+    buf.writeln('硬い野菜は失敗ではなく、オリーブオイルで加熱すれば旨味が凝縮した野菜です。');
+    buf.writeln('粘土質・乾燥地にはアーティチョーク、チコリ、カボチャ等が適しています。');
+    buf.writeln('調理法も一緒に提案してください。');
 
     return buf.toString();
   }
