@@ -207,15 +207,10 @@ GROW_GPU_FLORENCE_MODEL=microsoft/Florence-2-base
 | `GROW_GPU_DATABASE_URL` | SQLAlchemy接続文字列 | |
 | `GROW_GPU_FLORENCE_MODEL` | Florence-2 のモデル名 | |
 
-### SECRET_KEY の生成
+### SECRET_KEY の自動生成
 
-デフォルト値のまま運用すると、JWTトークンを偽造され任意のユーザーとしてAPIにアクセスされる。
-**外部公開前に必ず変更すること。**
-
-```bash
-python3 -c "import secrets; print(secrets.token_urlsafe(32))"
-# 出力をコピーして .env の GROW_GPU_SECRET_KEY に貼り付ける
-```
+初回起動時に `SECRET_KEY` がデフォルト値のままであれば、安全なランダムキーを自動生成して `.env` に書き込む。
+手動で設定する必要はない。既に設定済みの場合はそのまま使用される。
 
 ### Apple / Google ソーシャルログイン
 
