@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:url_launcher/url_launcher.dart';
 import '../models/chat_message.dart';
 import '../services/ai_chat_service.dart';
@@ -42,15 +43,54 @@ class _ChatScreenState extends State<ChatScreen> {
   String _serverUrl = '';
   String _serverToken = '';
 
+  // Speech-to-text
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _speechAvailable = false;
+  bool _isListening = false;
+
   @override
   void initState() {
     super.initState();
     _loadSettings();
     _loadConversations();
+    _initSpeech();
+  }
+
+  Future<void> _initSpeech() async {
+    _speechAvailable = await _speech.initialize();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _toggleListening() async {
+    if (_isListening) {
+      await _speech.stop();
+      setState(() => _isListening = false);
+      return;
+    }
+
+    if (!_speechAvailable) return;
+
+    setState(() => _isListening = true);
+    await _speech.listen(
+      onResult: (result) {
+        setState(() {
+          _inputController.text = result.recognizedWords;
+          _inputController.selection = TextSelection.fromPosition(
+            TextPosition(offset: _inputController.text.length),
+          );
+        });
+        if (result.finalResult) {
+          setState(() => _isListening = false);
+        }
+      },
+      localeId: 'ja_JP',
+      listenMode: stt.ListenMode.dictation,
+    );
   }
 
   @override
   void dispose() {
+    _speech.stop();
     _inputController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -507,16 +547,30 @@ class _ChatScreenState extends State<ChatScreen> {
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _sendMessage(),
                     decoration: InputDecoration(
-                      hintText: 'メッセージを入力...',
+                      hintText: _isListening ? '話してください...' : 'メッセージを入力...',
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20)),
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: _isListening
+                              ? BorderSide(color: cs.error, width: 2)
+                              : const BorderSide()),
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 10),
                       isDense: true,
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
+                if (_speechAvailable)
+                  IconButton(
+                    onPressed: _isLoading ? null : _toggleListening,
+                    icon: Icon(
+                      _isListening ? Icons.mic : Icons.mic_none,
+                      size: 22,
+                      color: _isListening ? cs.error : null,
+                    ),
+                    tooltip: _isListening ? '音声入力を停止' : '音声入力',
+                  ),
+                const SizedBox(width: 4),
                 IconButton.filled(
                   onPressed: _isLoading ? null : _sendMessage,
                   icon: const Icon(Icons.send, size: 20),
