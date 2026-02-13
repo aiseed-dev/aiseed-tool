@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     upload_dir: str = "./uploads"
     max_upload_size: int = 20 * 1024 * 1024  # 20MB
 
+    # Mail（Postfix + DKIM）
+    mail_from: str = "noreply@aiseed.dev"
+
     model_config = {"env_prefix": "GROW_GPU_", "env_file": ".env"}
 
 

@@ -3,6 +3,7 @@ import '../l10n/app_localizations.dart';
 import 'locations_screen.dart';
 import 'crops_screen.dart';
 import 'records_screen.dart';
+import 'site_screen.dart';
 import 'skill_screen.dart';
 import '../services/database_service.dart';
 
@@ -35,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final screens = [
       RecordsScreen(db: widget.db),
       CropsScreen(db: widget.db),
+      SiteScreen(db: widget.db),
       LocationsScreen(db: widget.db),
       SkillScreen(
         onThemeModeChanged: widget.onThemeModeChanged,
@@ -59,6 +61,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.eco_outlined),
             selectedIcon: const Icon(Icons.eco),
             label: l.crops,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.web_outlined),
+            selectedIcon: const Icon(Icons.web),
+            label: l.web,
           ),
           NavigationDestination(
             icon: const Icon(Icons.place_outlined),

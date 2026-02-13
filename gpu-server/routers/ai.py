@@ -7,6 +7,7 @@ Max サブスクの定額枠で AI チャットを提供する。
 
 import json
 import logging
+from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -47,16 +48,42 @@ def _build_prompt(req: ChatRequest) -> str:
     return "\n\n".join(parts)
 
 
+# ── SDK 呼び出し（変更時はここだけ修正） ──
+
+
+async def _query_sdk(prompt: str, max_tokens: int) -> AsyncGenerator[str, None]:
+    """Claude Agent SDK を呼び出し、テキストチャンクを yield する。
+
+    SDK のバージョンアップで API が変わった場合はこの関数だけ修正する。
+    """
+    from claude_agent_sdk import (
+        AssistantMessage,
+        ClaudeAgentOptions,
+        TextBlock,
+        query,
+    )
+
+    options = ClaudeAgentOptions(
+        allowed_tools=[],
+        permission_mode="bypassPermissions",
+        max_tokens=max_tokens,
+    )
+
+    async for message in query(prompt=prompt, options=options):
+        if isinstance(message, AssistantMessage):
+            for block in message.content:
+                if isinstance(block, TextBlock):
+                    yield block.text
+
+
+# ── エンドポイント ──
+
+
 @router.post("/chat")
 async def chat(req: ChatRequest, user=Depends(get_current_user)):
     """Claude Agent SDK 経由でチャット。Max 定額プランで従量課金なし。"""
     try:
-        from claude_agent_sdk import (  # noqa: E402
-            AssistantMessage,
-            ClaudeAgentOptions,
-            TextBlock,
-            query,
-        )
+        import claude_agent_sdk  # noqa: F401
     except ImportError:
         raise HTTPException(
             status_code=503,
@@ -65,54 +92,34 @@ async def chat(req: ChatRequest, user=Depends(get_current_user)):
 
     prompt = _build_prompt(req)
 
-    options = ClaudeAgentOptions(
-        allowed_tools=[],
-        permission_mode="bypassPermissions",
-        max_tokens=req.max_tokens,
-    )
-
     if not req.stream:
         try:
-            result_parts: list[str] = []
-            async for message in query(prompt=prompt, options=options):
-                if isinstance(message, AssistantMessage):
-                    for block in message.content:
-                        if isinstance(block, TextBlock):
-                            result_parts.append(block.text)
+            parts: list[str] = []
+            async for text in _query_sdk(prompt, req.max_tokens):
+                parts.append(text)
             return {
-                "content": [{"type": "text", "text": "".join(result_parts)}],
+                "content": [{"type": "text", "text": "".join(parts)}],
                 "role": "assistant",
             }
         except Exception as e:
             logger.error("Agent SDK error: %s", e)
             raise HTTPException(status_code=500, detail=str(e))
 
-    # ── Streaming — Claude SSE 互換フォーマット ──
-    async def stream_response():
+    async def sse_stream():
         try:
-            async for message in query(prompt=prompt, options=options):
-                if isinstance(message, AssistantMessage):
-                    for block in message.content:
-                        if isinstance(block, TextBlock):
-                            event = {
-                                "type": "content_block_delta",
-                                "delta": {
-                                    "type": "text_delta",
-                                    "text": block.text,
-                                },
-                            }
-                            yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+            async for text in _query_sdk(prompt, req.max_tokens):
+                event = {
+                    "type": "content_block_delta",
+                    "delta": {"type": "text_delta", "text": text},
+                }
+                yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as e:
             logger.error("Agent SDK stream error: %s", e)
-            error_event = {
-                "type": "error",
-                "error": {"message": str(e)},
-            }
-            yield f"data: {json.dumps(error_event, ensure_ascii=False)}\n\n"
+            yield f'data: {json.dumps({"type":"error","error":{"message":str(e)}})}\n\n'
 
     return StreamingResponse(
-        stream_response(),
+        sse_stream(),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

@@ -174,5 +174,19 @@
   "cachedInfo": "(from shared database)",
   "skill": "Skill",
   "farmingMethod": "Farming method",
-  "inheritFromSkill": "Use skill defaults"
+  "inheritFromSkill": "Use skill defaults",
+  "web": "Web",
+  "siteEasyPublish": "Easy publish",
+  "siteEasyPublishDesc": "Auto-create a site from your skill & records, published on cowork.aiseed.dev",
+  "siteRequestSent": "Request sent. You will be notified by email when ready.",
+  "siteAdvancedMode": "Self-hosted (PC mode)",
+  "siteAdvancedModeDesc": "Generate HTML instantly and deploy to your own Cloudflare Pages",
+  "siteAutoFilled": "Auto-filled from skill profile",
+  "siteEmail": "Notification email",
+  "siteUsername": "Username (for URL, alphanumeric)",
+  "sitePublicUrl": "Public URL",
+  "siteJobPending": "Pending",
+  "siteJobProcessing": "Generating…",
+  "siteJobDone": "Published",
+  "siteJobError": "Error"
 }

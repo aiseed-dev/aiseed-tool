@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 from database import init_db
-from routers import ai, auth, ocr, vision, weather, amedas, forecast, skillfile, grow
+from routers import ai, auth, ocr, vision, weather, amedas, forecast, skillfile, grow, site
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,6 +56,7 @@ app.include_router(amedas.router)
 app.include_router(forecast.router)
 app.include_router(skillfile.router)
 app.include_router(grow.router)
+app.include_router(site.router)
 
 
 @app.get("/health")

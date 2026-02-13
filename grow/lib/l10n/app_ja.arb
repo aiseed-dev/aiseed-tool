@@ -184,5 +184,19 @@
   "cachedInfo": "（共有データベースから取得）",
   "skill": "スキル",
   "farmingMethod": "農法",
-  "inheritFromSkill": "スキル設定を使う"
+  "inheritFromSkill": "スキル設定を使う",
+  "web": "Web",
+  "siteEasyPublish": "かんたん公開",
+  "siteEasyPublishDesc": "スキルと栽培記録からサイトを自動作成し cowork.aiseed.dev に公開",
+  "siteRequestSent": "リクエストを送信しました。完了後メールでお知らせします。",
+  "siteAdvancedMode": "自分で作成（PC版）",
+  "siteAdvancedModeDesc": "HTMLを即時生成し、自分のCloudflare Pagesにデプロイ",
+  "siteAutoFilled": "スキル設定から自動入力しました",
+  "siteEmail": "通知メールアドレス",
+  "siteUsername": "ユーザー名（URL用、半角英数字）",
+  "sitePublicUrl": "公開URL",
+  "siteJobPending": "処理待ち",
+  "siteJobProcessing": "生成中…",
+  "siteJobDone": "公開済み",
+  "siteJobError": "エラー"
 }
