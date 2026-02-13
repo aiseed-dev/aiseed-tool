@@ -217,6 +217,37 @@ GROW_GPU_FLORENCE_MODEL=microsoft/Florence-2-base
 個人利用では設定不要。未設定でもメール/パスワード認証（`/auth/register` + `/auth/login`）は動作する。
 一般公開時に Apple Developer Console / Google Cloud Console で取得して設定する。
 
+## systemd サービス化
+
+手動起動（`python main.py`）ではなく、systemd で管理する。
+自動起動・クラッシュ時再起動・ジャーナルログが使える。
+
+```bash
+# 1. サービスファイルをコピー
+sudo cp grow-gpu.service /etc/systemd/system/
+
+# 2. systemd に登録
+sudo systemctl daemon-reload
+sudo systemctl enable grow-gpu
+
+# 3. 起動
+sudo systemctl start grow-gpu
+
+# 4. 状態確認
+sudo systemctl status grow-gpu
+
+# ログ確認
+journalctl -u grow-gpu -f
+
+# 再起動（コード更新後）
+sudo systemctl restart grow-gpu
+```
+
+Miniforge3 を使う場合は `ExecStart` のパスを conda 環境のものに変更する:
+```
+ExecStart=/home/growapi/app/aiseed-tool/gpu-server/.venv/bin/python main.py
+```
+
 ## 技術スタック
 
 - **フレームワーク**: FastAPI + Uvicorn
