@@ -198,5 +198,9 @@
   "siteJobPending": "処理待ち",
   "siteJobProcessing": "生成中…",
   "siteJobDone": "公開済み",
-  "siteJobError": "エラー"
+  "siteJobError": "エラー",
+  "voiceInput": "音声入力",
+  "voiceInputStop": "音声入力を停止",
+  "voiceInputHint": "話してください...",
+  "voiceInputUnavailable": "音声入力は利用できません"
 }

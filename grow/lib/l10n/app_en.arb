@@ -188,5 +188,9 @@
   "siteJobPending": "Pending",
   "siteJobProcessing": "Generating…",
   "siteJobDone": "Published",
-  "siteJobError": "Error"
+  "siteJobError": "Error",
+  "voiceInput": "Voice input",
+  "voiceInputStop": "Stop voice input",
+  "voiceInputHint": "Speak now...",
+  "voiceInputUnavailable": "Voice input is not available"
 }
