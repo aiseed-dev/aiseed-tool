@@ -89,12 +89,16 @@ Claude Agent SDK（Max定額プラン）を使用。APIキー不要。
 
 ### 認証 (`/auth`)
 
-Apple / Google ソーシャルログイン対応。
+メール/パスワード + Apple / Google ソーシャルログイン対応。
 
 | メソッド | パス | 説明 |
 |---|---|---|
-| POST | `/auth/login/apple` | Apple Sign In |
-| POST | `/auth/login/google` | Google Sign In |
+| POST | `/auth/register` | ユーザー登録 |
+| POST | `/auth/login` | メール/パスワードログイン |
+| POST | `/auth/apple` | Apple Sign In |
+| POST | `/auth/google` | Google Sign In |
+| GET | `/auth/me` | プロフィール取得 |
+| PUT | `/auth/me` | プロフィール更新 |
 
 ### OCR (`/ocr`)
 
@@ -102,26 +106,53 @@ PaddleOCR による画像内テキスト認識（日本語・英語・イタリ�
 
 | メソッド | パス | 説明 |
 |---|---|---|
-| POST | `/ocr/recognize` | 画像からテキスト抽出 |
+| POST | `/ocr/read` | 画像からテキスト抽出 |
+| POST | `/ocr/seed-packet` | 種袋OCR（構造化データ抽出） |
 
 ### 画像分析 (`/vision`)
 
-Florence-2 による植物識別・画像キャプション。
+Florence-2 による画像キャプション・物体検出・栽培写真分析。
 
 | メソッド | パス | 説明 |
 |---|---|---|
-| POST | `/vision/identify` | 植物識別 |
 | POST | `/vision/caption` | 画像キャプション生成 |
+| POST | `/vision/detect` | 物体検出 |
+| POST | `/vision/analyze` | 栽培写真の総合分析 |
 
-### 天気 (`/weather`, `/amedas`, `/forecast`)
+### 天気 (`/weather`)
 
-気象庁データを活用。
+Ecowitt 気象ステーションのデータ受信・閲覧。
 
 | メソッド | パス | 説明 |
 |---|---|---|
-| GET | `/weather/current` | 現在の天気 |
-| GET | `/amedas/latest` | AMeDAS観測データ |
-| GET | `/forecast/weekly` | 週間天気予報 |
+| POST | `/data/report` | Ecowitt データ受信 |
+| GET | `/weather/latest` | 最新の気象データ |
+| GET | `/weather/history` | 気象データ履歴 |
+| GET | `/weather/summary` | 気象サマリー |
+
+### AMeDAS (`/amedas`)
+
+気象庁AMeDASのデータ取得・閲覧。
+
+| メソッド | パス | 説明 |
+|---|---|---|
+| POST | `/amedas/stations/sync` | 観測地点マスター同期 |
+| GET | `/amedas/stations` | 観測地点一覧 |
+| POST | `/amedas/fetch` | 観測データ取得 |
+| POST | `/amedas/fetch/range` | 期間指定データ取得 |
+| GET | `/amedas/data/latest` | 最新の観測データ |
+| GET | `/amedas/data/history` | 観測データ履歴 |
+| GET | `/amedas/data/summary` | 日別サマリー |
+
+### 天気予報 (`/forecast`)
+
+ECMWF予報データ（気温・降水・土壌）。
+
+| メソッド | パス | 説明 |
+|---|---|---|
+| GET | `/forecast/ecmwf` | ECMWF気象予報 |
+| GET | `/forecast/soil` | 土壌予報（温度・水分） |
+| GET | `/forecast/daily` | 日別予報サマリー |
 
 ### スキルファイル (`/skillfile`)
 
@@ -131,14 +162,16 @@ Florence-2 による植物識別・画像キャプション。
 |---|---|---|
 | POST | `/skillfile/generate` | スキルファイル生成 |
 
-### 栽培記録 (`/grow`)
+### 栽培記録同期 (`/grow`)
 
-栽培記録のCRUD操作。
+スマホアプリとのデータ同期・写真管理。
 
 | メソッド | パス | 説明 |
 |---|---|---|
-| GET | `/grow/records` | 記録一覧 |
-| POST | `/grow/records` | 記録作成 |
+| POST | `/grow/sync/pull` | サーバーから差分取得 |
+| POST | `/grow/sync/push` | サーバーへ差分送信 |
+| POST | `/grow/photos` | 写真アップロード |
+| GET | `/grow/photos/{path}` | 写真取得 |
 
 ### サイト生成 (`/sites`)
 
