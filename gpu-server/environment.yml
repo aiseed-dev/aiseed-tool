@@ -19,7 +19,7 @@ channels:
   - nvidia
 
 dependencies:
-  - python=3.12
+  - python=3.13
 
   # FastAPI
   - fastapi>=0.115.0
