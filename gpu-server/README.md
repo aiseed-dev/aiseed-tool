@@ -197,6 +197,31 @@ GROW_GPU_DATABASE_URL=sqlite+aiosqlite:///./grow_gpu.db
 GROW_GPU_FLORENCE_MODEL=microsoft/Florence-2-base
 ```
 
+| 変数 | 説明 | 必須 |
+|---|---|---|
+| `GROW_GPU_HOST` | バインドアドレス。`0.0.0.0` でLAN内からアクセス可能 | |
+| `GROW_GPU_PORT` | ポート番号 | |
+| `GROW_GPU_SECRET_KEY` | JWT署名用の秘密鍵。**必ず変更すること**（下記参照） | **必須** |
+| `GROW_GPU_APPLE_CLIENT_ID` | Apple Sign In の Services ID | 公開時 |
+| `GROW_GPU_GOOGLE_CLIENT_ID` | Google OAuth 2.0 Client ID | 公開時 |
+| `GROW_GPU_DATABASE_URL` | SQLAlchemy接続文字列 | |
+| `GROW_GPU_FLORENCE_MODEL` | Florence-2 のモデル名 | |
+
+### SECRET_KEY の生成
+
+デフォルト値のまま運用すると、JWTトークンを偽造され任意のユーザーとしてAPIにアクセスされる。
+**外部公開前に必ず変更すること。**
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+# 出力をコピーして .env の GROW_GPU_SECRET_KEY に貼り付ける
+```
+
+### Apple / Google ソーシャルログイン
+
+個人利用では設定不要。未設定でもメール/パスワード認証（`/auth/register` + `/auth/login`）は動作する。
+一般公開時に Apple Developer Console / Google Cloud Console で取得して設定する。
+
 ## 技術スタック
 
 - **フレームワーク**: FastAPI + Uvicorn
