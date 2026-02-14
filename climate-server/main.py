@@ -1,7 +1,7 @@
 """Climate Server — ERA5 historical climate data collection API.
 
-Separate from grow-server. Collects monthly ERA5 / ERA5-Land data
-from Open-Meteo, AWS S3, and CDS API.
+Daily resolution, NetCDF storage (one file per location).
+Data source: Open-Meteo Historical API (ERA5 0.25°).
 
 Usage:
     cd climate-server
@@ -10,13 +10,13 @@ Usage:
 """
 
 import logging
+from pathlib import Path
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from database import init_db
 from routers import era5
 
 logging.basicConfig(
@@ -28,17 +28,20 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    data_dir = Path(settings.data_dir)
+    data_dir.mkdir(parents=True, exist_ok=True)
     logger.info("Starting Climate Server on port %d ...", settings.port)
-    await init_db()
-    logger.info("Database ready: %s", settings.database_url)
+    logger.info("Data directory: %s", data_dir.resolve())
+    nc_files = list(data_dir.glob("*.nc"))
+    logger.info("Stored locations: %d", len(nc_files))
     yield
     logger.info("Shutting down Climate Server.")
 
 
 app = FastAPI(
     title="Climate Server",
-    description="ERA5 気候データ収集API（Open-Meteo / AWS S3 / CDS API）",
-    version="0.1.0",
+    description="ERA5 気候データ収集API — daily NetCDF（Open-Meteo）",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -55,15 +58,14 @@ app.include_router(era5.router)
 
 @app.get("/health")
 async def health():
-    # check optional deps
-    deps = {}
-    for mod in ("xarray", "cdsapi", "netCDF4"):
-        try:
-            __import__(mod)
-            deps[mod] = True
-        except ImportError:
-            deps[mod] = False
-    return {"status": "ok", "optional_deps": deps}
+    data_dir = Path(settings.data_dir)
+    nc_files = list(data_dir.glob("*.nc")) if data_dir.exists() else []
+    return {
+        "status": "ok",
+        "storage": "netcdf",
+        "data_dir": str(data_dir.resolve()),
+        "stored_locations": len(nc_files),
+    }
 
 
 if __name__ == "__main__":

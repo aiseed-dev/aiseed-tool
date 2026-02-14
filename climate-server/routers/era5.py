@@ -1,65 +1,27 @@
-"""ERA5 climate data endpoints.
+"""ERA5 climate data endpoints — daily NetCDF storage.
 
-Provides historical monthly climate data for:
+Provides historical daily climate data for:
   - 栽培適性分析 (soil temp, moisture, precipitation)
   - 世界時計 weather context (temperature, conditions per city)
-  - 長期トレンド分析 (30+ years of monthly data)
+  - 長期トレンド分析 (30+ years of daily data)
+  - グラフ描画 (time-series ready xarray output)
 """
 
-import httpx
-from fastapi import APIRouter, Depends, Query, HTTPException
+import numpy as np
+from fastapi import APIRouter, Query, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import select, and_, func, distinct
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
-from database import get_db
-from models.era5 import ERA5ClimateRecord
 from services.era5_service import (
-    fetch_era5_open_meteo,
-    fetch_era5_aws_metadata,
-    fetch_era5_aws_point,
-    fetch_era5_land_cds,
+    fetch_daily_open_meteo,
     get_location,
     WORLD_LOCATIONS,
 )
+from storage import netcdf_store
 
 router = APIRouter(prefix="/era5", tags=["era5"])
 
 
 # ── Response models ───────────────────────────────────────────────────
-
-
-class ERA5Monthly(BaseModel):
-    lat: float
-    lon: float
-    year: int
-    month: int
-    source: str
-    dataset: str
-    resolution: float
-    temp_mean: float | None = None
-    temp_min: float | None = None
-    temp_max: float | None = None
-    precipitation_total: float | None = None
-    rain_total: float | None = None
-    snowfall_total: float | None = None
-    wind_speed_mean: float | None = None
-    wind_speed_max: float | None = None
-    wind_gusts_max: float | None = None
-    humidity_mean: float | None = None
-    pressure_mean: float | None = None
-    sunshine_hours: float | None = None
-    solar_radiation: float | None = None
-    et0_total: float | None = None
-    soil_temp_0_7cm: float | None = None
-    soil_temp_7_28cm: float | None = None
-    soil_temp_28_100cm: float | None = None
-    soil_temp_100_255cm: float | None = None
-    soil_moisture_0_7cm: float | None = None
-    soil_moisture_7_28cm: float | None = None
-    soil_moisture_28_100cm: float | None = None
-    soil_moisture_100_255cm: float | None = None
 
 
 class LocationInfo(BaseModel):
@@ -70,63 +32,85 @@ class LocationInfo(BaseModel):
     tz: str
 
 
+class DailyRecord(BaseModel):
+    date: str
+    temp_mean: float | None = None
+    temp_min: float | None = None
+    temp_max: float | None = None
+    precipitation: float | None = None
+    rain: float | None = None
+    snowfall: float | None = None
+    wind_speed_max: float | None = None
+    wind_gusts_max: float | None = None
+    shortwave_radiation: float | None = None
+    et0: float | None = None
+    sunshine_hours: float | None = None
+    humidity_mean: float | None = None
+    pressure_mean: float | None = None
+    soil_temp_0_7cm: float | None = None
+    soil_temp_7_28cm: float | None = None
+    soil_temp_28_100cm: float | None = None
+    soil_temp_100_255cm: float | None = None
+    soil_moisture_0_7cm: float | None = None
+    soil_moisture_7_28cm: float | None = None
+    soil_moisture_28_100cm: float | None = None
+    soil_moisture_100_255cm: float | None = None
+
+
+class ClimateData(BaseModel):
+    location: str
+    lat: float
+    lon: float
+    date_start: str
+    date_end: str
+    total_days: int
+    records: list[DailyRecord]
+
+
 class CollectResult(BaseModel):
     location: str
-    year: int
-    month: int
-    source: str
-    status: str  # ok / skipped / error
+    date_start: str
+    date_end: str
+    status: str  # ok / error
+    new_days: int = 0
     message: str = ""
 
 
 class CollectSummary(BaseModel):
     total: int
     ok: int
-    skipped: int
     errors: int
     results: list[CollectResult]
+
+
+class LocationSummary(BaseModel):
+    location: str
+    lat: float
+    lon: float
+    date_start: str
+    date_end: str
+    total_days: int
+    variables: list[str]
 
 
 # ── Helpers ───────────────────────────────────────────────────────────
 
 
-async def _upsert(db: AsyncSession, data: dict) -> None:
-    stmt = (
-        sqlite_insert(ERA5ClimateRecord)
-        .values(**data)
-        .on_conflict_do_update(
-            index_elements=["lat", "lon", "year", "month", "source"],
-            set_={
-                k: v for k, v in data.items()
-                if k not in ("lat", "lon", "year", "month", "source")
-            },
-        )
-    )
-    await db.execute(stmt)
-    await db.commit()
-
-
-def _record_to_response(r: ERA5ClimateRecord) -> ERA5Monthly:
-    return ERA5Monthly(
-        lat=r.lat, lon=r.lon, year=r.year, month=r.month,
-        source=r.source, dataset=r.dataset, resolution=r.resolution,
-        temp_mean=r.temp_mean, temp_min=r.temp_min, temp_max=r.temp_max,
-        precipitation_total=r.precipitation_total,
-        rain_total=r.rain_total, snowfall_total=r.snowfall_total,
-        wind_speed_mean=r.wind_speed_mean, wind_speed_max=r.wind_speed_max,
-        wind_gusts_max=r.wind_gusts_max,
-        humidity_mean=r.humidity_mean, pressure_mean=r.pressure_mean,
-        sunshine_hours=r.sunshine_hours, solar_radiation=r.solar_radiation,
-        et0_total=r.et0_total,
-        soil_temp_0_7cm=r.soil_temp_0_7cm,
-        soil_temp_7_28cm=r.soil_temp_7_28cm,
-        soil_temp_28_100cm=r.soil_temp_28_100cm,
-        soil_temp_100_255cm=r.soil_temp_100_255cm,
-        soil_moisture_0_7cm=r.soil_moisture_0_7cm,
-        soil_moisture_7_28cm=r.soil_moisture_7_28cm,
-        soil_moisture_28_100cm=r.soil_moisture_28_100cm,
-        soil_moisture_100_255cm=r.soil_moisture_100_255cm,
-    )
+def _ds_to_records(ds) -> list[DailyRecord]:
+    """Convert xarray Dataset to list of DailyRecord."""
+    records = []
+    dates = ds.time.values
+    for i, t in enumerate(dates):
+        date_str = str(np.datetime_as_string(t, unit="D"))
+        row = {"date": date_str}
+        for var in ds.data_vars:
+            val = ds[var].values[i]
+            if np.isnan(val):
+                row[var] = None
+            else:
+                row[var] = round(float(val), 2)
+        records.append(DailyRecord(**row))
+    return records
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────
@@ -141,110 +125,16 @@ async def get_locations():
     ]
 
 
-@router.get("/fetch", response_model=ERA5Monthly)
-async def fetch_monthly(
-    lat: float = Query(..., description="緯度"),
-    lon: float = Query(..., description="経度"),
-    year: int = Query(..., ge=1950, le=2026),
-    month: int = Query(..., ge=1, le=12),
-    source: str = Query(default="open_meteo",
-                        description="open_meteo / aws_s3 / cds_api"),
-    db: AsyncSession = Depends(get_db),
-):
-    """1地点・1ヶ月の ERA5 データを取得して DB に保存。"""
-    try:
-        if source == "open_meteo":
-            data = await fetch_era5_open_meteo(lat, lon, year, month)
-        elif source == "aws_s3":
-            data = await fetch_era5_aws_point(lat, lon, year, month)
-            if data is None:
-                raise HTTPException(501, "xarray未インストール")
-        elif source == "cds_api":
-            data = await fetch_era5_land_cds(lat, lon, year, month)
-            if data is None:
-                raise HTTPException(501, "cdsapi未インストール")
-        else:
-            raise HTTPException(400, f"不明なソース: {source}")
-    except HTTPException:
-        raise
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(502, f"API取得失敗: {e}")
-    except Exception as e:
-        raise HTTPException(502, f"データ取得失敗: {e}")
-
-    await _upsert(db, data)
-    return ERA5Monthly(**data)
-
-
-@router.get("/climate", response_model=list[ERA5Monthly])
-async def query_climate(
-    lat: float = Query(None),
-    lon: float = Query(None),
-    year: int = Query(None),
-    month: int = Query(None, ge=1, le=12),
-    source: str = Query(None),
-    location: str = Query(None, description="定義済み地点キー (例: tokyo, bordeaux)"),
-    limit: int = Query(100, ge=1, le=1000),
-    db: AsyncSession = Depends(get_db),
-):
-    """保存済みの ERA5 データを検索。"""
-    conds = []
-    if location:
-        loc = get_location(location)
-        if not loc:
-            raise HTTPException(404, f"地点 '{location}' が見つかりません")
-        lat, lon = loc["lat"], loc["lon"]
-    if lat is not None and lon is not None:
-        conds.append(ERA5ClimateRecord.lat == round(lat, 2))
-        conds.append(ERA5ClimateRecord.lon == round(lon, 2))
-    if year is not None:
-        conds.append(ERA5ClimateRecord.year == year)
-    if month is not None:
-        conds.append(ERA5ClimateRecord.month == month)
-    if source is not None:
-        conds.append(ERA5ClimateRecord.source == source)
-
-    stmt = (
-        select(ERA5ClimateRecord)
-        .where(and_(*conds) if conds else True)
-        .order_by(ERA5ClimateRecord.year.desc(), ERA5ClimateRecord.month.desc())
-        .limit(limit)
-    )
-    rows = (await db.execute(stmt)).scalars().all()
-    return [_record_to_response(r) for r in rows]
-
-
-@router.get("/aws/metadata")
-async def aws_metadata(
-    year: int = Query(..., ge=1950, le=2026),
-    month: int = Query(..., ge=1, le=12),
-):
-    """AWS S3 上の ERA5 変数一覧 + ダウンロード URL。"""
-    try:
-        return await fetch_era5_aws_metadata(year, month)
-    except Exception as e:
-        raise HTTPException(502, f"S3メタデータ取得失敗: {e}")
-
-
 @router.post("/collect", response_model=CollectSummary)
 async def collect_batch(
-    year_start: int = Query(..., ge=1950, le=2026),
-    year_end: int = Query(None, ge=1950, le=2026),
-    month_start: int = Query(1, ge=1, le=12),
-    month_end: int = Query(12, ge=1, le=12),
+    date_start: str = Query(..., description="開始日 YYYY-MM-DD"),
+    date_end: str = Query(..., description="終了日 YYYY-MM-DD"),
     locations: str = Query("all", description="カンマ区切り or 'all'"),
-    source: str = Query("open_meteo"),
-    db: AsyncSession = Depends(get_db),
 ):
-    """複数地点・期間の一括収集。既に取得済みのものはスキップ。
+    """複数地点の一括収集。Open-Meteoからdailyデータを取得しNetCDFに保存。
 
-    例: POST /era5/collect?year_start=2020&year_end=2024&locations=tokyo,roma,bordeaux
+    例: POST /era5/collect?date_start=2020-01-01&date_end=2024-12-31&locations=tokyo,roma
     """
-    if year_end is None:
-        year_end = year_start
-    if year_end < year_start:
-        raise HTTPException(400, "year_end < year_start")
-
     if locations == "all":
         targets = list(WORLD_LOCATIONS.items())
     else:
@@ -259,98 +149,98 @@ async def collect_batch(
     results: list[CollectResult] = []
 
     for key, loc in targets:
-        lat, lon = loc["lat"], loc["lon"]
-        for y in range(year_start, year_end + 1):
-            for m in range(month_start, month_end + 1):
-                # skip if already collected
-                existing = await db.execute(
-                    select(ERA5ClimateRecord).where(and_(
-                        ERA5ClimateRecord.lat == round(lat, 2),
-                        ERA5ClimateRecord.lon == round(lon, 2),
-                        ERA5ClimateRecord.year == y,
-                        ERA5ClimateRecord.month == m,
-                        ERA5ClimateRecord.source == source,
-                    ))
-                )
-                if existing.scalar_one_or_none():
-                    results.append(CollectResult(
-                        location=key, year=y, month=m,
-                        source=source, status="skipped", message="取得済み",
-                    ))
-                    continue
-
-                try:
-                    if source == "open_meteo":
-                        data = await fetch_era5_open_meteo(lat, lon, y, m)
-                    elif source == "aws_s3":
-                        data = await fetch_era5_aws_point(lat, lon, y, m)
-                        if data is None:
-                            results.append(CollectResult(
-                                location=key, year=y, month=m,
-                                source=source, status="error",
-                                message="xarray未インストール",
-                            ))
-                            continue
-                    elif source == "cds_api":
-                        data = await fetch_era5_land_cds(lat, lon, y, m)
-                        if data is None:
-                            results.append(CollectResult(
-                                location=key, year=y, month=m,
-                                source=source, status="error",
-                                message="cdsapi未インストール",
-                            ))
-                            continue
-                    else:
-                        results.append(CollectResult(
-                            location=key, year=y, month=m,
-                            source=source, status="error",
-                            message=f"不明ソース: {source}",
-                        ))
-                        continue
-
-                    await _upsert(db, data)
-                    results.append(CollectResult(
-                        location=key, year=y, month=m,
-                        source=source, status="ok",
-                    ))
-                except Exception as e:
-                    results.append(CollectResult(
-                        location=key, year=y, month=m,
-                        source=source, status="error",
-                        message=str(e)[:200],
-                    ))
+        try:
+            ds = await fetch_daily_open_meteo(
+                loc["lat"], loc["lon"], date_start, date_end,
+            )
+            new_days = netcdf_store.save_daily(key, loc["lat"], loc["lon"], ds)
+            results.append(CollectResult(
+                location=key, date_start=date_start, date_end=date_end,
+                status="ok", new_days=new_days,
+            ))
+        except Exception as e:
+            results.append(CollectResult(
+                location=key, date_start=date_start, date_end=date_end,
+                status="error", message=str(e)[:200],
+            ))
 
     ok = sum(1 for r in results if r.status == "ok")
-    skip = sum(1 for r in results if r.status == "skipped")
     err = sum(1 for r in results if r.status == "error")
-    return CollectSummary(
-        total=len(results), ok=ok, skipped=skip, errors=err,
-        results=results,
+    return CollectSummary(total=len(results), ok=ok, errors=err, results=results)
+
+
+@router.get("/climate", response_model=ClimateData)
+async def query_climate(
+    location: str = Query(..., description="地点キー (例: tokyo, bordeaux)"),
+    date_start: str = Query(None, description="開始日 YYYY-MM-DD"),
+    date_end: str = Query(None, description="終了日 YYYY-MM-DD"),
+    variables: str = Query(None, description="カンマ区切り変数名 (例: temp_mean,precipitation)"),
+):
+    """保存済みの daily ERA5 データを取得。グラフ描画用。"""
+    loc = get_location(location)
+    if not loc:
+        raise HTTPException(404, f"地点 '{location}' が見つかりません")
+
+    var_list = None
+    if variables:
+        var_list = [v.strip() for v in variables.split(",") if v.strip()]
+
+    ds = netcdf_store.load_range(location, date_start, date_end, var_list)
+    if ds is None:
+        raise HTTPException(404, f"'{location}' のデータがありません。先に /era5/collect で取得してください")
+
+    if len(ds.time) == 0:
+        raise HTTPException(404, f"指定期間のデータがありません")
+
+    times = ds.time.values
+    return ClimateData(
+        location=location,
+        lat=loc["lat"], lon=loc["lon"],
+        date_start=str(np.datetime_as_string(times[0], unit="D")),
+        date_end=str(np.datetime_as_string(times[-1], unit="D")),
+        total_days=len(times),
+        records=_ds_to_records(ds),
     )
 
 
-@router.get("/summary")
-async def collection_summary(db: AsyncSession = Depends(get_db)):
-    """収集状況のサマリー。"""
-    total = (await db.execute(
-        select(func.count(ERA5ClimateRecord.id))
-    )).scalar() or 0
+@router.get("/summary", response_model=list[LocationSummary])
+async def collection_summary():
+    """全地点の収集状況サマリー。"""
+    stored = netcdf_store.list_locations()
+    results = []
+    for key in stored:
+        info = netcdf_store.summary(key)
+        if info:
+            results.append(LocationSummary(**info))
+    return results
 
-    source_counts = dict((await db.execute(
-        select(ERA5ClimateRecord.source, func.count(ERA5ClimateRecord.id))
-        .group_by(ERA5ClimateRecord.source)
-    )).all())
 
-    year_row = (await db.execute(
-        select(func.min(ERA5ClimateRecord.year), func.max(ERA5ClimateRecord.year))
-    )).first()
-
+@router.get("/variables")
+async def list_variables():
+    """利用可能な気象変数一覧。"""
     return {
-        "total_records": total,
-        "by_source": source_counts,
-        "year_range": {
-            "min": year_row[0] if year_row else None,
-            "max": year_row[1] if year_row else None,
+        "variables": netcdf_store.CLIMATE_VARS,
+        "description": {
+            "temp_mean": "日平均気温 (°C)",
+            "temp_min": "日最低気温 (°C)",
+            "temp_max": "日最高気温 (°C)",
+            "precipitation": "降水量 (mm/day)",
+            "rain": "降雨量 (mm/day)",
+            "snowfall": "降雪量 (cm/day)",
+            "wind_speed_max": "最大風速 (m/s)",
+            "wind_gusts_max": "最大瞬間風速 (m/s)",
+            "shortwave_radiation": "短波放射 (MJ/m²)",
+            "et0": "基準蒸発散量 (mm/day)",
+            "sunshine_hours": "日照時間 (hours)",
+            "humidity_mean": "日平均相対湿度 (%)",
+            "pressure_mean": "日平均気圧 (hPa)",
+            "soil_temp_0_7cm": "地温 0-7cm (°C)",
+            "soil_temp_7_28cm": "地温 7-28cm (°C)",
+            "soil_temp_28_100cm": "地温 28-100cm (°C)",
+            "soil_temp_100_255cm": "地温 100-255cm (°C)",
+            "soil_moisture_0_7cm": "土壌水分 0-7cm (m³/m³)",
+            "soil_moisture_7_28cm": "土壌水分 7-28cm (m³/m³)",
+            "soil_moisture_28_100cm": "土壌水分 28-100cm (m³/m³)",
+            "soil_moisture_100_255cm": "土壌水分 100-255cm (m³/m³)",
         },
-        "predefined_locations": len(WORLD_LOCATIONS),
     }
