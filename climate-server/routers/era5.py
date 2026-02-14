@@ -1,57 +1,71 @@
-"""ERA5 climate data endpoints.
+"""ERA5 climate data endpoints — daily NetCDF storage.
 
-Provides historical monthly climate data for:
-  - 栽培適性分析 (soil temp, moisture, precipitation)
-  - 世界時計 weather context (temperature, conditions per city)
-  - 長期トレンド分析 (30+ years of monthly data)
+Coordinate-first API: all endpoints accept lat/lon directly.
+Each user's location is stored as a separate NetCDF file keyed by coordinates.
+
+Data sources:
+  1. Open-Meteo Historical API (0.25°, immediate, no key)
+  2. AgERA5 via Google Earth Engine (0.1° ≈ 11 km, agriculture-optimised)
 """
 
-import httpx
-from fastapi import APIRouter, Depends, Query, HTTPException
-from pydantic import BaseModel
-from sqlalchemy import select, and_, func, distinct
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+import logging
 
-from database import get_db
-from models.era5 import ERA5ClimateRecord
-from services.era5_service import (
-    fetch_era5_open_meteo,
-    fetch_era5_aws_metadata,
-    fetch_era5_aws_point,
-    fetch_era5_land_cds,
-    get_location,
-    WORLD_LOCATIONS,
-)
+import numpy as np
+from fastapi import APIRouter, Query, HTTPException
+from pydantic import BaseModel
+
+from services.era5_service import fetch_daily_open_meteo, FARM_PRESETS
+from storage import netcdf_store
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/era5", tags=["era5"])
+
+
+# ── Helpers ───────────────────────────────────────────────────────────
+
+
+def _loc_key(lat: float, lon: float) -> str:
+    """Derive a storage key from coordinates.  e.g. '35.68_139.77'"""
+    return f"{lat:.2f}_{lon:.2f}"
 
 
 # ── Response models ───────────────────────────────────────────────────
 
 
-class ERA5Monthly(BaseModel):
-    lat: float
-    lon: float
-    year: int
-    month: int
-    source: str
-    dataset: str
-    resolution: float
+class DailyRecord(BaseModel):
+    """Daily climate record — superset of Open-Meteo + AgERA5 variables."""
+    date: str
+    # Temperature
     temp_mean: float | None = None
     temp_min: float | None = None
     temp_max: float | None = None
-    precipitation_total: float | None = None
-    rain_total: float | None = None
-    snowfall_total: float | None = None
-    wind_speed_mean: float | None = None
+    # Precipitation
+    precipitation: float | None = None
+    rain: float | None = None
+    snowfall: float | None = None
+    # Wind
     wind_speed_max: float | None = None
     wind_gusts_max: float | None = None
+    wind_speed_mean: float | None = None           # AgERA5
+    # Radiation
+    shortwave_radiation: float | None = None
+    et0: float | None = None
+    sunshine_hours: float | None = None
+    # Humidity / Pressure
     humidity_mean: float | None = None
     pressure_mean: float | None = None
-    sunshine_hours: float | None = None
-    solar_radiation: float | None = None
-    et0_total: float | None = None
+    vapour_pressure: float | None = None           # AgERA5 (hPa)
+    cloud_cover: float | None = None               # AgERA5 (fraction)
+    # Humidity at fixed local hours (AgERA5)
+    humidity_06h: float | None = None
+    humidity_09h: float | None = None
+    humidity_12h: float | None = None
+    humidity_15h: float | None = None
+    humidity_18h: float | None = None
+    # Snow (AgERA5)
+    snow_depth: float | None = None                # m
+    # Soil (Open-Meteo)
     soil_temp_0_7cm: float | None = None
     soil_temp_7_28cm: float | None = None
     soil_temp_28_100cm: float | None = None
@@ -62,295 +76,362 @@ class ERA5Monthly(BaseModel):
     soil_moisture_100_255cm: float | None = None
 
 
-class LocationInfo(BaseModel):
-    key: str
-    name: str
+class ClimateData(BaseModel):
     lat: float
     lon: float
-    tz: str
+    date_start: str
+    date_end: str
+    total_days: int
+    source: str = ""
+    records: list[DailyRecord]
 
 
 class CollectResult(BaseModel):
-    location: str
-    year: int
-    month: int
+    lat: float
+    lon: float
+    date_start: str
+    date_end: str
     source: str
-    status: str  # ok / skipped / error
+    status: str  # ok / error
+    new_days: int = 0
     message: str = ""
 
 
-class CollectSummary(BaseModel):
-    total: int
-    ok: int
-    skipped: int
-    errors: int
-    results: list[CollectResult]
+class LocationSummary(BaseModel):
+    key: str
+    lat: float
+    lon: float
+    date_start: str
+    date_end: str
+    total_days: int
+    variables: list[str]
 
 
-# ── Helpers ───────────────────────────────────────────────────────────
-
-
-async def _upsert(db: AsyncSession, data: dict) -> None:
-    stmt = (
-        sqlite_insert(ERA5ClimateRecord)
-        .values(**data)
-        .on_conflict_do_update(
-            index_elements=["lat", "lon", "year", "month", "source"],
-            set_={
-                k: v for k, v in data.items()
-                if k not in ("lat", "lon", "year", "month", "source")
-            },
-        )
-    )
-    await db.execute(stmt)
-    await db.commit()
-
-
-def _record_to_response(r: ERA5ClimateRecord) -> ERA5Monthly:
-    return ERA5Monthly(
-        lat=r.lat, lon=r.lon, year=r.year, month=r.month,
-        source=r.source, dataset=r.dataset, resolution=r.resolution,
-        temp_mean=r.temp_mean, temp_min=r.temp_min, temp_max=r.temp_max,
-        precipitation_total=r.precipitation_total,
-        rain_total=r.rain_total, snowfall_total=r.snowfall_total,
-        wind_speed_mean=r.wind_speed_mean, wind_speed_max=r.wind_speed_max,
-        wind_gusts_max=r.wind_gusts_max,
-        humidity_mean=r.humidity_mean, pressure_mean=r.pressure_mean,
-        sunshine_hours=r.sunshine_hours, solar_radiation=r.solar_radiation,
-        et0_total=r.et0_total,
-        soil_temp_0_7cm=r.soil_temp_0_7cm,
-        soil_temp_7_28cm=r.soil_temp_7_28cm,
-        soil_temp_28_100cm=r.soil_temp_28_100cm,
-        soil_temp_100_255cm=r.soil_temp_100_255cm,
-        soil_moisture_0_7cm=r.soil_moisture_0_7cm,
-        soil_moisture_7_28cm=r.soil_moisture_7_28cm,
-        soil_moisture_28_100cm=r.soil_moisture_28_100cm,
-        soil_moisture_100_255cm=r.soil_moisture_100_255cm,
-    )
+def _ds_to_records(ds) -> list[DailyRecord]:
+    """Convert xarray Dataset to list of DailyRecord."""
+    records = []
+    dates = ds.time.values
+    for i, t in enumerate(dates):
+        date_str = str(np.datetime_as_string(t, unit="D"))
+        row = {"date": date_str}
+        for var in ds.data_vars:
+            val = ds[var].values[i]
+            if np.isnan(val):
+                row[var] = None
+            else:
+                row[var] = round(float(val), 2)
+        records.append(DailyRecord(**row))
+    return records
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────
 
 
-@router.get("/locations", response_model=list[LocationInfo])
-async def get_locations():
-    """世界時計 + 栽培分析の対象地点一覧。"""
+class FarmPreset(BaseModel):
+    key: str
+    name: str
+    lat: float
+    lon: float
+    tz: str
+    region: str = ""
+    note: str = ""
+
+
+@router.get("/presets", response_model=list[FarmPreset])
+async def get_presets():
+    """農業地域プリセット一覧。座標は全て農地上（市街地を避けている）。"""
     return [
-        LocationInfo(key=k, name=v["name"], lat=v["lat"], lon=v["lon"], tz=v["tz"])
-        for k, v in WORLD_LOCATIONS.items()
+        FarmPreset(
+            key=k, name=v["name"], lat=v["lat"], lon=v["lon"],
+            tz=v["tz"], region=v.get("region", ""), note=v.get("note", ""),
+        )
+        for k, v in FARM_PRESETS.items()
     ]
 
 
-@router.get("/fetch", response_model=ERA5Monthly)
-async def fetch_monthly(
-    lat: float = Query(..., description="緯度"),
-    lon: float = Query(..., description="経度"),
-    year: int = Query(..., ge=1950, le=2026),
-    month: int = Query(..., ge=1, le=12),
-    source: str = Query(default="open_meteo",
-                        description="open_meteo / aws_s3 / cds_api"),
-    db: AsyncSession = Depends(get_db),
+@router.post("/collect-presets", response_model=list[CollectResult])
+async def collect_presets(
+    date_start: str = Query(..., description="開始日 YYYY-MM-DD"),
+    date_end: str = Query(..., description="終了日 YYYY-MM-DD"),
+    region: str = Query("japan", description="japan / italy / france / usa / southeast_asia / australia / all"),
+    source: str = Query("open_meteo", description="open_meteo / agera5"),
 ):
-    """1地点・1ヶ月の ERA5 データを取得して DB に保存。"""
-    try:
-        if source == "open_meteo":
-            data = await fetch_era5_open_meteo(lat, lon, year, month)
-        elif source == "aws_s3":
-            data = await fetch_era5_aws_point(lat, lon, year, month)
-            if data is None:
-                raise HTTPException(501, "xarray未インストール")
-        elif source == "cds_api":
-            data = await fetch_era5_land_cds(lat, lon, year, month)
-            if data is None:
-                raise HTTPException(501, "cdsapi未インストール")
-        else:
-            raise HTTPException(400, f"不明なソース: {source}")
-    except HTTPException:
-        raise
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(502, f"API取得失敗: {e}")
-    except Exception as e:
-        raise HTTPException(502, f"データ取得失敗: {e}")
+    """プリセット農業地域を一括収集。
 
-    await _upsert(db, data)
-    return ERA5Monthly(**data)
-
-
-@router.get("/climate", response_model=list[ERA5Monthly])
-async def query_climate(
-    lat: float = Query(None),
-    lon: float = Query(None),
-    year: int = Query(None),
-    month: int = Query(None, ge=1, le=12),
-    source: str = Query(None),
-    location: str = Query(None, description="定義済み地点キー (例: tokyo, bordeaux)"),
-    limit: int = Query(100, ge=1, le=1000),
-    db: AsyncSession = Depends(get_db),
-):
-    """保存済みの ERA5 データを検索。"""
-    conds = []
-    if location:
-        loc = get_location(location)
-        if not loc:
-            raise HTTPException(404, f"地点 '{location}' が見つかりません")
-        lat, lon = loc["lat"], loc["lon"]
-    if lat is not None and lon is not None:
-        conds.append(ERA5ClimateRecord.lat == round(lat, 2))
-        conds.append(ERA5ClimateRecord.lon == round(lon, 2))
-    if year is not None:
-        conds.append(ERA5ClimateRecord.year == year)
-    if month is not None:
-        conds.append(ERA5ClimateRecord.month == month)
-    if source is not None:
-        conds.append(ERA5ClimateRecord.source == source)
-
-    stmt = (
-        select(ERA5ClimateRecord)
-        .where(and_(*conds) if conds else True)
-        .order_by(ERA5ClimateRecord.year.desc(), ERA5ClimateRecord.month.desc())
-        .limit(limit)
-    )
-    rows = (await db.execute(stmt)).scalars().all()
-    return [_record_to_response(r) for r in rows]
-
-
-@router.get("/aws/metadata")
-async def aws_metadata(
-    year: int = Query(..., ge=1950, le=2026),
-    month: int = Query(..., ge=1, le=12),
-):
-    """AWS S3 上の ERA5 変数一覧 + ダウンロード URL。"""
-    try:
-        return await fetch_era5_aws_metadata(year, month)
-    except Exception as e:
-        raise HTTPException(502, f"S3メタデータ取得失敗: {e}")
-
-
-@router.post("/collect", response_model=CollectSummary)
-async def collect_batch(
-    year_start: int = Query(..., ge=1950, le=2026),
-    year_end: int = Query(None, ge=1950, le=2026),
-    month_start: int = Query(1, ge=1, le=12),
-    month_end: int = Query(12, ge=1, le=12),
-    locations: str = Query("all", description="カンマ区切り or 'all'"),
-    source: str = Query("open_meteo"),
-    db: AsyncSession = Depends(get_db),
-):
-    """複数地点・期間の一括収集。既に取得済みのものはスキップ。
-
-    例: POST /era5/collect?year_start=2020&year_end=2024&locations=tokyo,roma,bordeaux
+    例: POST /era5/collect-presets?date_start=2023-01-01&date_end=2023-12-31&region=japan
     """
-    if year_end is None:
-        year_end = year_start
-    if year_end < year_start:
-        raise HTTPException(400, "year_end < year_start")
-
-    if locations == "all":
-        targets = list(WORLD_LOCATIONS.items())
+    if region == "all":
+        targets = FARM_PRESETS
     else:
-        keys = [k.strip() for k in locations.split(",") if k.strip()]
-        targets = []
-        for k in keys:
-            loc = get_location(k)
-            if not loc:
-                raise HTTPException(404, f"地点 '{k}' が見つかりません")
-            targets.append((k, loc))
+        targets = {k: v for k, v in FARM_PRESETS.items() if v.get("region") == region}
+    if not targets:
+        regions = sorted(set(v.get("region", "") for v in FARM_PRESETS.values()))
+        raise HTTPException(404, f"地域 '{region}' が見つかりません。候補: {regions}")
 
     results: list[CollectResult] = []
-
-    for key, loc in targets:
+    for key, loc in targets.items():
         lat, lon = loc["lat"], loc["lon"]
-        for y in range(year_start, year_end + 1):
-            for m in range(month_start, month_end + 1):
-                # skip if already collected
-                existing = await db.execute(
-                    select(ERA5ClimateRecord).where(and_(
-                        ERA5ClimateRecord.lat == round(lat, 2),
-                        ERA5ClimateRecord.lon == round(lon, 2),
-                        ERA5ClimateRecord.year == y,
-                        ERA5ClimateRecord.month == m,
-                        ERA5ClimateRecord.source == source,
-                    ))
-                )
-                if existing.scalar_one_or_none():
-                    results.append(CollectResult(
-                        location=key, year=y, month=m,
-                        source=source, status="skipped", message="取得済み",
-                    ))
-                    continue
+        loc_key = _loc_key(lat, lon)
+        try:
+            if source == "agera5":
+                from services.agera5_gee import fetch_daily_agera5_chunked
+                ds = fetch_daily_agera5_chunked(lat, lon, date_start, date_end)
+                src_label = "AgERA5 0.1°"
+            else:
+                ds = await fetch_daily_open_meteo(lat, lon, date_start, date_end)
+                src_label = "Open-Meteo 0.25°"
 
-                try:
-                    if source == "open_meteo":
-                        data = await fetch_era5_open_meteo(lat, lon, y, m)
-                    elif source == "aws_s3":
-                        data = await fetch_era5_aws_point(lat, lon, y, m)
-                        if data is None:
-                            results.append(CollectResult(
-                                location=key, year=y, month=m,
-                                source=source, status="error",
-                                message="xarray未インストール",
-                            ))
-                            continue
-                    elif source == "cds_api":
-                        data = await fetch_era5_land_cds(lat, lon, y, m)
-                        if data is None:
-                            results.append(CollectResult(
-                                location=key, year=y, month=m,
-                                source=source, status="error",
-                                message="cdsapi未インストール",
-                            ))
-                            continue
-                    else:
-                        results.append(CollectResult(
-                            location=key, year=y, month=m,
-                            source=source, status="error",
-                            message=f"不明ソース: {source}",
-                        ))
-                        continue
+            new_days = netcdf_store.save_daily(loc_key, lat, lon, ds)
+            logger.info("%s collected: %s (%s) — %d new days", src_label, key, loc_key, new_days)
+            results.append(CollectResult(
+                lat=lat, lon=lon,
+                date_start=date_start, date_end=date_end,
+                source=src_label, status="ok", new_days=new_days,
+                message=f"{loc['name']}: {len(ds.time)} days",
+            ))
+        except Exception as e:
+            logger.exception("Collect error for %s", key)
+            results.append(CollectResult(
+                lat=lat, lon=lon,
+                date_start=date_start, date_end=date_end,
+                source=source, status="error", message=f"{loc['name']}: {str(e)[:200]}",
+            ))
 
-                    await _upsert(db, data)
-                    results.append(CollectResult(
-                        location=key, year=y, month=m,
-                        source=source, status="ok",
-                    ))
-                except Exception as e:
-                    results.append(CollectResult(
-                        location=key, year=y, month=m,
-                        source=source, status="error",
-                        message=str(e)[:200],
-                    ))
+    return results
 
-    ok = sum(1 for r in results if r.status == "ok")
-    skip = sum(1 for r in results if r.status == "skipped")
-    err = sum(1 for r in results if r.status == "error")
-    return CollectSummary(
-        total=len(results), ok=ok, skipped=skip, errors=err,
-        results=results,
+
+class GridInfo(BaseModel):
+    total_cells: int
+    cells: list[dict]  # [{lat, lon, key}]
+
+
+@router.get("/grid", response_model=GridInfo)
+async def get_grid(
+    region: str = Query("kanto", description="地域名 (hokkaido/tohoku/kanto/chubu/kinki/chugoku/shikoku/kyushu/okinawa)"),
+):
+    """指定地域の 0.1° AgERA5 グリッドセル一覧。
+
+    筆ポリゴンがインポート済みなら農地セルのみ、なければ全セル。
+    """
+    from services.fude_grid import PREFECTURE_BOUNDS, generate_grid_for_region
+
+    bounds = PREFECTURE_BOUNDS.get(region)
+    if not bounds:
+        raise HTTPException(404, f"地域 '{region}' が見つかりません。候補: {list(PREFECTURE_BOUNDS.keys())}")
+
+    cells = generate_grid_for_region(
+        bounds["lat_min"], bounds["lat_max"],
+        bounds["lon_min"], bounds["lon_max"],
+    )
+    return GridInfo(
+        total_cells=len(cells),
+        cells=[{"lat": c[0], "lon": c[1], "key": _loc_key(c[0], c[1])} for c in cells],
     )
 
 
-@router.get("/summary")
-async def collection_summary(db: AsyncSession = Depends(get_db)):
-    """収集状況のサマリー。"""
-    total = (await db.execute(
-        select(func.count(ERA5ClimateRecord.id))
-    )).scalar() or 0
+@router.post("/collect-grid", response_model=list[CollectResult])
+async def collect_grid(
+    date_start: str = Query(..., description="開始日 YYYY-MM-DD"),
+    date_end: str = Query(..., description="終了日 YYYY-MM-DD"),
+    region: str = Query("kanto", description="地域名"),
+    source: str = Query("open_meteo", description="open_meteo / agera5"),
+    fude_centroids: str = Query(
+        None,
+        description="筆ポリゴン重心座標 (lat1,lon1;lat2,lon2;...) — 指定時はこれをグリッドにスナップ",
+    ),
+):
+    """0.1°グリッド単位で一括収集。筆ポリゴン指定時は農地セルのみ。
 
-    source_counts = dict((await db.execute(
-        select(ERA5ClimateRecord.source, func.count(ERA5ClimateRecord.id))
-        .group_by(ERA5ClimateRecord.source)
-    )).all())
+    例: POST /era5/collect-grid?region=kanto&date_start=2023-01-01&date_end=2023-12-31
+    """
+    from services.fude_grid import (
+        PREFECTURE_BOUNDS, generate_grid_for_region,
+        centroids_to_grid_cells,
+    )
 
-    year_row = (await db.execute(
-        select(func.min(ERA5ClimateRecord.year), func.max(ERA5ClimateRecord.year))
-    )).first()
+    if fude_centroids:
+        # 筆ポリゴン重心からグリッドセルを導出（農地のみ）
+        pairs = []
+        for pair in fude_centroids.split(";"):
+            parts = pair.strip().split(",")
+            if len(parts) == 2:
+                pairs.append((float(parts[0]), float(parts[1])))
+        cells = centroids_to_grid_cells(pairs)
+        logger.info("Fude-based grid: %d centroids → %d unique cells", len(pairs), len(cells))
+    else:
+        # 地域全体のグリッド
+        bounds = PREFECTURE_BOUNDS.get(region)
+        if not bounds:
+            raise HTTPException(404, f"地域 '{region}' が見つかりません")
+        cells = generate_grid_for_region(
+            bounds["lat_min"], bounds["lat_max"],
+            bounds["lon_min"], bounds["lon_max"],
+        )
+        logger.info("Region grid '%s': %d cells", region, len(cells))
 
+    results: list[CollectResult] = []
+    for lat, lon in cells:
+        key = _loc_key(lat, lon)
+        # Skip if already collected
+        if netcdf_store.load(key) is not None:
+            continue
+
+        try:
+            if source == "agera5":
+                from services.agera5_gee import fetch_daily_agera5_chunked
+                ds = fetch_daily_agera5_chunked(lat, lon, date_start, date_end)
+                src_label = "AgERA5 0.1°"
+            else:
+                ds = await fetch_daily_open_meteo(lat, lon, date_start, date_end)
+                src_label = "Open-Meteo 0.25°"
+
+            new_days = netcdf_store.save_daily(key, lat, lon, ds)
+            results.append(CollectResult(
+                lat=lat, lon=lon,
+                date_start=date_start, date_end=date_end,
+                source=src_label, status="ok", new_days=new_days,
+            ))
+        except Exception as e:
+            logger.exception("Grid collect error for %s", key)
+            results.append(CollectResult(
+                lat=lat, lon=lon,
+                date_start=date_start, date_end=date_end,
+                source=source, status="error", message=str(e)[:200],
+            ))
+
+    return results
+
+
+@router.post("/collect", response_model=CollectResult)
+async def collect(
+    lat: float = Query(..., description="緯度", examples=[35.68]),
+    lon: float = Query(..., description="経度", examples=[139.77]),
+    date_start: str = Query(..., description="開始日 YYYY-MM-DD"),
+    date_end: str = Query(..., description="終了日 YYYY-MM-DD"),
+    source: str = Query("open_meteo", description="open_meteo / agera5"),
+):
+    """ユーザーの座標で気候データを収集・保存。
+
+    例: POST /era5/collect?lat=35.68&lon=139.77&date_start=2023-01-01&date_end=2023-12-31
+    """
+    key = _loc_key(lat, lon)
+
+    try:
+        if source == "agera5":
+            from services.agera5_gee import fetch_daily_agera5_chunked
+            ds = fetch_daily_agera5_chunked(lat, lon, date_start, date_end)
+            src_label = "AgERA5 0.1°"
+        else:
+            ds = await fetch_daily_open_meteo(lat, lon, date_start, date_end)
+            src_label = "Open-Meteo 0.25°"
+
+        new_days = netcdf_store.save_daily(key, lat, lon, ds)
+        logger.info("%s collected: %s — %d new days", src_label, key, new_days)
+        return CollectResult(
+            lat=lat, lon=lon,
+            date_start=date_start, date_end=date_end,
+            source=src_label, status="ok", new_days=new_days,
+            message=f"{len(ds.time)} days fetched",
+        )
+    except Exception as e:
+        logger.exception("Collect error for %s", key)
+        return CollectResult(
+            lat=lat, lon=lon,
+            date_start=date_start, date_end=date_end,
+            source=source, status="error", message=str(e)[:300],
+        )
+
+
+@router.get("/climate", response_model=ClimateData)
+async def query_climate(
+    lat: float = Query(..., description="緯度"),
+    lon: float = Query(..., description="経度"),
+    date_start: str = Query(None, description="開始日 YYYY-MM-DD"),
+    date_end: str = Query(None, description="終了日 YYYY-MM-DD"),
+    variables: str = Query(None, description="カンマ区切り変数名 (例: temp_mean,precipitation)"),
+):
+    """保存済みの daily データを取得。グラフ描画用。"""
+    key = _loc_key(lat, lon)
+
+    var_list = None
+    if variables:
+        var_list = [v.strip() for v in variables.split(",") if v.strip()]
+
+    ds = netcdf_store.load_range(key, date_start, date_end, var_list)
+    if ds is None:
+        raise HTTPException(
+            404,
+            f"({lat}, {lon}) のデータがありません。"
+            "先に POST /era5/collect で取得してください",
+        )
+
+    if len(ds.time) == 0:
+        raise HTTPException(404, "指定期間のデータがありません")
+
+    times = ds.time.values
+    return ClimateData(
+        lat=lat, lon=lon,
+        date_start=str(np.datetime_as_string(times[0], unit="D")),
+        date_end=str(np.datetime_as_string(times[-1], unit="D")),
+        total_days=len(times),
+        source=ds.attrs.get("source", ""),
+        records=_ds_to_records(ds),
+    )
+
+
+@router.get("/summary", response_model=list[LocationSummary])
+async def collection_summary():
+    """保存済み全地点のサマリー。"""
+    stored = netcdf_store.list_locations()
+    results = []
+    for key in stored:
+        info = netcdf_store.summary(key)
+        if info:
+            results.append(LocationSummary(key=key, **info))
+    return results
+
+
+@router.get("/variables")
+async def list_variables():
+    """利用可能な気象変数一覧。"""
     return {
-        "total_records": total,
-        "by_source": source_counts,
-        "year_range": {
-            "min": year_row[0] if year_row else None,
-            "max": year_row[1] if year_row else None,
+        "sources": {
+            "open_meteo": "Open-Meteo Historical API (ERA5 0.25°, 即時, キー不要)",
+            "agera5":     "AgERA5 via Google Earth Engine (0.1°, 農業用, 地形補正)",
         },
-        "predefined_locations": len(WORLD_LOCATIONS),
+        "variables": {
+            # Common (both sources)
+            "temp_mean":             {"desc": "日平均気温 (°C)",         "sources": ["open_meteo", "agera5"]},
+            "temp_min":              {"desc": "日最低気温 (°C)",         "sources": ["open_meteo", "agera5"]},
+            "temp_max":              {"desc": "日最高気温 (°C)",         "sources": ["open_meteo", "agera5"]},
+            "precipitation":         {"desc": "降水量 (mm/day)",         "sources": ["open_meteo", "agera5"]},
+            "shortwave_radiation":   {"desc": "短波放射 (MJ/m²)",        "sources": ["open_meteo", "agera5"]},
+            "humidity_mean":         {"desc": "日平均相対湿度 (%)",       "sources": ["open_meteo", "agera5"]},
+            # Open-Meteo only
+            "rain":                  {"desc": "降雨量 (mm/day)",          "sources": ["open_meteo"]},
+            "snowfall":              {"desc": "降雪量 (cm/day)",          "sources": ["open_meteo"]},
+            "wind_speed_max":        {"desc": "最大風速 (m/s)",           "sources": ["open_meteo"]},
+            "wind_gusts_max":        {"desc": "最大瞬間風速 (m/s)",       "sources": ["open_meteo"]},
+            "et0":                   {"desc": "基準蒸発散量 (mm/day)",    "sources": ["open_meteo"]},
+            "sunshine_hours":        {"desc": "日照時間 (hours)",         "sources": ["open_meteo"]},
+            "pressure_mean":         {"desc": "日平均気圧 (hPa)",         "sources": ["open_meteo"]},
+            "soil_temp_0_7cm":       {"desc": "地温 0-7cm (°C)",          "sources": ["open_meteo"]},
+            "soil_temp_7_28cm":      {"desc": "地温 7-28cm (°C)",         "sources": ["open_meteo"]},
+            "soil_temp_28_100cm":    {"desc": "地温 28-100cm (°C)",       "sources": ["open_meteo"]},
+            "soil_temp_100_255cm":   {"desc": "地温 100-255cm (°C)",      "sources": ["open_meteo"]},
+            "soil_moisture_0_7cm":   {"desc": "土壌水分 0-7cm (m³/m³)",   "sources": ["open_meteo"]},
+            "soil_moisture_7_28cm":  {"desc": "土壌水分 7-28cm (m³/m³)",  "sources": ["open_meteo"]},
+            "soil_moisture_28_100cm":  {"desc": "土壌水分 28-100cm (m³/m³)",  "sources": ["open_meteo"]},
+            "soil_moisture_100_255cm": {"desc": "土壌水分 100-255cm (m³/m³)", "sources": ["open_meteo"]},
+            # AgERA5 only
+            "wind_speed_mean":       {"desc": "日平均風速 (m/s)",          "sources": ["agera5"]},
+            "vapour_pressure":       {"desc": "蒸気圧 (hPa)",             "sources": ["agera5"]},
+            "cloud_cover":           {"desc": "雲量 (fraction)",           "sources": ["agera5"]},
+            "snow_depth":            {"desc": "積雪深 (m)",                "sources": ["agera5"]},
+            "humidity_06h":          {"desc": "相対湿度 06時 (%)",         "sources": ["agera5"]},
+            "humidity_09h":          {"desc": "相対湿度 09時 (%)",         "sources": ["agera5"]},
+            "humidity_12h":          {"desc": "相対湿度 12時 (%)",         "sources": ["agera5"]},
+            "humidity_15h":          {"desc": "相対湿度 15時 (%)",         "sources": ["agera5"]},
+            "humidity_18h":          {"desc": "相対湿度 18時 (%)",         "sources": ["agera5"]},
+        },
     }

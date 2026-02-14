@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8100
-    database_url: str = "sqlite+aiosqlite:///./climate.db"
+    data_dir: str = "./data"
 
     # CDS API (optional — set if using ERA5-Land monthly from Copernicus)
     cds_url: str = ""
