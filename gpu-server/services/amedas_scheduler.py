@@ -40,10 +40,17 @@ async def fetch_all_stations(station_ids: list[str]) -> dict[str, int]:
 
 
 async def amedas_scheduler(station_ids: list[str]) -> None:
-    """1日1回 AMeDAS データを取得するバックグラウンドタスク。"""
+    """1日1回 AMeDAS データを取得するバックグラウンドタスク。
+
+    起動直後はネットワークやシステムが安定していない可能性があるため、
+    5分待ってから初回取得を行う。
+    """
     logger.info("AMeDAS scheduler started: stations=%s (daily)", station_ids)
 
-    # 初回は地点マスターを同期
+    # 起動後5分待つ（電源ON直後のネットワーク安定待ち）
+    await asyncio.sleep(5 * 60)
+
+    # 地点マスターを同期
     try:
         async with async_session() as db:
             await sync_stations(db)
