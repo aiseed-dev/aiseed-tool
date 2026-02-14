@@ -71,6 +71,8 @@ class Record(Base):
     activity_type: Mapped[int] = mapped_column(Integer, default=0)
     date: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     note: Mapped[str] = mapped_column(Text, default="")
+    work_hours: Mapped[float | None] = mapped_column(Float, nullable=True)
+    materials: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow

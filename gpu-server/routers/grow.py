@@ -73,6 +73,8 @@ class RecordSchema(BaseModel):
     activity_type: int = 0
     date: str
     note: str = ""
+    work_hours: float | None = None
+    materials: str = ""
     created_at: str
     updated_at: str
     model_config = {"from_attributes": True}

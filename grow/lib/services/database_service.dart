@@ -10,7 +10,7 @@ import '../models/observation.dart';
 
 class DatabaseService {
   static const _dbName = 'grow.db';
-  static const _dbVersion = 14;
+  static const _dbVersion = 15;
 
   Database? _db;
 
@@ -288,6 +288,19 @@ class DatabaseService {
             );
           }
         }
+        if (oldVersion < 15) {
+          // v15: Add work_hours and materials to records
+          final cols = await db.rawQuery('PRAGMA table_info(records)');
+          final colNames = cols.map((c) => c['name'] as String).toSet();
+          if (!colNames.contains('work_hours')) {
+            await db.execute('ALTER TABLE records ADD COLUMN work_hours REAL');
+          }
+          if (!colNames.contains('materials')) {
+            await db.execute(
+              "ALTER TABLE records ADD COLUMN materials TEXT NOT NULL DEFAULT ''",
+            );
+          }
+        }
       },
     );
   }
@@ -344,6 +357,8 @@ class DatabaseService {
         activity_type INTEGER NOT NULL,
         date TEXT NOT NULL,
         note TEXT NOT NULL DEFAULT '',
+        work_hours REAL,
+        materials TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         FOREIGN KEY (crop_id) REFERENCES crops(id) ON DELETE CASCADE,

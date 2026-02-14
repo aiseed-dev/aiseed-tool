@@ -80,6 +80,24 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
         return l.activityHarvest;
       case ActivityType.other:
         return l.activityOther;
+      case ActivityType.pruning:
+        return l.activityPruning;
+      case ActivityType.weeding:
+        return l.activityWeeding;
+      case ActivityType.bedMaking:
+        return l.activityBedMaking;
+      case ActivityType.tilling:
+        return l.activityTilling;
+      case ActivityType.potUp:
+        return l.activityPotUp;
+      case ActivityType.cutting:
+        return l.activityCutting;
+      case ActivityType.flowering:
+        return l.activityFlowering;
+      case ActivityType.shipping:
+        return l.activityShipping;
+      case ActivityType.management:
+        return l.activityManagement;
     }
   }
 
