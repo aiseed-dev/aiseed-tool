@@ -1,4 +1,3 @@
-import asyncio
 import logging
 
 from contextlib import asynccontextmanager
@@ -7,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 from database import init_db
-from routers import ai, auth, ocr, vision, weather, amedas, forecast, skillfile, grow, site, fude, qr, consumer
+from routers import ai, auth, ocr, vision, skillfile, grow, site, fude, qr, consumer
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,19 +21,8 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info("Database initialized.")
 
-    # AMeDAS 定期取得スケジューラー（1日1回）
-    scheduler_task = None
-    if settings.amedas_stations:
-        from services.amedas_scheduler import amedas_scheduler
-        station_ids = [s.strip() for s in settings.amedas_stations.split(",") if s.strip()][:3]
-        if station_ids:
-            scheduler_task = asyncio.create_task(amedas_scheduler(station_ids))
-            logger.info("AMeDAS daily scheduler for: %s", station_ids)
-
     yield
 
-    if scheduler_task:
-        scheduler_task.cancel()
     logger.info("Shutting down Grow Server.")
 
 
@@ -57,9 +45,6 @@ app.include_router(ai.router)
 app.include_router(auth.router)
 app.include_router(ocr.router)
 app.include_router(vision.router)
-app.include_router(weather.router)
-app.include_router(amedas.router)
-app.include_router(forecast.router)
 app.include_router(skillfile.router)
 app.include_router(grow.router)
 app.include_router(site.router)

@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     cds_url: str = ""
     cds_key: str = ""
 
+    # AMeDAS 定期取得（カンマ区切りの地点ID、最大3箇所）
+    amedas_stations: str = ""
+
     model_config = {"env_prefix": "CLIMATE_", "env_file": ".env"}
 
 
