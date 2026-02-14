@@ -25,43 +25,71 @@ import xarray as xr
 
 logger = logging.getLogger(__name__)
 
-# ── World locations (世界時計 + 栽培分析) ──────────────────────────────
+# ── 農業地域プリセット ──────────────────────────────────────────────
+# 大都市ではなく、実際に農地がある場所の座標。
+# ユーザーの圃場座標を直接使うのが基本だが、
+# 一括取得・比較用にプリセットを提供する。
 
-WORLD_LOCATIONS: dict[str, dict] = {
-    # Japan
-    "tokyo":    {"lat": 35.68, "lon": 139.77, "name": "東京",         "tz": "Asia/Tokyo"},
-    "osaka":    {"lat": 34.69, "lon": 135.50, "name": "大阪",         "tz": "Asia/Tokyo"},
-    "sapporo":  {"lat": 43.06, "lon": 141.35, "name": "札幌",         "tz": "Asia/Tokyo"},
-    "naha":     {"lat": 26.33, "lon": 127.80, "name": "那覇",         "tz": "Asia/Tokyo"},
-    # Italy — wine & traditional vegetables
-    "roma":     {"lat": 41.90, "lon": 12.50,  "name": "ローマ",       "tz": "Europe/Rome"},
-    "milano":   {"lat": 45.46, "lon": 9.19,   "name": "ミラノ",       "tz": "Europe/Rome"},
-    "napoli":   {"lat": 40.85, "lon": 14.27,  "name": "ナポリ",       "tz": "Europe/Rome"},
-    "firenze":  {"lat": 43.77, "lon": 11.25,  "name": "フィレンツェ", "tz": "Europe/Rome"},
-    "sicilia":  {"lat": 37.50, "lon": 14.00,  "name": "シチリア",     "tz": "Europe/Rome"},
-    "chianti":  {"lat": 43.47, "lon": 11.25,  "name": "キャンティ",   "tz": "Europe/Rome"},
-    # France — wine regions
-    "paris":      {"lat": 48.86, "lon": 2.35,   "name": "パリ",           "tz": "Europe/Paris"},
-    "bordeaux":   {"lat": 44.84, "lon": -0.58,  "name": "ボルドー",       "tz": "Europe/Paris"},
-    "bourgogne":  {"lat": 47.04, "lon": 4.84,   "name": "ブルゴーニュ",   "tz": "Europe/Paris"},
-    "champagne":  {"lat": 49.04, "lon": 3.95,   "name": "シャンパーニュ", "tz": "Europe/Paris"},
-    # USA
-    "new_york":      {"lat": 40.71, "lon": -74.01,  "name": "ニューヨーク",     "tz": "America/New_York"},
-    "napa_valley":   {"lat": 38.50, "lon": -122.27, "name": "ナパバレー",       "tz": "America/Los_Angeles"},
-    "san_francisco": {"lat": 37.77, "lon": -122.42, "name": "サンフランシスコ", "tz": "America/Los_Angeles"},
-    # Other wine regions & world cities
-    "london":    {"lat": 51.51, "lon": -0.13,  "name": "ロンドン",       "tz": "Europe/London"},
-    "mendoza":   {"lat": -32.89, "lon": -68.83, "name": "メンドーサ",    "tz": "America/Argentina/Buenos_Aires"},
-    "barossa":   {"lat": -34.56, "lon": 138.95, "name": "バロッサ",      "tz": "Australia/Adelaide"},
-    "cape_town": {"lat": -33.93, "lon": 18.42,  "name": "ケープタウン",  "tz": "Africa/Johannesburg"},
-    "singapore": {"lat": 1.35,   "lon": 103.82, "name": "シンガポール",  "tz": "Asia/Singapore"},
-    "dubai":     {"lat": 25.20,  "lon": 55.27,  "name": "ドバイ",        "tz": "Asia/Dubai"},
-    "sydney":    {"lat": -33.87, "lon": 151.21, "name": "シドニー",      "tz": "Australia/Sydney"},
+FARM_PRESETS: dict[str, dict] = {
+    # ── 北海道 ──
+    "tokachi":      {"lat": 42.92, "lon": 143.20, "name": "十勝（帯広）",     "tz": "Asia/Tokyo",
+                     "note": "畑作・酪農の中心。小麦・じゃがいも・ビート"},
+    "kamikawa":     {"lat": 43.77, "lon": 142.37, "name": "上川（旭川）",     "tz": "Asia/Tokyo",
+                     "note": "日本最大の米作地帯のひとつ"},
+    "sorachi":      {"lat": 43.34, "lon": 141.97, "name": "空知（岩見沢）",   "tz": "Asia/Tokyo",
+                     "note": "北海道の米どころ"},
+    "furano":       {"lat": 43.34, "lon": 142.38, "name": "富良野",           "tz": "Asia/Tokyo",
+                     "note": "メロン・ラベンダー・野菜"},
+    # ── 東北 ──
+    "shonai":       {"lat": 38.91, "lon": 139.85, "name": "庄内平野（鶴岡）", "tz": "Asia/Tokyo",
+                     "note": "つや姫・はえぬきの産地"},
+    "yokote":       {"lat": 39.31, "lon": 140.55, "name": "横手（秋田）",     "tz": "Asia/Tokyo",
+                     "note": "あきたこまち産地"},
+    # ── 関東 ──
+    "chiba_sanbu":  {"lat": 35.60, "lon": 140.40, "name": "千葉県山武",       "tz": "Asia/Tokyo",
+                     "note": "有機農業が盛んな地域"},
+    "saitama_kumagaya": {"lat": 36.15, "lon": 139.39, "name": "埼玉県熊谷",   "tz": "Asia/Tokyo",
+                     "note": "深谷ねぎ・ブロッコリー"},
+    "ibaraki_tsukuba":  {"lat": 36.08, "lon": 140.08, "name": "茨城県つくば",  "tz": "Asia/Tokyo",
+                     "note": "レタス・れんこん・メロン"},
+    "tochigi_nasu":     {"lat": 36.97, "lon": 140.05, "name": "栃木県那須",    "tz": "Asia/Tokyo",
+                     "note": "酪農・高原野菜"},
+    # ── 甲信越・北陸 ──
+    "nagano_saku":  {"lat": 36.25, "lon": 138.48, "name": "長野県佐久",       "tz": "Asia/Tokyo",
+                     "note": "高原野菜レタス・ブロッコリー"},
+    "niigata_echigo": {"lat": 37.90, "lon": 139.02, "name": "新潟県魚沼",     "tz": "Asia/Tokyo",
+                     "note": "コシヒカリの最高産地"},
+    # ── 東海 ──
+    "shizuoka_makinohara": {"lat": 34.73, "lon": 138.23, "name": "静岡県牧之原", "tz": "Asia/Tokyo",
+                     "note": "茶の一大産地"},
+    "aichi_tahara": {"lat": 34.65, "lon": 137.17, "name": "愛知県田原",       "tz": "Asia/Tokyo",
+                     "note": "農業産出額日本一の市（キャベツ・菊）"},
+    # ── 近畿 ──
+    "nara_yamato":  {"lat": 34.51, "lon": 135.83, "name": "奈良県大和高原",   "tz": "Asia/Tokyo",
+                     "note": "大和野菜の産地"},
+    # ── 中国・四国 ──
+    "okayama_kibichuo": {"lat": 34.83, "lon": 133.77, "name": "岡山県吉備中央", "tz": "Asia/Tokyo",
+                     "note": "ぶどう・もも産地近郊"},
+    "kochi_nankoku":    {"lat": 33.57, "lon": 133.63, "name": "高知県南国",    "tz": "Asia/Tokyo",
+                     "note": "ナス・ピーマンなどハウス園芸"},
+    # ── 九州 ──
+    "kumamoto_aso": {"lat": 32.88, "lon": 131.10, "name": "熊本県阿蘇",       "tz": "Asia/Tokyo",
+                     "note": "高原野菜・酪農"},
+    "miyazaki_saito": {"lat": 32.10, "lon": 131.40, "name": "宮崎県西都",     "tz": "Asia/Tokyo",
+                     "note": "ピーマン・マンゴー"},
+    # ── 沖縄 ──
+    "okinawa_nago": {"lat": 26.59, "lon": 127.97, "name": "沖縄県名護",       "tz": "Asia/Tokyo",
+                     "note": "ゴーヤー・サトウキビ・パイナップル"},
+    # ── イタリア（伝統野菜産地） ──
+    "campania_agro": {"lat": 40.68, "lon": 14.98, "name": "カンパーニャ アグロ・ノチェリーノ",
+                      "tz": "Europe/Rome", "note": "サンマルツァーノトマトDOP産地"},
+    "puglia_foggia": {"lat": 41.46, "lon": 15.54, "name": "プーリア フォッジャ平野",
+                      "tz": "Europe/Rome", "note": "イタリア最大の穀倉地帯・トマト"},
+    "sicilia_ragusa": {"lat": 36.93, "lon": 14.73, "name": "シチリア ラグーザ",
+                       "tz": "Europe/Rome", "note": "ミニトマト・ナス・ズッキーニ"},
+    "toscana_maremma": {"lat": 42.76, "lon": 11.11, "name": "トスカーナ マレンマ",
+                        "tz": "Europe/Rome", "note": "有機農業先進地域"},
 }
-
-
-def get_location(key: str) -> Optional[dict]:
-    return WORLD_LOCATIONS.get(key)
 
 
 # ═══════════════════════════════════════════════════════════════════════

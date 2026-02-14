@@ -2,11 +2,11 @@
 
 File layout:
     data/
-        tokyo.nc          # dims: (time,)  coords: time, lat, lon
-        bordeaux.nc
+        35.68_139.77.nc   # dims: (time,)  keyed by lat_lon
+        43.47_11.25.nc
         ...
 
-Each .nc contains all daily ERA5 variables for that location.
+Each .nc contains all daily climate variables for that coordinate.
 Append-friendly: new days are merged into the existing file.
 """
 
@@ -65,13 +65,12 @@ def save_daily(location_key: str, lat: float, lon: float, ds_new: xr.Dataset) ->
     """
     path = _nc_path(location_key)
 
-    # Ensure attrs
+    # Preserve source attrs from fetcher, fill defaults
+    ds_new.attrs.setdefault("source", "open_meteo")
+    ds_new.attrs.setdefault("dataset", "era5")
     ds_new.attrs["location"] = location_key
     ds_new.attrs["lat"] = lat
     ds_new.attrs["lon"] = lon
-    ds_new.attrs["source"] = "open_meteo"
-    ds_new.attrs["dataset"] = "era5"
-    ds_new.attrs["resolution"] = 0.25
 
     if path.exists():
         with xr.open_dataset(path) as ds_existing:
@@ -126,7 +125,6 @@ def summary(location_key: str) -> dict | None:
         return None
     times = pd.DatetimeIndex(ds.time.values)
     return {
-        "location": location_key,
         "lat": float(ds.attrs.get("lat", 0)),
         "lon": float(ds.attrs.get("lon", 0)),
         "date_start": str(times.min().date()),

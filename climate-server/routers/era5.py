@@ -1,10 +1,7 @@
 """ERA5 climate data endpoints — daily NetCDF storage.
 
-Provides historical daily climate data for:
-  - 栽培適性分析 (soil temp, moisture, precipitation)
-  - 世界時計 weather context (temperature, conditions per city)
-  - 長期トレンド分析 (30+ years of daily data)
-  - グラフ描画 (time-series ready xarray output)
+Coordinate-first API: all endpoints accept lat/lon directly.
+Each user's location is stored as a separate NetCDF file keyed by coordinates.
 
 Data sources:
   1. Open-Meteo Historical API (0.25°, immediate, no key)
@@ -17,11 +14,7 @@ import numpy as np
 from fastapi import APIRouter, Query, HTTPException
 from pydantic import BaseModel
 
-from services.era5_service import (
-    fetch_daily_open_meteo,
-    get_location,
-    WORLD_LOCATIONS,
-)
+from services.era5_service import fetch_daily_open_meteo, FARM_PRESETS
 from storage import netcdf_store
 
 logger = logging.getLogger(__name__)
@@ -29,22 +22,19 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/era5", tags=["era5"])
 
 
+# ── Helpers ───────────────────────────────────────────────────────────
+
+
+def _loc_key(lat: float, lon: float) -> str:
+    """Derive a storage key from coordinates.  e.g. '35.68_139.77'"""
+    return f"{lat:.2f}_{lon:.2f}"
+
+
 # ── Response models ───────────────────────────────────────────────────
 
 
-class LocationInfo(BaseModel):
-    key: str
-    name: str
-    lat: float
-    lon: float
-    tz: str
-
-
 class DailyRecord(BaseModel):
-    """Daily climate record — superset of Open-Meteo + AgERA5 variables.
-
-    Fields are optional so both sources can share the same model.
-    """
+    """Daily climate record — superset of Open-Meteo + AgERA5 variables."""
     date: str
     # Temperature
     temp_mean: float | None = None
@@ -87,42 +77,34 @@ class DailyRecord(BaseModel):
 
 
 class ClimateData(BaseModel):
-    location: str
     lat: float
     lon: float
     date_start: str
     date_end: str
     total_days: int
+    source: str = ""
     records: list[DailyRecord]
 
 
 class CollectResult(BaseModel):
-    location: str
+    lat: float
+    lon: float
     date_start: str
     date_end: str
+    source: str
     status: str  # ok / error
     new_days: int = 0
     message: str = ""
 
 
-class CollectSummary(BaseModel):
-    total: int
-    ok: int
-    errors: int
-    results: list[CollectResult]
-
-
 class LocationSummary(BaseModel):
-    location: str
+    key: str
     lat: float
     lon: float
     date_start: str
     date_end: str
     total_days: int
     variables: list[str]
-
-
-# ── Helpers ───────────────────────────────────────────────────────────
 
 
 def _ds_to_records(ds) -> list[DailyRecord]:
@@ -145,152 +127,163 @@ def _ds_to_records(ds) -> list[DailyRecord]:
 # ── Endpoints ─────────────────────────────────────────────────────────
 
 
-@router.get("/locations", response_model=list[LocationInfo])
-async def get_locations():
-    """世界時計 + 栽培分析の対象地点一覧。"""
+class FarmPreset(BaseModel):
+    key: str
+    name: str
+    lat: float
+    lon: float
+    tz: str
+    note: str = ""
+
+
+@router.get("/presets", response_model=list[FarmPreset])
+async def get_presets():
+    """農業地域プリセット一覧。日本の主要産地 + イタリア伝統野菜産地。"""
     return [
-        LocationInfo(key=k, name=v["name"], lat=v["lat"], lon=v["lon"], tz=v["tz"])
-        for k, v in WORLD_LOCATIONS.items()
+        FarmPreset(
+            key=k, name=v["name"], lat=v["lat"], lon=v["lon"],
+            tz=v["tz"], note=v.get("note", ""),
+        )
+        for k, v in FARM_PRESETS.items()
     ]
 
 
-@router.post("/collect", response_model=CollectSummary)
-async def collect_batch(
+@router.post("/collect-presets", response_model=list[CollectResult])
+async def collect_presets(
     date_start: str = Query(..., description="開始日 YYYY-MM-DD"),
     date_end: str = Query(..., description="終了日 YYYY-MM-DD"),
-    locations: str = Query("all", description="カンマ区切り or 'all'"),
+    region: str = Query("japan", description="japan / italy / all"),
+    source: str = Query("open_meteo", description="open_meteo / agera5"),
 ):
-    """複数地点の一括収集。Open-Meteoからdailyデータを取得しNetCDFに保存。
+    """プリセット農業地域を一括収集。
 
-    例: POST /era5/collect?date_start=2020-01-01&date_end=2024-12-31&locations=tokyo,roma
+    例: POST /era5/collect-presets?date_start=2023-01-01&date_end=2023-12-31&region=japan
     """
-    if locations == "all":
-        targets = list(WORLD_LOCATIONS.items())
+    if region == "japan":
+        targets = {k: v for k, v in FARM_PRESETS.items() if v["tz"] == "Asia/Tokyo"}
+    elif region == "italy":
+        targets = {k: v for k, v in FARM_PRESETS.items() if v["tz"] == "Europe/Rome"}
     else:
-        keys = [k.strip() for k in locations.split(",") if k.strip()]
-        targets = []
-        for k in keys:
-            loc = get_location(k)
-            if not loc:
-                raise HTTPException(404, f"地点 '{k}' が見つかりません")
-            targets.append((k, loc))
+        targets = FARM_PRESETS
 
     results: list[CollectResult] = []
-
-    for key, loc in targets:
+    for key, loc in targets.items():
+        lat, lon = loc["lat"], loc["lon"]
+        loc_key = _loc_key(lat, lon)
         try:
-            ds = await fetch_daily_open_meteo(
-                loc["lat"], loc["lon"], date_start, date_end,
-            )
-            new_days = netcdf_store.save_daily(key, loc["lat"], loc["lon"], ds)
+            if source == "agera5":
+                from services.agera5_gee import fetch_daily_agera5_chunked
+                ds = fetch_daily_agera5_chunked(lat, lon, date_start, date_end)
+                src_label = "AgERA5 0.1°"
+            else:
+                ds = await fetch_daily_open_meteo(lat, lon, date_start, date_end)
+                src_label = "Open-Meteo 0.25°"
+
+            new_days = netcdf_store.save_daily(loc_key, lat, lon, ds)
+            logger.info("%s collected: %s (%s) — %d new days", src_label, key, loc_key, new_days)
             results.append(CollectResult(
-                location=key, date_start=date_start, date_end=date_end,
-                status="ok", new_days=new_days,
+                lat=lat, lon=lon,
+                date_start=date_start, date_end=date_end,
+                source=src_label, status="ok", new_days=new_days,
+                message=f"{loc['name']}: {len(ds.time)} days",
             ))
         except Exception as e:
+            logger.exception("Collect error for %s", key)
             results.append(CollectResult(
-                location=key, date_start=date_start, date_end=date_end,
-                status="error", message=str(e)[:200],
+                lat=lat, lon=lon,
+                date_start=date_start, date_end=date_end,
+                source=source, status="error", message=f"{loc['name']}: {str(e)[:200]}",
             ))
 
-    ok = sum(1 for r in results if r.status == "ok")
-    err = sum(1 for r in results if r.status == "error")
-    return CollectSummary(total=len(results), ok=ok, errors=err, results=results)
+    return results
 
 
-@router.post("/collect-gee", response_model=CollectSummary)
-async def collect_batch_gee(
+@router.post("/collect", response_model=CollectResult)
+async def collect(
+    lat: float = Query(..., description="緯度", examples=[35.68]),
+    lon: float = Query(..., description="経度", examples=[139.77]),
     date_start: str = Query(..., description="開始日 YYYY-MM-DD"),
     date_end: str = Query(..., description="終了日 YYYY-MM-DD"),
-    locations: str = Query("all", description="カンマ区切り or 'all'"),
+    source: str = Query("open_meteo", description="open_meteo / agera5"),
 ):
-    """AgERA5 (0.1°) via Google Earth Engine で一括収集。
+    """ユーザーの座標で気候データを収集・保存。
 
-    ローカルタイムゾーン基準の日次集計済みデータ。地形補正済み。
-    例: POST /era5/collect-gee?date_start=2020-01-01&date_end=2024-12-31&locations=tokyo,roma
+    例: POST /era5/collect?lat=35.68&lon=139.77&date_start=2023-01-01&date_end=2023-12-31
     """
-    from services.agera5_gee import fetch_daily_agera5_chunked
+    key = _loc_key(lat, lon)
 
-    if locations == "all":
-        targets = list(WORLD_LOCATIONS.items())
-    else:
-        keys = [k.strip() for k in locations.split(",") if k.strip()]
-        targets = []
-        for k in keys:
-            loc = get_location(k)
-            if not loc:
-                raise HTTPException(404, f"地点 '{k}' が見つかりません")
-            targets.append((k, loc))
+    try:
+        if source == "agera5":
+            from services.agera5_gee import fetch_daily_agera5_chunked
+            ds = fetch_daily_agera5_chunked(lat, lon, date_start, date_end)
+            src_label = "AgERA5 0.1°"
+        else:
+            ds = await fetch_daily_open_meteo(lat, lon, date_start, date_end)
+            src_label = "Open-Meteo 0.25°"
 
-    results: list[CollectResult] = []
-
-    for key, loc in targets:
-        try:
-            ds = fetch_daily_agera5_chunked(
-                loc["lat"], loc["lon"], date_start, date_end,
-            )
-            new_days = netcdf_store.save_daily(key, loc["lat"], loc["lon"], ds)
-            results.append(CollectResult(
-                location=key, date_start=date_start, date_end=date_end,
-                status="ok", new_days=new_days,
-                message=f"AgERA5 0.1° ({len(ds.time)} days)",
-            ))
-            logger.info("AgERA5 collected: %s — %d new days", key, new_days)
-        except Exception as e:
-            logger.exception("AgERA5 error for %s", key)
-            results.append(CollectResult(
-                location=key, date_start=date_start, date_end=date_end,
-                status="error", message=str(e)[:200],
-            ))
-
-    ok = sum(1 for r in results if r.status == "ok")
-    err = sum(1 for r in results if r.status == "error")
-    return CollectSummary(total=len(results), ok=ok, errors=err, results=results)
+        new_days = netcdf_store.save_daily(key, lat, lon, ds)
+        logger.info("%s collected: %s — %d new days", src_label, key, new_days)
+        return CollectResult(
+            lat=lat, lon=lon,
+            date_start=date_start, date_end=date_end,
+            source=src_label, status="ok", new_days=new_days,
+            message=f"{len(ds.time)} days fetched",
+        )
+    except Exception as e:
+        logger.exception("Collect error for %s", key)
+        return CollectResult(
+            lat=lat, lon=lon,
+            date_start=date_start, date_end=date_end,
+            source=source, status="error", message=str(e)[:300],
+        )
 
 
 @router.get("/climate", response_model=ClimateData)
 async def query_climate(
-    location: str = Query(..., description="地点キー (例: tokyo, bordeaux)"),
+    lat: float = Query(..., description="緯度"),
+    lon: float = Query(..., description="経度"),
     date_start: str = Query(None, description="開始日 YYYY-MM-DD"),
     date_end: str = Query(None, description="終了日 YYYY-MM-DD"),
     variables: str = Query(None, description="カンマ区切り変数名 (例: temp_mean,precipitation)"),
 ):
-    """保存済みの daily ERA5 データを取得。グラフ描画用。"""
-    loc = get_location(location)
-    if not loc:
-        raise HTTPException(404, f"地点 '{location}' が見つかりません")
+    """保存済みの daily データを取得。グラフ描画用。"""
+    key = _loc_key(lat, lon)
 
     var_list = None
     if variables:
         var_list = [v.strip() for v in variables.split(",") if v.strip()]
 
-    ds = netcdf_store.load_range(location, date_start, date_end, var_list)
+    ds = netcdf_store.load_range(key, date_start, date_end, var_list)
     if ds is None:
-        raise HTTPException(404, f"'{location}' のデータがありません。先に /era5/collect で取得してください")
+        raise HTTPException(
+            404,
+            f"({lat}, {lon}) のデータがありません。"
+            "先に POST /era5/collect で取得してください",
+        )
 
     if len(ds.time) == 0:
-        raise HTTPException(404, f"指定期間のデータがありません")
+        raise HTTPException(404, "指定期間のデータがありません")
 
     times = ds.time.values
     return ClimateData(
-        location=location,
-        lat=loc["lat"], lon=loc["lon"],
+        lat=lat, lon=lon,
         date_start=str(np.datetime_as_string(times[0], unit="D")),
         date_end=str(np.datetime_as_string(times[-1], unit="D")),
         total_days=len(times),
+        source=ds.attrs.get("source", ""),
         records=_ds_to_records(ds),
     )
 
 
 @router.get("/summary", response_model=list[LocationSummary])
 async def collection_summary():
-    """全地点の収集状況サマリー。"""
+    """保存済み全地点のサマリー。"""
     stored = netcdf_store.list_locations()
     results = []
     for key in stored:
         info = netcdf_store.summary(key)
         if info:
-            results.append(LocationSummary(**info))
+            results.append(LocationSummary(key=key, **info))
     return results
 
 
@@ -300,7 +293,7 @@ async def list_variables():
     return {
         "sources": {
             "open_meteo": "Open-Meteo Historical API (ERA5 0.25°, 即時, キー不要)",
-            "agera5_gee": "AgERA5 via Google Earth Engine (0.1°, 農業用, 地形補正)",
+            "agera5":     "AgERA5 via Google Earth Engine (0.1°, 農業用, 地形補正)",
         },
         "variables": {
             # Common (both sources)
