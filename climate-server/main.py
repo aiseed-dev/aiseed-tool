@@ -40,8 +40,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Climate Server",
-    description="ERA5 気候データ収集API — daily NetCDF（Open-Meteo）",
-    version="0.2.0",
+    description=(
+        "ERA5 気候データ収集API — daily NetCDF\n\n"
+        "Data sources:\n"
+        "- Open-Meteo Historical API (ERA5 0.25°)\n"
+        "- AgERA5 via Google Earth Engine (0.1°, 農業用, 地形補正)\n"
+        "- Sentinel-2 vegetation indices (予定)\n"
+    ),
+    version="0.3.0",
     lifespan=lifespan,
 )
 

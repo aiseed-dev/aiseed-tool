@@ -5,7 +5,13 @@ Provides historical daily climate data for:
   - 世界時計 weather context (temperature, conditions per city)
   - 長期トレンド分析 (30+ years of daily data)
   - グラフ描画 (time-series ready xarray output)
+
+Data sources:
+  1. Open-Meteo Historical API (0.25°, immediate, no key)
+  2. AgERA5 via Google Earth Engine (0.1° ≈ 11 km, agriculture-optimised)
 """
+
+import logging
 
 import numpy as np
 from fastapi import APIRouter, Query, HTTPException
@@ -17,6 +23,8 @@ from services.era5_service import (
     WORLD_LOCATIONS,
 )
 from storage import netcdf_store
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/era5", tags=["era5"])
 
@@ -33,20 +41,41 @@ class LocationInfo(BaseModel):
 
 
 class DailyRecord(BaseModel):
+    """Daily climate record — superset of Open-Meteo + AgERA5 variables.
+
+    Fields are optional so both sources can share the same model.
+    """
     date: str
+    # Temperature
     temp_mean: float | None = None
     temp_min: float | None = None
     temp_max: float | None = None
+    # Precipitation
     precipitation: float | None = None
     rain: float | None = None
     snowfall: float | None = None
+    # Wind
     wind_speed_max: float | None = None
     wind_gusts_max: float | None = None
+    wind_speed_mean: float | None = None           # AgERA5
+    # Radiation
     shortwave_radiation: float | None = None
     et0: float | None = None
     sunshine_hours: float | None = None
+    # Humidity / Pressure
     humidity_mean: float | None = None
     pressure_mean: float | None = None
+    vapour_pressure: float | None = None           # AgERA5 (hPa)
+    cloud_cover: float | None = None               # AgERA5 (fraction)
+    # Humidity at fixed local hours (AgERA5)
+    humidity_06h: float | None = None
+    humidity_09h: float | None = None
+    humidity_12h: float | None = None
+    humidity_15h: float | None = None
+    humidity_18h: float | None = None
+    # Snow (AgERA5)
+    snow_depth: float | None = None                # m
+    # Soil (Open-Meteo)
     soil_temp_0_7cm: float | None = None
     soil_temp_7_28cm: float | None = None
     soil_temp_28_100cm: float | None = None
@@ -169,6 +198,56 @@ async def collect_batch(
     return CollectSummary(total=len(results), ok=ok, errors=err, results=results)
 
 
+@router.post("/collect-gee", response_model=CollectSummary)
+async def collect_batch_gee(
+    date_start: str = Query(..., description="開始日 YYYY-MM-DD"),
+    date_end: str = Query(..., description="終了日 YYYY-MM-DD"),
+    locations: str = Query("all", description="カンマ区切り or 'all'"),
+):
+    """AgERA5 (0.1°) via Google Earth Engine で一括収集。
+
+    ローカルタイムゾーン基準の日次集計済みデータ。地形補正済み。
+    例: POST /era5/collect-gee?date_start=2020-01-01&date_end=2024-12-31&locations=tokyo,roma
+    """
+    from services.agera5_gee import fetch_daily_agera5_chunked
+
+    if locations == "all":
+        targets = list(WORLD_LOCATIONS.items())
+    else:
+        keys = [k.strip() for k in locations.split(",") if k.strip()]
+        targets = []
+        for k in keys:
+            loc = get_location(k)
+            if not loc:
+                raise HTTPException(404, f"地点 '{k}' が見つかりません")
+            targets.append((k, loc))
+
+    results: list[CollectResult] = []
+
+    for key, loc in targets:
+        try:
+            ds = fetch_daily_agera5_chunked(
+                loc["lat"], loc["lon"], date_start, date_end,
+            )
+            new_days = netcdf_store.save_daily(key, loc["lat"], loc["lon"], ds)
+            results.append(CollectResult(
+                location=key, date_start=date_start, date_end=date_end,
+                status="ok", new_days=new_days,
+                message=f"AgERA5 0.1° ({len(ds.time)} days)",
+            ))
+            logger.info("AgERA5 collected: %s — %d new days", key, new_days)
+        except Exception as e:
+            logger.exception("AgERA5 error for %s", key)
+            results.append(CollectResult(
+                location=key, date_start=date_start, date_end=date_end,
+                status="error", message=str(e)[:200],
+            ))
+
+    ok = sum(1 for r in results if r.status == "ok")
+    err = sum(1 for r in results if r.status == "error")
+    return CollectSummary(total=len(results), ok=ok, errors=err, results=results)
+
+
 @router.get("/climate", response_model=ClimateData)
 async def query_climate(
     location: str = Query(..., description="地点キー (例: tokyo, bordeaux)"),
@@ -219,28 +298,43 @@ async def collection_summary():
 async def list_variables():
     """利用可能な気象変数一覧。"""
     return {
-        "variables": netcdf_store.CLIMATE_VARS,
-        "description": {
-            "temp_mean": "日平均気温 (°C)",
-            "temp_min": "日最低気温 (°C)",
-            "temp_max": "日最高気温 (°C)",
-            "precipitation": "降水量 (mm/day)",
-            "rain": "降雨量 (mm/day)",
-            "snowfall": "降雪量 (cm/day)",
-            "wind_speed_max": "最大風速 (m/s)",
-            "wind_gusts_max": "最大瞬間風速 (m/s)",
-            "shortwave_radiation": "短波放射 (MJ/m²)",
-            "et0": "基準蒸発散量 (mm/day)",
-            "sunshine_hours": "日照時間 (hours)",
-            "humidity_mean": "日平均相対湿度 (%)",
-            "pressure_mean": "日平均気圧 (hPa)",
-            "soil_temp_0_7cm": "地温 0-7cm (°C)",
-            "soil_temp_7_28cm": "地温 7-28cm (°C)",
-            "soil_temp_28_100cm": "地温 28-100cm (°C)",
-            "soil_temp_100_255cm": "地温 100-255cm (°C)",
-            "soil_moisture_0_7cm": "土壌水分 0-7cm (m³/m³)",
-            "soil_moisture_7_28cm": "土壌水分 7-28cm (m³/m³)",
-            "soil_moisture_28_100cm": "土壌水分 28-100cm (m³/m³)",
-            "soil_moisture_100_255cm": "土壌水分 100-255cm (m³/m³)",
+        "sources": {
+            "open_meteo": "Open-Meteo Historical API (ERA5 0.25°, 即時, キー不要)",
+            "agera5_gee": "AgERA5 via Google Earth Engine (0.1°, 農業用, 地形補正)",
+        },
+        "variables": {
+            # Common (both sources)
+            "temp_mean":             {"desc": "日平均気温 (°C)",         "sources": ["open_meteo", "agera5"]},
+            "temp_min":              {"desc": "日最低気温 (°C)",         "sources": ["open_meteo", "agera5"]},
+            "temp_max":              {"desc": "日最高気温 (°C)",         "sources": ["open_meteo", "agera5"]},
+            "precipitation":         {"desc": "降水量 (mm/day)",         "sources": ["open_meteo", "agera5"]},
+            "shortwave_radiation":   {"desc": "短波放射 (MJ/m²)",        "sources": ["open_meteo", "agera5"]},
+            "humidity_mean":         {"desc": "日平均相対湿度 (%)",       "sources": ["open_meteo", "agera5"]},
+            # Open-Meteo only
+            "rain":                  {"desc": "降雨量 (mm/day)",          "sources": ["open_meteo"]},
+            "snowfall":              {"desc": "降雪量 (cm/day)",          "sources": ["open_meteo"]},
+            "wind_speed_max":        {"desc": "最大風速 (m/s)",           "sources": ["open_meteo"]},
+            "wind_gusts_max":        {"desc": "最大瞬間風速 (m/s)",       "sources": ["open_meteo"]},
+            "et0":                   {"desc": "基準蒸発散量 (mm/day)",    "sources": ["open_meteo"]},
+            "sunshine_hours":        {"desc": "日照時間 (hours)",         "sources": ["open_meteo"]},
+            "pressure_mean":         {"desc": "日平均気圧 (hPa)",         "sources": ["open_meteo"]},
+            "soil_temp_0_7cm":       {"desc": "地温 0-7cm (°C)",          "sources": ["open_meteo"]},
+            "soil_temp_7_28cm":      {"desc": "地温 7-28cm (°C)",         "sources": ["open_meteo"]},
+            "soil_temp_28_100cm":    {"desc": "地温 28-100cm (°C)",       "sources": ["open_meteo"]},
+            "soil_temp_100_255cm":   {"desc": "地温 100-255cm (°C)",      "sources": ["open_meteo"]},
+            "soil_moisture_0_7cm":   {"desc": "土壌水分 0-7cm (m³/m³)",   "sources": ["open_meteo"]},
+            "soil_moisture_7_28cm":  {"desc": "土壌水分 7-28cm (m³/m³)",  "sources": ["open_meteo"]},
+            "soil_moisture_28_100cm":  {"desc": "土壌水分 28-100cm (m³/m³)",  "sources": ["open_meteo"]},
+            "soil_moisture_100_255cm": {"desc": "土壌水分 100-255cm (m³/m³)", "sources": ["open_meteo"]},
+            # AgERA5 only
+            "wind_speed_mean":       {"desc": "日平均風速 (m/s)",          "sources": ["agera5"]},
+            "vapour_pressure":       {"desc": "蒸気圧 (hPa)",             "sources": ["agera5"]},
+            "cloud_cover":           {"desc": "雲量 (fraction)",           "sources": ["agera5"]},
+            "snow_depth":            {"desc": "積雪深 (m)",                "sources": ["agera5"]},
+            "humidity_06h":          {"desc": "相対湿度 06時 (%)",         "sources": ["agera5"]},
+            "humidity_09h":          {"desc": "相対湿度 09時 (%)",         "sources": ["agera5"]},
+            "humidity_12h":          {"desc": "相対湿度 12時 (%)",         "sources": ["agera5"]},
+            "humidity_15h":          {"desc": "相対湿度 15時 (%)",         "sources": ["agera5"]},
+            "humidity_18h":          {"desc": "相対湿度 18時 (%)",         "sources": ["agera5"]},
         },
     }

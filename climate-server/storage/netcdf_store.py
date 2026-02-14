@@ -22,14 +22,25 @@ from config import settings
 
 logger = logging.getLogger(__name__)
 
-# Variables stored in each NetCDF file (all daily)
+# Variables stored in each NetCDF file (all daily).
+# Superset of Open-Meteo + AgERA5 — not every file has every variable.
 CLIMATE_VARS = [
+    # Temperature
     "temp_mean", "temp_min", "temp_max",
+    # Precipitation
     "precipitation", "rain", "snowfall",
-    "wind_speed_max", "wind_gusts_max",
-    "shortwave_radiation", "et0",
-    "sunshine_hours",
+    # Wind
+    "wind_speed_max", "wind_gusts_max", "wind_speed_mean",
+    # Radiation / ET
+    "shortwave_radiation", "et0", "sunshine_hours",
+    # Humidity / Pressure
     "humidity_mean", "pressure_mean",
+    "vapour_pressure", "cloud_cover",
+    "humidity_06h", "humidity_09h", "humidity_12h",
+    "humidity_15h", "humidity_18h",
+    # Snow
+    "snow_depth",
+    # Soil (Open-Meteo)
     "soil_temp_0_7cm", "soil_temp_7_28cm",
     "soil_temp_28_100cm", "soil_temp_100_255cm",
     "soil_moisture_0_7cm", "soil_moisture_7_28cm",
