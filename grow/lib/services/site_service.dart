@@ -66,6 +66,7 @@ class SiteData {
   final String farmDescription;
   final String farmLocation;
   final String farmPolicy;
+  final String farmUsername;
   final List<SiteCrop> crops;
   final SiteSales sales;
 
@@ -74,6 +75,7 @@ class SiteData {
     this.farmDescription = '',
     this.farmLocation = '',
     this.farmPolicy = '',
+    this.farmUsername = '',
     this.crops = const [],
     SiteSales? sales,
   }) : sales = sales ?? SiteSales();
@@ -83,6 +85,7 @@ class SiteData {
         'farmDescription': farmDescription,
         'farmLocation': farmLocation,
         'farmPolicy': farmPolicy,
+        'farmUsername': farmUsername,
         'crops': crops.map((c) => c.toJson()).toList(),
         'sales': sales.toJson(),
       };

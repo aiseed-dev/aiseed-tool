@@ -85,6 +85,23 @@ class FetchResult(BaseModel):
     records_stored: int
 
 
+class GddDayEntry(BaseModel):
+    date: str
+    temp_avg: float | None = None
+    gdd: float
+    cumulative: float
+
+
+class GddResponse(BaseModel):
+    station_id: str
+    station_name: str
+    base_temp: float
+    start_date: str
+    end_date: str
+    total_gdd: float
+    days: list[GddDayEntry]
+
+
 def _wind_label(direction: int | None) -> str:
     if direction is None or direction < 1 or direction > 16:
         return ""
@@ -117,6 +134,23 @@ async def sync_station_master(db: AsyncSession = Depends(get_db)):
     """Download and sync all AMeDAS station data from JMA."""
     count = await sync_stations(db)
     return {"status": "ok", "stations_synced": count}
+
+
+@router.post("/fetch/refresh")
+async def refresh_registered_stations():
+    """登録地点の最新データを手動取得する。
+
+    .env の AMEDAS_STATIONS に設定された全地点のデータを即座に取得。
+    """
+    from config import settings
+    from services.amedas_scheduler import fetch_all_stations
+
+    if not settings.amedas_stations:
+        raise HTTPException(status_code=400, detail="AMEDAS_STATIONS が未設定です")
+
+    station_ids = [s.strip() for s in settings.amedas_stations.split(",") if s.strip()][:3]
+    results = await fetch_all_stations(station_ids)
+    return {"status": "ok", "results": results}
 
 
 @router.get("/stations", response_model=list[StationResponse])
@@ -331,4 +365,97 @@ async def get_day_summary(
         precipitation_total=_r(row[7]),
         sun_total=_r(row[8], 2),
         pressure_avg=_r(row[9]),
+    )
+
+
+# ---------- 積算温度 (Growing Degree Days) ----------
+
+
+@router.get("/data/gdd", response_model=GddResponse)
+async def get_growing_degree_days(
+    station_id: str = Query(..., description="地点ID"),
+    start_date: str = Query(..., description="起算日 YYYY-MM-DD（播種日・定植日）"),
+    end_date: str = Query(default="", description="終了日 YYYY-MM-DD（空なら今日）"),
+    base_temp: float = Query(default=10.0, description="基準温度 ℃（デフォルト 10℃）"),
+    db: AsyncSession = Depends(get_db),
+):
+    """積算温度（Growing Degree Days）を計算する。
+
+    AMeDAS の10分間隔データから日平均気温を算出し、
+    (日平均気温 - 基準温度) の合計を返す。負の値は 0 として扱う。
+
+    - base_temp=10: 一般的な野菜（トマト、ナスなど）
+    - base_temp=5: 冷涼作物（レタス、ほうれん草など）
+    - base_temp=15: 熱帯性作物（オクラなど）
+
+    使用例: 播種日から積算温度 800℃ で収穫予測
+    """
+    try:
+        start = datetime.strptime(start_date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="開始日の形式が正しくありません")
+
+    if end_date:
+        try:
+            end = datetime.strptime(end_date, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="終了日の形式が正しくありません")
+    else:
+        end = datetime.now(JST).replace(tzinfo=None)
+
+    # 日別の平均気温を一括取得
+    result = await db.execute(
+        select(
+            func.date(AmedasRecord.observed_at).label("day"),
+            func.avg(AmedasRecord.temp).label("avg_temp"),
+        )
+        .where(
+            AmedasRecord.station_id == station_id,
+            AmedasRecord.observed_at >= start.replace(hour=0, minute=0, second=0),
+            AmedasRecord.observed_at < (end + timedelta(days=1)).replace(
+                hour=0, minute=0, second=0
+            ),
+            AmedasRecord.temp.is_not(None),
+        )
+        .group_by(func.date(AmedasRecord.observed_at))
+        .order_by(func.date(AmedasRecord.observed_at))
+    )
+    rows = result.all()
+
+    # 地点名取得
+    station_result = await db.execute(
+        select(AmedasStation).where(AmedasStation.station_id == station_id)
+    )
+    station = station_result.scalar_one_or_none()
+    station_name = station.kj_name if station else station_id
+
+    # GDD 計算
+    days: list[GddDayEntry] = []
+    cumulative = 0.0
+
+    for row in rows:
+        day_str = str(row.day)
+        avg_temp = round(row.avg_temp, 1) if row.avg_temp is not None else None
+
+        if avg_temp is not None:
+            gdd = max(avg_temp - base_temp, 0.0)
+        else:
+            gdd = 0.0
+
+        cumulative += gdd
+        days.append(GddDayEntry(
+            date=day_str,
+            temp_avg=avg_temp,
+            gdd=round(gdd, 1),
+            cumulative=round(cumulative, 1),
+        ))
+
+    return GddResponse(
+        station_id=station_id,
+        station_name=station_name,
+        base_temp=base_temp,
+        start_date=start_date,
+        end_date=end.strftime("%Y-%m-%d"),
+        total_gdd=round(cumulative, 1),
+        days=days,
     )

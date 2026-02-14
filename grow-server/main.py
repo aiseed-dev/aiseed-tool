@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from contextlib import asynccontextmanager
@@ -6,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 from database import init_db
-from routers import ai, auth, ocr, vision, weather, amedas, forecast, skillfile, grow, site
+from routers import ai, auth, ocr, vision, weather, amedas, forecast, skillfile, grow, site, fude, qr, consumer
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,24 +18,29 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting Grow GPU Server...")
+    logger.info("Starting Grow Server...")
     await init_db()
     logger.info("Database initialized.")
 
-    # Pre-load GPU models in background (optional, speeds up first request)
-    # Uncomment to pre-load on startup:
-    # from services.ocr_service import get_ocr_engine
-    # get_ocr_engine()
-    # from services.vision_service import get_florence
-    # get_florence()
+    # AMeDAS 定期取得スケジューラー（1日1回）
+    scheduler_task = None
+    if settings.amedas_stations:
+        from services.amedas_scheduler import amedas_scheduler
+        station_ids = [s.strip() for s in settings.amedas_stations.split(",") if s.strip()][:3]
+        if station_ids:
+            scheduler_task = asyncio.create_task(amedas_scheduler(station_ids))
+            logger.info("AMeDAS daily scheduler for: %s", station_ids)
 
     yield
-    logger.info("Shutting down Grow GPU Server.")
+
+    if scheduler_task:
+        scheduler_task.cancel()
+    logger.info("Shutting down Grow Server.")
 
 
 app = FastAPI(
-    title="Grow GPU Server",
-    description="ローカルGPUを活用した栽培支援API（OCR・画像分析・ユーザー管理）",
+    title="Grow Server",
+    description="栽培支援API（AI分析・ユーザー管理・サイト生成・消費者プラットフォーム）",
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -57,6 +63,9 @@ app.include_router(forecast.router)
 app.include_router(skillfile.router)
 app.include_router(grow.router)
 app.include_router(site.router)
+app.include_router(fude.router)
+app.include_router(qr.router)
+app.include_router(consumer.router)
 
 
 @app.get("/health")

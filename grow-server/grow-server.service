@@ -1,0 +1,29 @@
+[Unit]
+Description=Grow Server (FastAPI)
+After=network.target
+
+[Service]
+Type=simple
+User=growapi
+Group=growapi
+WorkingDirectory=/home/growapi/app/aiseed-tool/grow-server
+ExecStart=/home/growapi/app/aiseed-tool/grow-server/.venv/bin/python main.py
+Restart=on-failure
+RestartSec=5
+
+# 環境変数（.env は config.py が読み込むので最小限）
+Environment=HOME=/home/growapi
+Environment=PATH=/home/growapi/.local/bin:/usr/local/bin:/usr/bin:/bin
+
+# ログ
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=grow-server
+
+# セキュリティ
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/home/growapi/app/aiseed-tool/grow-server
+
+[Install]
+WantedBy=multi-user.target

@@ -99,12 +99,17 @@ cython_debug/
 # AI research drafts (intermediate outputs before promotion to data/)
 drafts/
 
-# Cloudflare Workers (server/)
-server/node_modules/
-server/.dev.vars
-server/.wrangler/
+# Cloudflare Workers (cloudflare-server/)
+cloudflare-server/node_modules/
+cloudflare-server/.dev.vars
+cloudflare-server/.wrangler/
 
-# Desktop Python server (desktop/)
-desktop/.venv/
-desktop/.env
-desktop/photos/
+# Desktop / Cowork app (grow_cowork/)
+grow_cowork/.venv/
+grow_cowork/.env
+grow_cowork/photos/
+
+# Old directories (renamed)
+gpu-server/
+server/
+desktop/

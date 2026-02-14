@@ -1,6 +1,6 @@
-# Grow GPU Server
+# Grow Server
 
-ローカルGPUを活用した栽培支援APIサーバー。
+栽培支援APIサーバー。
 Claude Agent SDK によるAIチャット、OCR、画像分析、天気予報、サイト生成などを提供。
 
 ## ディレクトリ配置
@@ -10,7 +10,7 @@ Claude Agent SDK によるAIチャット、OCR、画像分析、天気予報、�
 ├── .claude/              ← claude login の認証情報（自動生成）
 ├── .local/bin/claude     ← Claude Code CLI バイナリ（自動生成）
 ├── app/aiseed-tool/      ← リポジトリ（git clone）
-│   ├── gpu-server/
+│   ├── grow-server/
 │   │   ├── main.py
 │   │   ├── config.py
 │   │   ├── database.py
@@ -46,12 +46,12 @@ mkdir app && cd app
 git clone <リポジトリURL>
 
 # 6a. Miniforge3を使用する場合（推奨）
-cd aiseed-tool/gpu-server
+cd aiseed-tool/grow-server
 conda env update -f environment.yml -p ./.venv --prune
 conda activate ./.venv
 
 # 6b. OSのpython3を使用する場合
-cd aiseed-tool/gpu-server
+cd aiseed-tool/grow-server
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
@@ -139,10 +139,12 @@ Ecowitt 気象ステーションのデータ受信・閲覧。
 | POST | `/amedas/stations/sync` | 観測地点マスター同期 |
 | GET | `/amedas/stations` | 観測地点一覧 |
 | POST | `/amedas/fetch` | 観測データ取得 |
+| POST | `/amedas/fetch/refresh` | 登録地点の最新データを手動取得 |
 | POST | `/amedas/fetch/range` | 期間指定データ取得 |
 | GET | `/amedas/data/latest` | 最新の観測データ |
 | GET | `/amedas/data/history` | 観測データ履歴 |
 | GET | `/amedas/data/summary` | 日別サマリー |
+| GET | `/amedas/data/gdd` | 積算温度（Growing Degree Days） |
 
 ### 天気予報 (`/forecast`)
 
@@ -195,6 +197,7 @@ GROW_GPU_APPLE_CLIENT_ID=dev.aiseed.grow
 GROW_GPU_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GROW_GPU_DATABASE_URL=sqlite+aiosqlite:///./grow_gpu.db
 GROW_GPU_FLORENCE_MODEL=microsoft/Florence-2-base
+GROW_GPU_AMEDAS_STATIONS=44132,44171,44191
 ```
 
 | 変数 | 説明 | 必須 |
@@ -206,6 +209,7 @@ GROW_GPU_FLORENCE_MODEL=microsoft/Florence-2-base
 | `GROW_GPU_GOOGLE_CLIENT_ID` | Google OAuth 2.0 Client ID | 公開時 |
 | `GROW_GPU_DATABASE_URL` | SQLAlchemy接続文字列 | |
 | `GROW_GPU_FLORENCE_MODEL` | Florence-2 のモデル名 | |
+| `GROW_GPU_AMEDAS_STATIONS` | AMeDAS地点ID（カンマ区切り、最大3箇所）1日1回自動取得 | 積算温度使用時 |
 
 ### SECRET_KEY の自動生成
 
@@ -216,6 +220,37 @@ GROW_GPU_FLORENCE_MODEL=microsoft/Florence-2-base
 
 個人利用では設定不要。未設定でもメール/パスワード認証（`/auth/register` + `/auth/login`）は動作する。
 一般公開時に Apple Developer Console / Google Cloud Console で取得して設定する。
+
+## systemd サービス化
+
+手動起動（`python main.py`）ではなく、systemd で管理する。
+自動起動・クラッシュ時再起動・ジャーナルログが使える。
+
+```bash
+# 1. サービスファイルをコピー
+sudo cp grow-server.service /etc/systemd/system/
+
+# 2. systemd に登録
+sudo systemctl daemon-reload
+sudo systemctl enable grow-server
+
+# 3. 起動
+sudo systemctl start grow-server
+
+# 4. 状態確認
+sudo systemctl status grow-server
+
+# ログ確認
+journalctl -u grow-server -f
+
+# 再起動（コード更新後）
+sudo systemctl restart grow-server
+```
+
+Miniforge3 を使う場合は `ExecStart` のパスを conda 環境のものに変更する:
+```
+ExecStart=/home/growapi/app/aiseed-tool/grow-server/.venv/bin/python main.py
+```
 
 ## 技術スタック
 

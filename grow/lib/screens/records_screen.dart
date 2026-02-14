@@ -144,6 +144,24 @@ class _RecordsScreenState extends State<RecordsScreen> {
         return l.activityHarvest;
       case ActivityType.other:
         return l.activityOther;
+      case ActivityType.pruning:
+        return l.activityPruning;
+      case ActivityType.weeding:
+        return l.activityWeeding;
+      case ActivityType.bedMaking:
+        return l.activityBedMaking;
+      case ActivityType.tilling:
+        return l.activityTilling;
+      case ActivityType.potUp:
+        return l.activityPotUp;
+      case ActivityType.cutting:
+        return l.activityCutting;
+      case ActivityType.flowering:
+        return l.activityFlowering;
+      case ActivityType.shipping:
+        return l.activityShipping;
+      case ActivityType.management:
+        return l.activityManagement;
     }
   }
 
@@ -345,6 +363,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
     var selectedActivity = existing?.activityType ?? ActivityType.observation;
     var selectedDate = existing?.date ?? DateTime.now();
     final noteCtrl = TextEditingController(text: existing?.note ?? '');
+    double? workHours = existing?.workHours;
+    final materialsCtrl = TextEditingController(text: existing?.materials ?? '');
 
     List<RecordPhoto> existingPhotos = [];
     if (existing != null) {
@@ -551,6 +571,34 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     },
                   ),
                   const SizedBox(height: 12),
+                  // 作業時間
+                  Text(l.workHours, style: Theme.of(ctx).textTheme.bodySmall),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      for (final h in [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 8.0])
+                        ChoiceChip(
+                          label: Text('${h}h'),
+                          selected: workHours == h,
+                          onSelected: (selected) {
+                            setDialogState(() {
+                              workHours = selected ? h : null;
+                            });
+                          },
+                          visualDensity: VisualDensity.compact,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // 資材
+                  TextField(
+                    controller: materialsCtrl,
+                    decoration: InputDecoration(labelText: l.materials),
+                    maxLines: 1,
+                  ),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: noteCtrl,
                     decoration: InputDecoration(labelText: l.note),
@@ -590,6 +638,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
       activityType: selectedActivity,
       date: selectedDate,
       note: noteCtrl.text.trim(),
+      workHours: workHours,
+      materials: materialsCtrl.text.trim(),
       createdAt: existing?.createdAt,
     );
 
@@ -1036,6 +1086,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                                         [
                                           if (linkName.isNotEmpty) linkName,
                                           _activityLabel(l, rec.activityType),
+                                          if (rec.workHours != null) '${rec.workHours}h',
                                         ].join(' - '),
                                       ),
                                       subtitle: Text(

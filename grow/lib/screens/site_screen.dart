@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
@@ -71,6 +73,10 @@ class _SiteScreenState extends State<SiteScreen> {
   String? _generatedHtml;
   String? _deployedUrl;
   bool _showAdvanced = false;
+
+  // QR コード
+  Uint8List? _qrImageBytes;
+  bool _loadingQr = false;
 
   String _serverUrl = '';
   String _serverToken = '';
@@ -210,6 +216,7 @@ class _SiteScreenState extends State<SiteScreen> {
       farmDescription: _farmDescCtrl.text.trim(),
       farmLocation: _farmLocationCtrl.text.trim(),
       farmPolicy: _farmPolicyCtrl.text.trim(),
+      farmUsername: _usernameCtrl.text.trim(),
       crops: selectedCrops,
       sales: SiteSales(
         description: _salesDescCtrl.text.trim(),
@@ -355,6 +362,58 @@ class _SiteScreenState extends State<SiteScreen> {
     );
   }
 
+  String? _getPublicUrl() {
+    final username = _usernameCtrl.text.trim();
+    if (username.isEmpty) return null;
+    return 'https://cowork.aiseed.dev/$username/';
+  }
+
+  Future<void> _generateQr() async {
+    final url = _getPublicUrl();
+    if (url == null || _serverUrl.isEmpty) return;
+
+    setState(() => _loadingQr = true);
+    try {
+      final res = await http.get(
+        Uri.parse('$_serverUrl/qr/generate?url=${Uri.encodeComponent(url)}&size=15&format=png'),
+      );
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        setState(() {
+          _qrImageBytes = res.bodyBytes;
+          _loadingQr = false;
+        });
+      } else {
+        setState(() => _loadingQr = false);
+        _showError('QRコード生成に失敗しました');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loadingQr = false);
+      _showError(e.toString());
+    }
+  }
+
+  Future<void> _saveQrToGallery() async {
+    if (_qrImageBytes == null) return;
+    try {
+      final result = await ImageGallerySaverPlus.saveImage(
+        _qrImageBytes!,
+        name: 'grow_qr_${DateTime.now().millisecondsSinceEpoch}',
+        quality: 100,
+      );
+      if (!mounted) return;
+      if (result['isSuccess'] == true) {
+        _showSuccess('QRコードを保存しました');
+      } else {
+        _showError('保存に失敗しました');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showError(e.toString());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
@@ -451,6 +510,69 @@ class _SiteScreenState extends State<SiteScreen> {
                 label: Text(l.siteEasyPublish),
               ),
             ),
+            // ── QR コード ──
+            if (_usernameCtrl.text.isNotEmpty && _serverUrl.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 12),
+              Text(l.qrCode,
+                  style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 4),
+              Text(l.qrCodeDesc,
+                  style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 12),
+              if (_qrImageBytes != null) ...[
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
+                    ),
+                    child: Image.memory(
+                      _qrImageBytes!,
+                      width: 200,
+                      height: 200,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _saveQrToGallery,
+                      icon: const Icon(Icons.save_alt, size: 18),
+                      label: Text(l.qrSave),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: _generateQr,
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: Text(l.qrRegenerate),
+                    ),
+                  ],
+                ),
+              ] else
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _loadingQr ? null : _generateQr,
+                    icon: _loadingQr
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.qr_code),
+                    label: Text(l.qrGenerate),
+                  ),
+                ),
+            ],
           ],
         ),
       ),
