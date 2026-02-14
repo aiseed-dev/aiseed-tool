@@ -196,6 +196,8 @@ GROW_GPU_APPLE_CLIENT_ID=dev.aiseed.grow
 GROW_GPU_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GROW_GPU_DATABASE_URL=sqlite+aiosqlite:///./grow_gpu.db
 GROW_GPU_FLORENCE_MODEL=microsoft/Florence-2-base
+GROW_GPU_AMEDAS_STATIONS=44132
+GROW_GPU_AMEDAS_INTERVAL_MINUTES=60
 ```
 
 | 変数 | 説明 | 必須 |
@@ -207,6 +209,8 @@ GROW_GPU_FLORENCE_MODEL=microsoft/Florence-2-base
 | `GROW_GPU_GOOGLE_CLIENT_ID` | Google OAuth 2.0 Client ID | 公開時 |
 | `GROW_GPU_DATABASE_URL` | SQLAlchemy接続文字列 | |
 | `GROW_GPU_FLORENCE_MODEL` | Florence-2 のモデル名 | |
+| `GROW_GPU_AMEDAS_STATIONS` | AMeDAS定期取得する地点ID（カンマ区切り） | 積算温度使用時 |
+| `GROW_GPU_AMEDAS_INTERVAL_MINUTES` | 取得間隔（分、デフォルト60） | |
 
 ### SECRET_KEY の自動生成
 

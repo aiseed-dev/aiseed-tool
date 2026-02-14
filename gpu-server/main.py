@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from contextlib import asynccontextmanager
@@ -21,14 +22,21 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info("Database initialized.")
 
-    # Pre-load GPU models in background (optional, speeds up first request)
-    # Uncomment to pre-load on startup:
-    # from services.ocr_service import get_ocr_engine
-    # get_ocr_engine()
-    # from services.vision_service import get_florence
-    # get_florence()
+    # AMeDAS 定期取得スケジューラー
+    scheduler_task = None
+    if settings.amedas_stations:
+        from services.amedas_scheduler import amedas_scheduler
+        station_ids = [s.strip() for s in settings.amedas_stations.split(",") if s.strip()]
+        if station_ids:
+            scheduler_task = asyncio.create_task(
+                amedas_scheduler(station_ids, settings.amedas_interval_minutes)
+            )
+            logger.info("AMeDAS scheduler started for: %s", station_ids)
 
     yield
+
+    if scheduler_task:
+        scheduler_task.cancel()
     logger.info("Shutting down Grow GPU Server.")
 
 
