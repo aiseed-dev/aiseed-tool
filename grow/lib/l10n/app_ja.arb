@@ -213,5 +213,10 @@
   "voiceInput": "音声入力",
   "voiceInputStop": "音声入力を停止",
   "voiceInputHint": "話してください...",
-  "voiceInputUnavailable": "音声入力は利用できません"
+  "voiceInputUnavailable": "音声入力は利用できません",
+  "qrCode": "QRコード",
+  "qrCodeDesc": "看板・値札・袋に貼って、ホームページに誘導",
+  "qrGenerate": "QRコードを生成",
+  "qrRegenerate": "再生成",
+  "qrSave": "画像を保存"
 }

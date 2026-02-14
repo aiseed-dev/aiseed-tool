@@ -26,6 +26,7 @@ dependencies:
   native_exif: ^0.7.0
   url_launcher: ^6.2.5
   speech_to_text: ^7.0.0
+  image_gallery_saver_plus: ^3.0.5
 
 dev_dependencies:
   flutter_test:

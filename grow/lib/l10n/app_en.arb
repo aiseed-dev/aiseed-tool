@@ -203,5 +203,10 @@
   "voiceInput": "Voice input",
   "voiceInputStop": "Stop voice input",
   "voiceInputHint": "Speak now...",
-  "voiceInputUnavailable": "Voice input is not available"
+  "voiceInputUnavailable": "Voice input is not available",
+  "qrCode": "QR Code",
+  "qrCodeDesc": "Print for signs, price tags, and packaging",
+  "qrGenerate": "Generate QR code",
+  "qrRegenerate": "Regenerate",
+  "qrSave": "Save image"
 }
