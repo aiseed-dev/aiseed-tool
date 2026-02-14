@@ -198,6 +198,108 @@ async def collect_presets(
     return results
 
 
+class GridInfo(BaseModel):
+    total_cells: int
+    cells: list[dict]  # [{lat, lon, key}]
+
+
+@router.get("/grid", response_model=GridInfo)
+async def get_grid(
+    region: str = Query("kanto", description="地域名 (hokkaido/tohoku/kanto/chubu/kinki/chugoku/shikoku/kyushu/okinawa)"),
+):
+    """指定地域の 0.1° AgERA5 グリッドセル一覧。
+
+    筆ポリゴンがインポート済みなら農地セルのみ、なければ全セル。
+    """
+    from services.fude_grid import PREFECTURE_BOUNDS, generate_grid_for_region
+
+    bounds = PREFECTURE_BOUNDS.get(region)
+    if not bounds:
+        raise HTTPException(404, f"地域 '{region}' が見つかりません。候補: {list(PREFECTURE_BOUNDS.keys())}")
+
+    cells = generate_grid_for_region(
+        bounds["lat_min"], bounds["lat_max"],
+        bounds["lon_min"], bounds["lon_max"],
+    )
+    return GridInfo(
+        total_cells=len(cells),
+        cells=[{"lat": c[0], "lon": c[1], "key": _loc_key(c[0], c[1])} for c in cells],
+    )
+
+
+@router.post("/collect-grid", response_model=list[CollectResult])
+async def collect_grid(
+    date_start: str = Query(..., description="開始日 YYYY-MM-DD"),
+    date_end: str = Query(..., description="終了日 YYYY-MM-DD"),
+    region: str = Query("kanto", description="地域名"),
+    source: str = Query("open_meteo", description="open_meteo / agera5"),
+    fude_centroids: str = Query(
+        None,
+        description="筆ポリゴン重心座標 (lat1,lon1;lat2,lon2;...) — 指定時はこれをグリッドにスナップ",
+    ),
+):
+    """0.1°グリッド単位で一括収集。筆ポリゴン指定時は農地セルのみ。
+
+    例: POST /era5/collect-grid?region=kanto&date_start=2023-01-01&date_end=2023-12-31
+    """
+    from services.fude_grid import (
+        PREFECTURE_BOUNDS, generate_grid_for_region,
+        centroids_to_grid_cells,
+    )
+
+    if fude_centroids:
+        # 筆ポリゴン重心からグリッドセルを導出（農地のみ）
+        pairs = []
+        for pair in fude_centroids.split(";"):
+            parts = pair.strip().split(",")
+            if len(parts) == 2:
+                pairs.append((float(parts[0]), float(parts[1])))
+        cells = centroids_to_grid_cells(pairs)
+        logger.info("Fude-based grid: %d centroids → %d unique cells", len(pairs), len(cells))
+    else:
+        # 地域全体のグリッド
+        bounds = PREFECTURE_BOUNDS.get(region)
+        if not bounds:
+            raise HTTPException(404, f"地域 '{region}' が見つかりません")
+        cells = generate_grid_for_region(
+            bounds["lat_min"], bounds["lat_max"],
+            bounds["lon_min"], bounds["lon_max"],
+        )
+        logger.info("Region grid '%s': %d cells", region, len(cells))
+
+    results: list[CollectResult] = []
+    for lat, lon in cells:
+        key = _loc_key(lat, lon)
+        # Skip if already collected
+        if netcdf_store.load(key) is not None:
+            continue
+
+        try:
+            if source == "agera5":
+                from services.agera5_gee import fetch_daily_agera5_chunked
+                ds = fetch_daily_agera5_chunked(lat, lon, date_start, date_end)
+                src_label = "AgERA5 0.1°"
+            else:
+                ds = await fetch_daily_open_meteo(lat, lon, date_start, date_end)
+                src_label = "Open-Meteo 0.25°"
+
+            new_days = netcdf_store.save_daily(key, lat, lon, ds)
+            results.append(CollectResult(
+                lat=lat, lon=lon,
+                date_start=date_start, date_end=date_end,
+                source=src_label, status="ok", new_days=new_days,
+            ))
+        except Exception as e:
+            logger.exception("Grid collect error for %s", key)
+            results.append(CollectResult(
+                lat=lat, lon=lon,
+                date_start=date_start, date_end=date_end,
+                source=source, status="error", message=str(e)[:200],
+            ))
+
+    return results
+
+
 @router.post("/collect", response_model=CollectResult)
 async def collect(
     lat: float = Query(..., description="緯度", examples=[35.68]),
