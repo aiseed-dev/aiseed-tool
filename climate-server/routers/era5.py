@@ -133,16 +133,17 @@ class FarmPreset(BaseModel):
     lat: float
     lon: float
     tz: str
+    region: str = ""
     note: str = ""
 
 
 @router.get("/presets", response_model=list[FarmPreset])
 async def get_presets():
-    """農業地域プリセット一覧。日本の主要産地 + イタリア伝統野菜産地。"""
+    """農業地域プリセット一覧。座標は全て農地上（市街地を避けている）。"""
     return [
         FarmPreset(
             key=k, name=v["name"], lat=v["lat"], lon=v["lon"],
-            tz=v["tz"], note=v.get("note", ""),
+            tz=v["tz"], region=v.get("region", ""), note=v.get("note", ""),
         )
         for k, v in FARM_PRESETS.items()
     ]
@@ -152,19 +153,20 @@ async def get_presets():
 async def collect_presets(
     date_start: str = Query(..., description="開始日 YYYY-MM-DD"),
     date_end: str = Query(..., description="終了日 YYYY-MM-DD"),
-    region: str = Query("japan", description="japan / italy / all"),
+    region: str = Query("japan", description="japan / italy / france / usa / southeast_asia / australia / all"),
     source: str = Query("open_meteo", description="open_meteo / agera5"),
 ):
     """プリセット農業地域を一括収集。
 
     例: POST /era5/collect-presets?date_start=2023-01-01&date_end=2023-12-31&region=japan
     """
-    if region == "japan":
-        targets = {k: v for k, v in FARM_PRESETS.items() if v["tz"] == "Asia/Tokyo"}
-    elif region == "italy":
-        targets = {k: v for k, v in FARM_PRESETS.items() if v["tz"] == "Europe/Rome"}
-    else:
+    if region == "all":
         targets = FARM_PRESETS
+    else:
+        targets = {k: v for k, v in FARM_PRESETS.items() if v.get("region") == region}
+    if not targets:
+        regions = sorted(set(v.get("region", "") for v in FARM_PRESETS.values()))
+        raise HTTPException(404, f"地域 '{region}' が見つかりません。候補: {regions}")
 
     results: list[CollectResult] = []
     for key, loc in targets.items():
