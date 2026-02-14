@@ -17,7 +17,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from routers import era5
+from routers import era5, world_clock
 
 logging.basicConfig(
     level=logging.INFO,
@@ -41,13 +41,18 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Climate Server",
     description=(
-        "ERA5 気候データ収集API — daily NetCDF\n\n"
-        "Data sources:\n"
+        "気候データ収集API — daily NetCDF\n\n"
+        "**農地気候** (/era5):\n"
         "- Open-Meteo Historical API (ERA5 0.25°)\n"
         "- AgERA5 via Google Earth Engine (0.1°, 農業用, 地形補正)\n"
-        "- Sentinel-2 vegetation indices (予定)\n"
+        "- 筆ポリゴン → 0.1°グリッドマッピング\n\n"
+        "**世界時計** (/world-clock):\n"
+        "- ERA5 S3 (e5.oper.fc.sfc.minmax + accumu, 0.25° global)\n"
+        "- 旅行・都市間比較用\n\n"
+        "**植生指数** (予定):\n"
+        "- Sentinel-2 via Earth Search STAC\n"
     ),
-    version="0.3.0",
+    version="0.4.0",
     lifespan=lifespan,
 )
 
@@ -60,6 +65,7 @@ app.add_middleware(
 )
 
 app.include_router(era5.router)
+app.include_router(world_clock.router)
 
 
 @app.get("/health")
