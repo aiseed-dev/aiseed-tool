@@ -108,3 +108,6 @@ server/.wrangler/
 desktop/.venv/
 desktop/.env
 desktop/photos/
+
+# Old gpu-server remnants (renamed to grow-server)
+gpu-server/
