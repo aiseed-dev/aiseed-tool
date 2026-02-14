@@ -1,6 +1,6 @@
-# Grow GPU Server
+# Grow Server
 
-ローカルGPUを活用した栽培支援APIサーバー。
+栽培支援APIサーバー。
 Claude Agent SDK によるAIチャット、OCR、画像分析、天気予報、サイト生成などを提供。
 
 ## ディレクトリ配置
@@ -10,7 +10,7 @@ Claude Agent SDK によるAIチャット、OCR、画像分析、天気予報、�
 ├── .claude/              ← claude login の認証情報（自動生成）
 ├── .local/bin/claude     ← Claude Code CLI バイナリ（自動生成）
 ├── app/aiseed-tool/      ← リポジトリ（git clone）
-│   ├── gpu-server/
+│   ├── grow-server/
 │   │   ├── main.py
 │   │   ├── config.py
 │   │   ├── database.py
@@ -46,12 +46,12 @@ mkdir app && cd app
 git clone <リポジトリURL>
 
 # 6a. Miniforge3を使用する場合（推奨）
-cd aiseed-tool/gpu-server
+cd aiseed-tool/grow-server
 conda env update -f environment.yml -p ./.venv --prune
 conda activate ./.venv
 
 # 6b. OSのpython3を使用する場合
-cd aiseed-tool/gpu-server
+cd aiseed-tool/grow-server
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
@@ -228,28 +228,28 @@ GROW_GPU_AMEDAS_STATIONS=44132,44171,44191
 
 ```bash
 # 1. サービスファイルをコピー
-sudo cp grow-gpu.service /etc/systemd/system/
+sudo cp grow-server.service /etc/systemd/system/
 
 # 2. systemd に登録
 sudo systemctl daemon-reload
-sudo systemctl enable grow-gpu
+sudo systemctl enable grow-server
 
 # 3. 起動
-sudo systemctl start grow-gpu
+sudo systemctl start grow-server
 
 # 4. 状態確認
-sudo systemctl status grow-gpu
+sudo systemctl status grow-server
 
 # ログ確認
-journalctl -u grow-gpu -f
+journalctl -u grow-server -f
 
 # 再起動（コード更新後）
-sudo systemctl restart grow-gpu
+sudo systemctl restart grow-server
 ```
 
 Miniforge3 を使う場合は `ExecStart` のパスを conda 環境のものに変更する:
 ```
-ExecStart=/home/growapi/app/aiseed-tool/gpu-server/.venv/bin/python main.py
+ExecStart=/home/growapi/app/aiseed-tool/grow-server/.venv/bin/python main.py
 ```
 
 ## 技術スタック

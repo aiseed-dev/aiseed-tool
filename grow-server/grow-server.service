@@ -1,13 +1,13 @@
 [Unit]
-Description=Grow GPU Server (FastAPI)
+Description=Grow Server (FastAPI)
 After=network.target
 
 [Service]
 Type=simple
 User=growapi
 Group=growapi
-WorkingDirectory=/home/growapi/app/aiseed-tool/gpu-server
-ExecStart=/home/growapi/app/aiseed-tool/gpu-server/.venv/bin/python main.py
+WorkingDirectory=/home/growapi/app/aiseed-tool/grow-server
+ExecStart=/home/growapi/app/aiseed-tool/grow-server/.venv/bin/python main.py
 Restart=on-failure
 RestartSec=5
 
@@ -18,12 +18,12 @@ Environment=PATH=/home/growapi/.local/bin:/usr/local/bin:/usr/bin:/bin
 # ログ
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=grow-gpu
+SyslogIdentifier=grow-server
 
 # セキュリティ
 NoNewPrivileges=true
 ProtectSystem=strict
-ReadWritePaths=/home/growapi/app/aiseed-tool/gpu-server
+ReadWritePaths=/home/growapi/app/aiseed-tool/grow-server
 
 [Install]
 WantedBy=multi-user.target

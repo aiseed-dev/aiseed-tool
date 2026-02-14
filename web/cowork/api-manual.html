@@ -343,7 +343,7 @@
 
     <h3>インストール</h3>
 <pre><span class="comment"># リポジトリに移動</span>
-cd gpu-server
+cd grow-server
 
 <span class="comment"># 仮想環境を作成</span>
 python -m venv .venv
@@ -354,7 +354,7 @@ pip install -r requirements.txt</pre>
 
     <h3>環境変数の設定</h3>
     <p><code>.env</code> ファイルを作成するか、環境変数で設定します。</p>
-<pre><span class="comment"># .env (gpu-server ディレクトリ直下)</span>
+<pre><span class="comment"># .env (grow-server ディレクトリ直下)</span>
 GROW_GPU_SECRET_KEY=<span class="string">your-secret-key-here</span>
 GROW_GPU_HOST=<span class="string">0.0.0.0</span>
 GROW_GPU_PORT=<span class="number">8000</span></pre>

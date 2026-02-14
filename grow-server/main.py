@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting Grow GPU Server...")
+    logger.info("Starting Grow Server...")
     await init_db()
     logger.info("Database initialized.")
 
@@ -35,12 +35,12 @@ async def lifespan(app: FastAPI):
 
     if scheduler_task:
         scheduler_task.cancel()
-    logger.info("Shutting down Grow GPU Server.")
+    logger.info("Shutting down Grow Server.")
 
 
 app = FastAPI(
-    title="Grow GPU Server",
-    description="ローカルGPUを活用した栽培支援API（OCR・画像分析・ユーザー管理）",
+    title="Grow Server",
+    description="栽培支援API（AI分析・ユーザー管理・サイト生成・消費者プラットフォーム）",
     version="0.1.0",
     lifespan=lifespan,
 )

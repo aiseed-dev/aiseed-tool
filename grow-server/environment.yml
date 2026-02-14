@@ -1,7 +1,7 @@
-# Grow GPU Server — conda 環境定義
+# Grow Server — conda 環境定義
 #
 # 使い方:
-#   cd gpu-server
+#   cd grow-server
 #   conda env update -f environment.yml -p ./.venv --prune
 #   conda activate ./.venv
 #
@@ -12,7 +12,7 @@
 #   pytorch の cpuonly チャンネルに切り替えてください
 #   - pytorch::cpuonly
 
-name: grow-gpu
+name: grow-server
 channels:
   - conda-forge
   - pytorch
