@@ -2,7 +2,7 @@
 
 すべての気候・気象データを一元管理する。
 - ERA5 / AgERA5: 過去の気候統計（NetCDF）
-- Ecowitt GW3000: リアルタイム観測（Parquet）
+- センサー: リアルタイム観測（Ecowitt / SwitchBot → Parquet）
 - AMeDAS: 気象庁観測データ（Parquet）
 - ECMWF: 天気予報（Open-Meteo API 経由）
 - GDD: 積算温度（Open-Meteo Archive）
@@ -26,7 +26,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from config import settings
-from routers import era5, world_clock, weather, amedas, forecast, gdd
+from routers import era5, world_clock, sensor, amedas, forecast, gdd
 
 logging.basicConfig(
     level=logging.INFO,
@@ -46,19 +46,30 @@ async def lifespan(app: FastAPI):
     pq_dirs = [d for d in data_dir.iterdir() if d.is_dir()]
     logger.info("Stored locations (NetCDF): %d, sub-dirs: %d", len(nc_files), len(pq_dirs))
 
+    tasks = []
+
     # AMeDAS スケジューラー
-    scheduler_task = None
     if settings.amedas_stations:
         from services.amedas_scheduler import amedas_scheduler
         station_ids = [s.strip() for s in settings.amedas_stations.split(",") if s.strip()][:3]
         if station_ids:
-            scheduler_task = asyncio.create_task(amedas_scheduler(station_ids))
+            tasks.append(asyncio.create_task(amedas_scheduler(station_ids)))
             logger.info("AMeDAS daily scheduler for: %s", station_ids)
+
+    # SwitchBot ポーリングスケジューラー
+    if settings.switchbot_token and settings.switchbot_secret and settings.switchbot_devices:
+        from services.switchbot_scheduler import switchbot_scheduler
+        device_ids = [d.strip() for d in settings.switchbot_devices.split(",") if d.strip()]
+        if device_ids:
+            tasks.append(asyncio.create_task(
+                switchbot_scheduler(settings.switchbot_token, settings.switchbot_secret, device_ids)
+            ))
+            logger.info("SwitchBot scheduler for: %d devices", len(device_ids))
 
     yield
 
-    if scheduler_task:
-        scheduler_task.cancel()
+    for task in tasks:
+        task.cancel()
     logger.info("Shutting down Climate Server.")
 
 
@@ -67,7 +78,7 @@ app = FastAPI(
     description=(
         "気候・気象データ統合API\n\n"
         "**観測データ**\n"
-        "- Ecowitt GW3000 リアルタイム観測 (/weather, /data/report)\n"
+        "- センサー観測 (/sensor, /data/report) — Ecowitt / SwitchBot\n"
         "- AMeDAS 気象庁観測 (/amedas)\n\n"
         "**予報**\n"
         "- ECMWF 天気予報 (/forecast)\n\n"
@@ -77,7 +88,7 @@ app = FastAPI(
         "- 世界時計 (/world-clock)\n\n"
         "ストレージ: NetCDF (ERA5) + Parquet (観測データ)\n"
     ),
-    version="0.5.0",
+    version="0.6.0",
     lifespan=lifespan,
 )
 
@@ -90,14 +101,14 @@ app.add_middleware(
 )
 
 # ルーター登録
-app.include_router(weather.router)
+app.include_router(sensor.router)
 app.include_router(amedas.router)
 app.include_router(forecast.router)
 app.include_router(gdd.router)
 app.include_router(era5.router)
 app.include_router(world_clock.router)
 
-# 静的ファイル（Ecowitt UI 等）
+# 静的ファイル（センサー UI 等）
 static_dir = Path(__file__).parent / "static"
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
@@ -107,14 +118,14 @@ if static_dir.exists():
 async def health():
     data_dir = Path(settings.data_dir)
     nc_files = list(data_dir.glob("*.nc")) if data_dir.exists() else []
-    ecowitt_dir = data_dir / "ecowitt"
-    ecowitt_files = list(ecowitt_dir.glob("*.parquet")) if ecowitt_dir.exists() else []
+    sensor_dir = data_dir / "sensor"
+    sensor_files = list(sensor_dir.glob("*.parquet")) if sensor_dir.exists() else []
     amedas_dir = data_dir / "amedas"
     amedas_stations = [d.name for d in amedas_dir.iterdir() if d.is_dir()] if amedas_dir.exists() else []
 
     return {
         "status": "ok",
-        "storage": {"netcdf": len(nc_files), "ecowitt_months": len(ecowitt_files), "amedas_stations": amedas_stations},
+        "storage": {"netcdf": len(nc_files), "sensor_months": len(sensor_files), "amedas_stations": amedas_stations},
         "data_dir": str(data_dir.resolve()),
     }
 

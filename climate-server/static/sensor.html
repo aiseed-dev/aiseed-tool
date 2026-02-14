@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ecowitt 気象データ</title>
+<title>センサーデータ</title>
 <style>
 :root {
   --bg: #f8f9fa;
@@ -23,6 +23,7 @@ h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent); }
 .card-label { font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; }
 .card-value { font-size: 1.8rem; font-weight: 600; }
 .card-unit { font-size: 0.9rem; color: var(--muted); margin-left: 4px; }
+.card-source { font-size: 0.7rem; color: var(--accent); margin-top: 4px; }
 
 .chart-container { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 24px; }
 canvas { width: 100% !important; height: 300px !important; }
@@ -43,7 +44,7 @@ button:hover { opacity: 0.9; }
 </head>
 <body>
 
-<h1>Ecowitt 気象データ</h1>
+<h1>センサーデータ</h1>
 
 <div class="controls">
   <select id="hours">
@@ -92,31 +93,34 @@ function setStatus(msg, isError = false) {
   el.className = isError ? 'status error' : 'status';
 }
 
-function card(label, value, unit) {
+function card(label, value, unit, source) {
   const v = value != null ? value : '--';
+  const src = source ? `<div class="card-source">${source}</div>` : '';
   return `<div class="card">
     <div class="card-label">${label}</div>
     <div class="card-value">${v}<span class="card-unit">${unit}</span></div>
+    ${src}
   </div>`;
 }
 
 async function loadCurrent() {
   try {
-    const resp = await fetch(`${API_BASE}/weather/latest`);
+    const resp = await fetch(`${API_BASE}/sensor/latest`);
     const d = resp.ok ? await resp.json() : null;
     if (!d || !d.recorded_at) {
       document.getElementById('current-cards').innerHTML = '<div class="card"><div class="card-value">データなし</div></div>';
       return;
     }
+    const src = d.source || '';
     document.getElementById('current-cards').innerHTML = [
-      card('気温（屋外）', d.temp_outdoor_c, '℃'),
-      card('湿度（屋外）', d.humidity_outdoor, '%'),
-      card('気圧', d.pressure_rel_hpa, 'hPa'),
-      card('風速', d.wind_speed_ms, 'm/s'),
-      card('日射量', d.solar_radiation, 'W/m²'),
-      card('UV', d.uv_index, ''),
-      card('降水量（日）', d.rain_daily_mm, 'mm'),
-      card('風向', d.wind_dir != null ? d.wind_dir + '°' : '--', ''),
+      card('気温（屋外）', d.temp_outdoor_c, '℃', src),
+      card('湿度（屋外）', d.humidity_outdoor, '%', src),
+      card('気圧', d.pressure_rel_hpa, 'hPa', src),
+      card('風速', d.wind_speed_ms, 'm/s', src),
+      card('日射量', d.solar_radiation, 'W/m²', src),
+      card('UV', d.uv_index, '', src),
+      card('降水量（日）', d.rain_daily_mm, 'mm', src),
+      card('風向', d.wind_dir != null ? d.wind_dir + '°' : '--', '', src),
     ].join('');
   } catch (e) {
     setStatus('現在値の取得に失敗: ' + e.message, true);
@@ -126,7 +130,7 @@ async function loadCurrent() {
 async function loadHistory() {
   const hours = document.getElementById('hours').value;
   try {
-    const resp = await fetch(`${API_BASE}/weather/history?hours=${hours}&limit=1000`);
+    const resp = await fetch(`${API_BASE}/sensor/history?hours=${hours}&limit=1000`);
     if (!resp.ok) throw new Error(resp.statusText);
     const data = await resp.json();
     if (!data.length) { setStatus('履歴データなし'); return; }
@@ -183,7 +187,7 @@ async function loadHistory() {
 async function loadSummary() {
   const hours = document.getElementById('hours').value;
   try {
-    const resp = await fetch(`${API_BASE}/weather/summary?hours=${hours}`);
+    const resp = await fetch(`${API_BASE}/sensor/summary?hours=${hours}`);
     if (!resp.ok) return;
     const s = resp.ok ? await resp.json() : {};
     const tbody = document.querySelector('#summaryTable tbody');

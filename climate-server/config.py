@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     # AMeDAS 定期取得（カンマ区切りの地点ID、最大3箇所）
     amedas_stations: str = ""
 
+    # SwitchBot Cloud API（温湿度計ポーリング）
+    switchbot_token: str = ""
+    switchbot_secret: str = ""
+    switchbot_devices: str = ""  # カンマ区切りのデバイスID
+
     model_config = {"env_prefix": "CLIMATE_", "env_file": ".env"}
 
 
