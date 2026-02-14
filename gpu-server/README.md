@@ -143,6 +143,7 @@ Ecowitt 気象ステーションのデータ受信・閲覧。
 | GET | `/amedas/data/latest` | 最新の観測データ |
 | GET | `/amedas/data/history` | 観測データ履歴 |
 | GET | `/amedas/data/summary` | 日別サマリー |
+| GET | `/amedas/data/gdd` | 積算温度（Growing Degree Days） |
 
 ### 天気予報 (`/forecast`)
 
