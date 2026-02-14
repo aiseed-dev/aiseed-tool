@@ -216,6 +216,7 @@ class _SiteScreenState extends State<SiteScreen> {
       farmDescription: _farmDescCtrl.text.trim(),
       farmLocation: _farmLocationCtrl.text.trim(),
       farmPolicy: _farmPolicyCtrl.text.trim(),
+      farmUsername: _usernameCtrl.text.trim(),
       crops: selectedCrops,
       sales: SiteSales(
         description: _salesDescCtrl.text.trim(),

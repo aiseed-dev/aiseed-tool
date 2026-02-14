@@ -20,6 +20,8 @@ async def init_db():
     import models.grow  # noqa: F401
     import models.site_job  # noqa: F401
     import models.fude_polygon  # noqa: F401
+    import models.consumer  # noqa: F401
+    import models.site_like  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

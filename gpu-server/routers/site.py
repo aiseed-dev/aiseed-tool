@@ -8,7 +8,7 @@ import json
 import logging
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy import select
 
@@ -43,6 +43,7 @@ class SiteData(BaseModel):
     farmDescription: str = ""
     farmLocation: str = ""
     farmPolicy: str = ""
+    farmUsername: str = ""
     crops: list[SiteCrop] = []
     sales: SiteSales = SiteSales()
 
@@ -58,8 +59,9 @@ class DeployRequest(BaseModel):
 
 
 @router.post("/generate")
-async def generate(data: SiteData, user=Depends(get_current_user)):
+async def generate(data: SiteData, request: Request, user=Depends(get_current_user)):
     """テンプレートから HTML を即時生成して返す。"""
+    api_base = str(request.base_url).rstrip("/")
     html = generate_site_html(
         farm_name=data.farmName,
         farm_description=data.farmDescription,
@@ -67,6 +69,8 @@ async def generate(data: SiteData, user=Depends(get_current_user)):
         farm_policy=data.farmPolicy,
         crops=[c.model_dump() for c in data.crops],
         sales=data.sales.model_dump(),
+        farm_username=data.farmUsername or user.username,
+        api_base_url=api_base,
     )
     return {"html": html, "size": len(html.encode("utf-8"))}
 
@@ -141,8 +145,9 @@ async def list_jobs(
 
 
 @router.post("/deploy")
-async def deploy(req: DeployRequest, user=Depends(get_current_user)):
+async def deploy(req: DeployRequest, request: Request, user=Depends(get_current_user)):
     """ユーザーの Cloudflare Pages にデプロイする。"""
+    api_base = str(request.base_url).rstrip("/")
     html = generate_site_html(
         farm_name=req.site.farmName,
         farm_description=req.site.farmDescription,
@@ -150,6 +155,8 @@ async def deploy(req: DeployRequest, user=Depends(get_current_user)):
         farm_policy=req.site.farmPolicy,
         crops=[c.model_dump() for c in req.site.crops],
         sales=req.site.sales.model_dump(),
+        farm_username=req.site.farmUsername or user.username,
+        api_base_url=api_base,
     )
 
     cf_base = f"https://api.cloudflare.com/client/v4/accounts/{req.cfAccountId}"
