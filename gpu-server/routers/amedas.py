@@ -136,6 +136,23 @@ async def sync_station_master(db: AsyncSession = Depends(get_db)):
     return {"status": "ok", "stations_synced": count}
 
 
+@router.post("/fetch/refresh")
+async def refresh_registered_stations():
+    """登録地点の最新データを手動取得する。
+
+    .env の AMEDAS_STATIONS に設定された全地点のデータを即座に取得。
+    """
+    from config import settings
+    from services.amedas_scheduler import fetch_all_stations
+
+    if not settings.amedas_stations:
+        raise HTTPException(status_code=400, detail="AMEDAS_STATIONS が未設定です")
+
+    station_ids = [s.strip() for s in settings.amedas_stations.split(",") if s.strip()][:3]
+    results = await fetch_all_stations(station_ids)
+    return {"status": "ok", "results": results}
+
+
 @router.get("/stations", response_model=list[StationResponse])
 async def list_stations(
     q: str = Query(default="", description="地点名で検索 (漢字/カナ/英語/地点ID)"),

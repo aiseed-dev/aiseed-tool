@@ -1,6 +1,6 @@
 """AMeDAS 定期データ取得スケジューラー。
 
-設定された地点の気象データを定期的に JMA から取得し DB に保存する。
+設定された地点（最大3箇所）の気象データを1日1回 JMA から取得し DB に保存する。
 積算温度の計算に必要な連続データを自動で蓄積する。
 """
 
@@ -15,28 +15,33 @@ logger = logging.getLogger(__name__)
 
 JST = timezone(timedelta(hours=9))
 
+# 1日 = 86400秒
+_ONE_DAY = 86400
 
-async def _fetch_stations(station_ids: list[str]) -> None:
-    """指定地点の当日データを取得する。"""
+
+async def fetch_all_stations(station_ids: list[str]) -> dict[str, int]:
+    """全登録地点の当日データを取得する。手動更新からも呼ばれる。"""
     now = datetime.now(JST)
+    results = {}
 
     async with async_session() as db:
         for sid in station_ids:
+            sid = sid.strip()
             try:
-                count = await fetch_day(db, sid.strip(), now)
+                count = await fetch_day(db, sid, now)
+                results[sid] = count
                 logger.info("AMeDAS fetch: station=%s date=%s records=%d",
-                            sid.strip(), now.strftime("%Y-%m-%d"), count)
+                            sid, now.strftime("%Y-%m-%d"), count)
             except Exception as e:
-                logger.warning("AMeDAS fetch failed: station=%s error=%s",
-                               sid.strip(), e)
+                results[sid] = 0
+                logger.warning("AMeDAS fetch failed: station=%s error=%s", sid, e)
+
+    return results
 
 
-async def amedas_scheduler(station_ids: list[str], interval_minutes: int) -> None:
-    """定期的に AMeDAS データを取得するバックグラウンドタスク。"""
-    logger.info(
-        "AMeDAS scheduler started: stations=%s interval=%d min",
-        station_ids, interval_minutes,
-    )
+async def amedas_scheduler(station_ids: list[str]) -> None:
+    """1日1回 AMeDAS データを取得するバックグラウンドタスク。"""
+    logger.info("AMeDAS scheduler started: stations=%s (daily)", station_ids)
 
     # 初回は地点マスターを同期
     try:
@@ -46,10 +51,13 @@ async def amedas_scheduler(station_ids: list[str], interval_minutes: int) -> Non
     except Exception as e:
         logger.warning("AMeDAS station sync failed: %s", e)
 
+    # 初回取得
+    await fetch_all_stations(station_ids)
+
+    # 以降は1日1回
     while True:
+        await asyncio.sleep(_ONE_DAY)
         try:
-            await _fetch_stations(station_ids)
+            await fetch_all_stations(station_ids)
         except Exception as e:
             logger.error("AMeDAS scheduler error: %s", e)
-
-        await asyncio.sleep(interval_minutes * 60)

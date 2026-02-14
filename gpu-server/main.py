@@ -22,16 +22,14 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info("Database initialized.")
 
-    # AMeDAS 定期取得スケジューラー
+    # AMeDAS 定期取得スケジューラー（1日1回）
     scheduler_task = None
     if settings.amedas_stations:
         from services.amedas_scheduler import amedas_scheduler
-        station_ids = [s.strip() for s in settings.amedas_stations.split(",") if s.strip()]
+        station_ids = [s.strip() for s in settings.amedas_stations.split(",") if s.strip()][:3]
         if station_ids:
-            scheduler_task = asyncio.create_task(
-                amedas_scheduler(station_ids, settings.amedas_interval_minutes)
-            )
-            logger.info("AMeDAS scheduler started for: %s", station_ids)
+            scheduler_task = asyncio.create_task(amedas_scheduler(station_ids))
+            logger.info("AMeDAS daily scheduler for: %s", station_ids)
 
     yield
 
