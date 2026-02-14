@@ -4,12 +4,13 @@
 Open-Meteo Historical API (ERA5 0.25°) から daily データを取得し、
 NetCDF ファイルに保存する。農地の気候特性を把握するための過去データ蓄積。
 
-デフォルト5年分: 品種選択・播種時期・栽培計画に必要な長期気候パターンを収集。
+デフォルト10年分。特異現象の頻度把握には30年(WMO Climate Normal)が理想。
+ERA5は1940年〜利用可能。段階的に延長する。
 
 Usage:
     cd climate-server
-    python scripts/collect_presets.py                          # 日本 (過去5年)
-    python scripts/collect_presets.py --years 10               # 過去10年
+    python scripts/collect_presets.py                          # 日本 (過去10年)
+    python scripts/collect_presets.py --years 30               # 30年(Climate Normal)
     python scripts/collect_presets.py --region all             # 全地域
     python scripts/collect_presets.py --region italy --start 2020-01-01
     python scripts/collect_presets.py --only tokachi_plain,echigo_uonuma
@@ -100,8 +101,8 @@ async def main():
         help="地域 (japan/italy/france/usa/southeast_asia/australia/all) [default: japan]",
     )
     parser.add_argument(
-        "--years", type=int, default=5,
-        help="過去N年分を取得 [default: 5]",
+        "--years", type=int, default=10,
+        help="過去N年分を取得 [default: 10, 推奨: 30]",
     )
     parser.add_argument(
         "--start",
@@ -125,7 +126,7 @@ async def main():
     )
     args = parser.parse_args()
 
-    # 日付デフォルト (農地気候: 長期パターン把握のため5年以上推奨)
+    # 日付デフォルト (30年: 特異現象の頻度把握に必要)
     yesterday = datetime.utcnow() - timedelta(days=1)
     n_years_ago = yesterday - timedelta(days=365 * args.years)
     date_start = args.start or n_years_ago.strftime("%Y-%m-%d")

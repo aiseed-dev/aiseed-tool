@@ -4,14 +4,15 @@
 保存済み NetCDF データから、農業判断に必要な気候統計を算出する。
 品種選択・播種時期・栽培計画の基礎データ。
 
+30年データ推奨（WMO Climate Normal）。特異現象の頻度が見える。
+
 算出項目:
   - 月別平均気温（最高・最低・平均）
-  - 月別降水量
-  - 月別日射量
+  - 月別降水量・日射量
   - 積算温度（GDD: Growing Degree Days）
-  - 霜日数（最低気温 < 0°C）
-  - 初霜・終霜日（平年値）
+  - 霜日数（最低気温 < 0°C）、初霜・終霜日（平年値）
   - 年間統計（平均気温、年間降水量）
+  - 特異現象: 猛暑日(>35°C)、真夏日(>30°C)、冬日(<0°C)、大雨日(>50mm)の年平均回数
 
 Usage:
     cd climate-server
@@ -38,6 +39,19 @@ from storage import netcdf_store
 
 def loc_key(lat: float, lon: float) -> str:
     return f"{lat:.2f}_{lon:.2f}"
+
+
+def _max_consecutive(mask: np.ndarray) -> int:
+    """True が連続する最大日数。"""
+    max_run = 0
+    current = 0
+    for val in mask:
+        if val:
+            current += 1
+            max_run = max(max_run, current)
+        else:
+            current = 0
+    return max_run
 
 
 def compute_stats(ds) -> dict | None:
@@ -116,6 +130,31 @@ def compute_stats(ds) -> dict | None:
             if len(spring_frost) > 0:
                 result["last_frost_doy"] = int(np.median(spring_frost))
 
+    # ── 特異現象 (年平均回数) ────────────────────────────
+    n_years = max(1, result["years"])
+
+    if "temp_max" in ds:
+        vals = ds["temp_max"].values
+        valid = vals[~np.isnan(vals)]
+        if len(valid) > 0:
+            result["extreme_heat_35"] = round(float(np.sum(valid >= 35)) / n_years, 1)  # 猛暑日
+            result["summer_day_30"] = round(float(np.sum(valid >= 30)) / n_years, 1)    # 真夏日
+
+    if "temp_min" in ds:
+        vals = ds["temp_min"].values
+        valid = vals[~np.isnan(vals)]
+        if len(valid) > 0:
+            result["frost_day"] = round(float(np.sum(valid < 0)) / n_years, 1)          # 冬日
+            result["hard_frost"] = round(float(np.sum(valid < -5)) / n_years, 1)        # 厳寒日
+
+    if "precipitation" in ds:
+        vals = ds["precipitation"].values
+        valid = vals[~np.isnan(vals)]
+        if len(valid) > 0:
+            result["heavy_rain_50"] = round(float(np.sum(valid >= 50)) / n_years, 1)    # 大雨日
+            result["heavy_rain_100"] = round(float(np.sum(valid >= 100)) / n_years, 1)  # 豪雨日
+            result["dry_spell_max"] = int(_max_consecutive(valid < 1.0))                 # 最長無降水連続日
+
     # ── 月別統計 ──────────────────────────────────────────
     monthly = []
     for month in range(1, 13):
@@ -180,6 +219,25 @@ def print_stats(key: str, preset: dict, stats: dict, detail: bool = False):
     if first_frost and last_frost:
         frost_free = first_frost - last_frost
         print(f"  無霜期間:       {frost_free:>6} 日")
+
+    # 特異現象
+    has_extremes = any(k in stats for k in ("extreme_heat_35", "heavy_rain_50", "dry_spell_max"))
+    if has_extremes:
+        print(f"\n  ── 特異現象 (年平均回数) ──")
+        if "extreme_heat_35" in stats:
+            print(f"  猛暑日(≥35°C):  {stats['extreme_heat_35']:>6} 日/年")
+        if "summer_day_30" in stats:
+            print(f"  真夏日(≥30°C):  {stats['summer_day_30']:>6} 日/年")
+        if "frost_day" in stats:
+            print(f"  冬日  (<0°C):   {stats['frost_day']:>6} 日/年")
+        if "hard_frost" in stats:
+            print(f"  厳寒日(<-5°C):  {stats['hard_frost']:>6} 日/年")
+        if "heavy_rain_50" in stats:
+            print(f"  大雨日(≥50mm):  {stats['heavy_rain_50']:>6} 日/年")
+        if "heavy_rain_100" in stats:
+            print(f"  豪雨日(≥100mm): {stats['heavy_rain_100']:>6} 日/年")
+        if "dry_spell_max" in stats:
+            print(f"  最長無降水:     {stats['dry_spell_max']:>6} 日 (全期間中)")
 
     # 月別詳細
     if detail and "monthly" in stats:
