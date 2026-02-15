@@ -1,7 +1,7 @@
 # Grow Server
 
 栽培支援APIサーバー。
-Claude Agent SDK によるAIチャット、OCR、画像分析、天気予報、サイト生成などを提供。
+Claude Agent SDK によるAIチャット、OCR、画像分析、サイト生成、消費者プラットフォームなどを提供。
 
 ## ディレクトリ配置
 
@@ -17,6 +17,7 @@ Claude Agent SDK によるAIチャット、OCR、画像分析、天気予報、�
 │   │   ├── routers/      ← APIエンドポイント
 │   │   ├── services/     ← ビジネスロジック
 │   │   ├── models/       ← DBモデル
+│   │   ├── users.yaml    ← ユーザー別機能許可設定
 │   │   ├── .env
 │   │   └── .venv/
 │   └── ...
@@ -95,6 +96,7 @@ Claude Agent SDK（Max定額プラン）を使用。APIキー不要。
 |---|---|---|
 | POST | `/auth/register` | ユーザー登録 |
 | POST | `/auth/login` | メール/パスワードログイン |
+| GET | `/auth/providers` | 利用可能な認証方法を返す |
 | POST | `/auth/apple` | Apple Sign In |
 | POST | `/auth/google` | Google Sign In |
 | GET | `/auth/me` | プロフィール取得 |
@@ -118,43 +120,6 @@ Florence-2 による画像キャプション・物体検出・栽培写真分析
 | POST | `/vision/caption` | 画像キャプション生成 |
 | POST | `/vision/detect` | 物体検出 |
 | POST | `/vision/analyze` | 栽培写真の総合分析 |
-
-### 天気 (`/weather`)
-
-Ecowitt 気象ステーションのデータ受信・閲覧。
-
-| メソッド | パス | 説明 |
-|---|---|---|
-| POST | `/data/report` | Ecowitt データ受信 |
-| GET | `/weather/latest` | 最新の気象データ |
-| GET | `/weather/history` | 気象データ履歴 |
-| GET | `/weather/summary` | 気象サマリー |
-
-### AMeDAS (`/amedas`)
-
-気象庁AMeDASのデータ取得・閲覧。
-
-| メソッド | パス | 説明 |
-|---|---|---|
-| POST | `/amedas/stations/sync` | 観測地点マスター同期 |
-| GET | `/amedas/stations` | 観測地点一覧 |
-| POST | `/amedas/fetch` | 観測データ取得 |
-| POST | `/amedas/fetch/refresh` | 登録地点の最新データを手動取得 |
-| POST | `/amedas/fetch/range` | 期間指定データ取得 |
-| GET | `/amedas/data/latest` | 最新の観測データ |
-| GET | `/amedas/data/history` | 観測データ履歴 |
-| GET | `/amedas/data/summary` | 日別サマリー |
-| GET | `/amedas/data/gdd` | 積算温度（Growing Degree Days） |
-
-### 天気予報 (`/forecast`)
-
-ECMWF予報データ（気温・降水・土壌）。
-
-| メソッド | パス | 説明 |
-|---|---|---|
-| GET | `/forecast/ecmwf` | ECMWF気象予報 |
-| GET | `/forecast/soil` | 土壌予報（温度・水分） |
-| GET | `/forecast/daily` | 日別予報サマリー |
 
 ### スキルファイル (`/skillfile`)
 
@@ -187,6 +152,53 @@ ECMWF予報データ（気温・降水・土壌）。
 | GET | `/sites/jobs` | ユーザーのジョブ一覧 |
 | POST | `/sites/deploy` | Cloudflare Pages へデプロイ |
 
+### 筆ポリゴン (`/fude`)
+
+農水省の農地区画データ（筆ポリゴン）のインポート・検索。GPS座標から農地を特定する。
+
+| メソッド | パス | 説明 |
+|---|---|---|
+| POST | `/fude/import` | GeoJSON / ZIP ファイルをインポート |
+| GET | `/fude/search` | GPS座標から農地区画を検索 |
+| GET | `/fude/nearby` | 周辺の農地区画一覧 |
+| GET | `/fude/stats` | インポート済みデータの統計 |
+
+### QRコード (`/qr`)
+
+ホームページURLからQRコード画像を生成。マルシェの値札・畑の看板・野菜の袋に貼って直販に誘導。
+
+| メソッド | パス | 説明 |
+|---|---|---|
+| GET | `/qr/generate` | QRコード生成（PNG / SVG） |
+
+### 消費者プラットフォーム (`/consumer`)
+
+生成された農園ホームページ上の消費者向け機能。登録・ログイン・いいね。
+
+| メソッド | パス | 説明 |
+|---|---|---|
+| POST | `/consumer/register` | 消費者ユーザー登録 |
+| POST | `/consumer/login` | 消費者ログイン |
+| POST | `/consumer/like/{farm_username}` | いいねトグル |
+| GET | `/consumer/likes/{farm_username}` | いいね数・状態取得 |
+
+### 管理者 (`/admin`)
+
+admin ロールのユーザーのみアクセス可能。ユーザー管理・機能設定。
+
+| メソッド | パス | 説明 |
+|---|---|---|
+| GET | `/admin/users` | 全ユーザー一覧 |
+| GET | `/admin/users/stats` | ユーザー統計 |
+| GET | `/admin/users/pending` | 承認待ちユーザー一覧 |
+| PUT | `/admin/users/{user_id}/approve` | ユーザー承認 |
+| PUT | `/admin/users/{user_id}/role` | ロール変更 |
+| PUT | `/admin/users/{user_id}/deactivate` | ユーザー無効化 |
+| PUT | `/admin/users/{user_id}/activate` | ユーザー有効化 |
+| GET | `/admin/users/{user_id}/features` | ユーザーの利用可能機能 |
+| POST | `/admin/register` | 管理者によるユーザー登録 |
+| POST | `/admin/reload-config` | users.yaml 再読み込み |
+
 ## 環境変数（.env）
 
 ```
@@ -197,7 +209,11 @@ GROW_GPU_APPLE_CLIENT_ID=dev.aiseed.grow
 GROW_GPU_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GROW_GPU_DATABASE_URL=sqlite+aiosqlite:///./grow_gpu.db
 GROW_GPU_FLORENCE_MODEL=microsoft/Florence-2-base
-GROW_GPU_AMEDAS_STATIONS=44132,44171,44191
+GROW_GPU_ALLOW_LOCAL_REGISTER=true
+GROW_GPU_OCR_LANGUAGES=japan,en,it
+GROW_GPU_UPLOAD_DIR=./uploads
+GROW_GPU_MAX_UPLOAD_SIZE=20971520
+GROW_GPU_MAIL_FROM=noreply@aiseed.dev
 ```
 
 | 変数 | 説明 | 必須 |
@@ -209,7 +225,11 @@ GROW_GPU_AMEDAS_STATIONS=44132,44171,44191
 | `GROW_GPU_GOOGLE_CLIENT_ID` | Google OAuth 2.0 Client ID | 公開時 |
 | `GROW_GPU_DATABASE_URL` | SQLAlchemy接続文字列 | |
 | `GROW_GPU_FLORENCE_MODEL` | Florence-2 のモデル名 | |
-| `GROW_GPU_AMEDAS_STATIONS` | AMeDAS地点ID（カンマ区切り、最大3箇所）1日1回自動取得 | 積算温度使用時 |
+| `GROW_GPU_ALLOW_LOCAL_REGISTER` | `false` でローカル登録（/auth/register）を無効化。公開サーバーはソーシャルログインのみにする | |
+| `GROW_GPU_OCR_LANGUAGES` | OCR対応言語（カンマ区切り） | |
+| `GROW_GPU_UPLOAD_DIR` | 写真アップロード先ディレクトリ | |
+| `GROW_GPU_MAX_UPLOAD_SIZE` | アップロード上限サイズ（バイト、デフォルト20MB） | |
+| `GROW_GPU_MAIL_FROM` | 送信元メールアドレス | |
 
 ### SECRET_KEY の自動生成
 
@@ -220,6 +240,21 @@ GROW_GPU_AMEDAS_STATIONS=44132,44171,44191
 
 個人利用では設定不要。未設定でもメール/パスワード認証（`/auth/register` + `/auth/login`）は動作する。
 一般公開時に Apple Developer Console / Google Cloud Console で取得して設定する。
+
+### ユーザー別機能許可（users.yaml）
+
+`users.yaml` で role=user のユーザーごとに利用可能な機能を制御できる。
+admin / super_user はロールで全機能許可。pending はプロフィールのみ。
+
+```yaml
+users:
+  taro:
+    features: [ai, ocr, grow, site]
+  hanako:
+    features: [ai, grow]
+```
+
+利用可能な機能名: `ai`, `ocr`, `vision`, `grow`, `site`, `fude`, `qr`, `consumer`, `skillfile`
 
 ## systemd サービス化
 
