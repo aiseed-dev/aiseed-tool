@@ -296,6 +296,72 @@ abstract class AppLocalizations {
   /// **'その他'**
   String get activityOther;
 
+  /// No description provided for @activityPruning.
+  ///
+  /// In ja, this message translates to:
+  /// **'剪定'**
+  String get activityPruning;
+
+  /// No description provided for @activityWeeding.
+  ///
+  /// In ja, this message translates to:
+  /// **'除草'**
+  String get activityWeeding;
+
+  /// No description provided for @activityBedMaking.
+  ///
+  /// In ja, this message translates to:
+  /// **'畝作り'**
+  String get activityBedMaking;
+
+  /// No description provided for @activityTilling.
+  ///
+  /// In ja, this message translates to:
+  /// **'耕運'**
+  String get activityTilling;
+
+  /// No description provided for @activityPotUp.
+  ///
+  /// In ja, this message translates to:
+  /// **'鉢上'**
+  String get activityPotUp;
+
+  /// No description provided for @activityCutting.
+  ///
+  /// In ja, this message translates to:
+  /// **'挿木'**
+  String get activityCutting;
+
+  /// No description provided for @activityFlowering.
+  ///
+  /// In ja, this message translates to:
+  /// **'花付'**
+  String get activityFlowering;
+
+  /// No description provided for @activityShipping.
+  ///
+  /// In ja, this message translates to:
+  /// **'出荷'**
+  String get activityShipping;
+
+  /// No description provided for @activityManagement.
+  ///
+  /// In ja, this message translates to:
+  /// **'管理'**
+  String get activityManagement;
+
+  /// No description provided for @workHours.
+  ///
+  /// In ja, this message translates to:
+  /// **'作業時間'**
+  String get workHours;
+
+  /// No description provided for @materials.
+  ///
+  /// In ja, this message translates to:
+  /// **'資材'**
+  String get materials;
+
   /// No description provided for @save.
   ///
   /// In ja, this message translates to:
@@ -800,25 +866,118 @@ abstract class AppLocalizations {
   /// **'ホームページ作成機能は準備中です'**
   String get homepageComingSoon;
 
-  // Site creation
+  /// No description provided for @siteInfoFarm.
+  ///
+  /// In ja, this message translates to:
+  /// **'農園情報'**
   String get siteInfoFarm;
+
+  /// No description provided for @siteFarmName.
+  ///
+  /// In ja, this message translates to:
+  /// **'農園名'**
   String get siteFarmName;
+
+  /// No description provided for @siteFarmDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'農園の紹介文'**
   String get siteFarmDesc;
+
+  /// No description provided for @siteFarmLocation.
+  ///
+  /// In ja, this message translates to:
+  /// **'所在地'**
   String get siteFarmLocation;
+
+  /// No description provided for @siteFarmPolicy.
+  ///
+  /// In ja, this message translates to:
+  /// **'栽培方針（例: 自然栽培）'**
   String get siteFarmPolicy;
+
+  /// No description provided for @siteInfoCrops.
+  ///
+  /// In ja, this message translates to:
+  /// **'掲載する作物'**
   String get siteInfoCrops;
+
+  /// No description provided for @siteInfoSales.
+  ///
+  /// In ja, this message translates to:
+  /// **'販売情報'**
   String get siteInfoSales;
+
+  /// No description provided for @siteSalesDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'販売方法の説明'**
   String get siteSalesDesc;
+
+  /// No description provided for @siteSalesContact.
+  ///
+  /// In ja, this message translates to:
+  /// **'連絡先（メール、電話など）'**
   String get siteSalesContact;
+
+  /// No description provided for @siteGenerate.
+  ///
+  /// In ja, this message translates to:
+  /// **'HTMLを生成'**
   String get siteGenerate;
+
+  /// No description provided for @siteHtmlReady.
+  ///
+  /// In ja, this message translates to:
+  /// **'HTMLが生成されました'**
   String get siteHtmlReady;
+
+  /// No description provided for @siteCopyHtml.
+  ///
+  /// In ja, this message translates to:
+  /// **'HTMLをコピー'**
   String get siteCopyHtml;
+
+  /// No description provided for @siteDeploySection.
+  ///
+  /// In ja, this message translates to:
+  /// **'Cloudflareに自動デプロイ'**
   String get siteDeploySection;
+
+  /// No description provided for @siteDeployDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'Cloudflare Pagesに直接デプロイします。アカウントIDとAPIトークンが必要です。'**
   String get siteDeployDesc;
+
+  /// No description provided for @siteCfAccountId.
+  ///
+  /// In ja, this message translates to:
+  /// **'Cloudflare Account ID'**
   String get siteCfAccountId;
+
+  /// No description provided for @siteCfApiToken.
+  ///
+  /// In ja, this message translates to:
+  /// **'Cloudflare API Token'**
   String get siteCfApiToken;
+
+  /// No description provided for @siteCfProjectName.
+  ///
+  /// In ja, this message translates to:
+  /// **'プロジェクト名（サイトURL）'**
   String get siteCfProjectName;
+
+  /// No description provided for @siteDeploy.
+  ///
+  /// In ja, this message translates to:
+  /// **'デプロイ'**
   String get siteDeploy;
+
+  /// No description provided for @siteDeployDone.
+  ///
+  /// In ja, this message translates to:
+  /// **'デプロイ完了'**
   String get siteDeployDone;
 
   /// No description provided for @searchRecords.
@@ -994,9 +1153,162 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'（共有データベースから取得）'**
   String get cachedInfo;
+
+  /// No description provided for @skill.
+  ///
+  /// In ja, this message translates to:
+  /// **'スキル'**
   String get skill;
+
+  /// No description provided for @farmingMethod.
+  ///
+  /// In ja, this message translates to:
+  /// **'農法'**
   String get farmingMethod;
+
+  /// No description provided for @inheritFromSkill.
+  ///
+  /// In ja, this message translates to:
+  /// **'スキル設定を使う'**
   String get inheritFromSkill;
+
+  /// No description provided for @web.
+  ///
+  /// In ja, this message translates to:
+  /// **'Web'**
+  String get web;
+
+  /// No description provided for @siteEasyPublish.
+  ///
+  /// In ja, this message translates to:
+  /// **'かんたん公開'**
+  String get siteEasyPublish;
+
+  /// No description provided for @siteEasyPublishDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'スキルと栽培記録からサイトを自動作成し cowork.aiseed.dev に公開'**
+  String get siteEasyPublishDesc;
+
+  /// No description provided for @siteRequestSent.
+  ///
+  /// In ja, this message translates to:
+  /// **'リクエストを送信しました。完了後メールでお知らせします。'**
+  String get siteRequestSent;
+
+  /// No description provided for @siteAdvancedMode.
+  ///
+  /// In ja, this message translates to:
+  /// **'自分で作成（PC版）'**
+  String get siteAdvancedMode;
+
+  /// No description provided for @siteAdvancedModeDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'HTMLを即時生成し、自分のCloudflare Pagesにデプロイ'**
+  String get siteAdvancedModeDesc;
+
+  /// No description provided for @siteAutoFilled.
+  ///
+  /// In ja, this message translates to:
+  /// **'スキル設定から自動入力しました'**
+  String get siteAutoFilled;
+
+  /// No description provided for @siteEmail.
+  ///
+  /// In ja, this message translates to:
+  /// **'通知メールアドレス'**
+  String get siteEmail;
+
+  /// No description provided for @siteUsername.
+  ///
+  /// In ja, this message translates to:
+  /// **'ユーザー名（URL用、半角英数字）'**
+  String get siteUsername;
+
+  /// No description provided for @sitePublicUrl.
+  ///
+  /// In ja, this message translates to:
+  /// **'公開URL'**
+  String get sitePublicUrl;
+
+  /// No description provided for @siteJobPending.
+  ///
+  /// In ja, this message translates to:
+  /// **'処理待ち'**
+  String get siteJobPending;
+
+  /// No description provided for @siteJobProcessing.
+  ///
+  /// In ja, this message translates to:
+  /// **'生成中…'**
+  String get siteJobProcessing;
+
+  /// No description provided for @siteJobDone.
+  ///
+  /// In ja, this message translates to:
+  /// **'公開済み'**
+  String get siteJobDone;
+
+  /// No description provided for @siteJobError.
+  ///
+  /// In ja, this message translates to:
+  /// **'エラー'**
+  String get siteJobError;
+
+  /// No description provided for @voiceInput.
+  ///
+  /// In ja, this message translates to:
+  /// **'音声入力'**
+  String get voiceInput;
+
+  /// No description provided for @voiceInputStop.
+  ///
+  /// In ja, this message translates to:
+  /// **'音声入力を停止'**
+  String get voiceInputStop;
+
+  /// No description provided for @voiceInputHint.
+  ///
+  /// In ja, this message translates to:
+  /// **'話してください...'**
+  String get voiceInputHint;
+
+  /// No description provided for @voiceInputUnavailable.
+  ///
+  /// In ja, this message translates to:
+  /// **'音声入力は利用できません'**
+  String get voiceInputUnavailable;
+
+  /// No description provided for @qrCode.
+  ///
+  /// In ja, this message translates to:
+  /// **'QRコード'**
+  String get qrCode;
+
+  /// No description provided for @qrCodeDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'看板・値札・袋に貼って、ホームページに誘導'**
+  String get qrCodeDesc;
+
+  /// No description provided for @qrGenerate.
+  ///
+  /// In ja, this message translates to:
+  /// **'QRコードを生成'**
+  String get qrGenerate;
+
+  /// No description provided for @qrRegenerate.
+  ///
+  /// In ja, this message translates to:
+  /// **'再生成'**
+  String get qrRegenerate;
+
+  /// No description provided for @qrSave.
+  ///
+  /// In ja, this message translates to:
+  /// **'画像を保存'**
+  String get qrSave;
 }
 
 class _AppLocalizationsDelegate

@@ -108,6 +108,39 @@ class AppLocalizationsJa extends AppLocalizations {
   String get activityOther => 'その他';
 
   @override
+  String get activityPruning => '剪定';
+
+  @override
+  String get activityWeeding => '除草';
+
+  @override
+  String get activityBedMaking => '畝作り';
+
+  @override
+  String get activityTilling => '耕運';
+
+  @override
+  String get activityPotUp => '鉢上';
+
+  @override
+  String get activityCutting => '挿木';
+
+  @override
+  String get activityFlowering => '花付';
+
+  @override
+  String get activityShipping => '出荷';
+
+  @override
+  String get activityManagement => '管理';
+
+  @override
+  String get workHours => '作業時間';
+
+  @override
+  String get materials => '資材';
+
+  @override
   String get save => '保存';
 
   @override
@@ -365,43 +398,61 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get homepageComingSoon => 'ホームページ作成機能は準備中です';
 
-  // ホームページ作成画面
   @override
   String get siteInfoFarm => '農園情報';
+
   @override
   String get siteFarmName => '農園名';
+
   @override
   String get siteFarmDesc => '農園の紹介文';
+
   @override
   String get siteFarmLocation => '所在地';
+
   @override
   String get siteFarmPolicy => '栽培方針（例: 自然栽培）';
+
   @override
   String get siteInfoCrops => '掲載する作物';
+
   @override
   String get siteInfoSales => '販売情報';
+
   @override
   String get siteSalesDesc => '販売方法の説明';
+
   @override
   String get siteSalesContact => '連絡先（メール、電話など）';
+
   @override
   String get siteGenerate => 'HTMLを生成';
+
   @override
   String get siteHtmlReady => 'HTMLが生成されました';
+
   @override
   String get siteCopyHtml => 'HTMLをコピー';
+
   @override
   String get siteDeploySection => 'Cloudflareに自動デプロイ';
+
   @override
-  String get siteDeployDesc => 'Cloudflare Pagesに直接デプロイします。アカウントIDとAPIトークンが必要です。';
+  String get siteDeployDesc =>
+      'Cloudflare Pagesに直接デプロイします。アカウントIDとAPIトークンが必要です。';
+
   @override
   String get siteCfAccountId => 'Cloudflare Account ID';
+
   @override
   String get siteCfApiToken => 'Cloudflare API Token';
+
   @override
   String get siteCfProjectName => 'プロジェクト名（サイトURL）';
+
   @override
   String get siteDeploy => 'デプロイ';
+
   @override
   String get siteDeployDone => 'デプロイ完了';
 
@@ -500,4 +551,73 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get inheritFromSkill => 'スキル設定を使う';
+
+  @override
+  String get web => 'Web';
+
+  @override
+  String get siteEasyPublish => 'かんたん公開';
+
+  @override
+  String get siteEasyPublishDesc => 'スキルと栽培記録からサイトを自動作成し cowork.aiseed.dev に公開';
+
+  @override
+  String get siteRequestSent => 'リクエストを送信しました。完了後メールでお知らせします。';
+
+  @override
+  String get siteAdvancedMode => '自分で作成（PC版）';
+
+  @override
+  String get siteAdvancedModeDesc => 'HTMLを即時生成し、自分のCloudflare Pagesにデプロイ';
+
+  @override
+  String get siteAutoFilled => 'スキル設定から自動入力しました';
+
+  @override
+  String get siteEmail => '通知メールアドレス';
+
+  @override
+  String get siteUsername => 'ユーザー名（URL用、半角英数字）';
+
+  @override
+  String get sitePublicUrl => '公開URL';
+
+  @override
+  String get siteJobPending => '処理待ち';
+
+  @override
+  String get siteJobProcessing => '生成中…';
+
+  @override
+  String get siteJobDone => '公開済み';
+
+  @override
+  String get siteJobError => 'エラー';
+
+  @override
+  String get voiceInput => '音声入力';
+
+  @override
+  String get voiceInputStop => '音声入力を停止';
+
+  @override
+  String get voiceInputHint => '話してください...';
+
+  @override
+  String get voiceInputUnavailable => '音声入力は利用できません';
+
+  @override
+  String get qrCode => 'QRコード';
+
+  @override
+  String get qrCodeDesc => '看板・値札・袋に貼って、ホームページに誘導';
+
+  @override
+  String get qrGenerate => 'QRコードを生成';
+
+  @override
+  String get qrRegenerate => '再生成';
+
+  @override
+  String get qrSave => '画像を保存';
 }
