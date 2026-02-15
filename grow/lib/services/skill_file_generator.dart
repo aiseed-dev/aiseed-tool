@@ -1,17 +1,124 @@
 /// Generates a personalized cultivation AI skill file (Markdown)
-/// based on user's answers to 5 simple questions.
+/// based on user's answers to simple questions.
+/// 有機農業（自然栽培を含む）専用。
+
+import 'dart:convert';
+
+/// 栽培方式を4軸で定義する
+class FarmingPractices {
+  final String fertilizer; // 肥料
+  final String pesticide; // 農薬
+  final String tillage; // 耕起
+  final String cover; // 被覆
+
+  const FarmingPractices({
+    this.fertilizer = '',
+    this.pesticide = '',
+    this.tillage = '',
+    this.cover = '',
+  });
+
+  bool get isEmpty =>
+      fertilizer.isEmpty &&
+      pesticide.isEmpty &&
+      tillage.isEmpty &&
+      cover.isEmpty;
+
+  bool get isNotEmpty => !isEmpty;
+
+  /// JSON文字列にシリアライズ
+  String toJsonString() => jsonEncode({
+        'fertilizer': fertilizer,
+        'pesticide': pesticide,
+        'tillage': tillage,
+        'cover': cover,
+      });
+
+  /// JSON文字列からデシリアライズ。旧形式（"natural" 等）にも対応
+  factory FarmingPractices.fromString(String? value) {
+    if (value == null || value.isEmpty) return const FarmingPractices();
+    if (value.startsWith('{')) {
+      try {
+        final map = jsonDecode(value) as Map<String, dynamic>;
+        return FarmingPractices(
+          fertilizer: (map['fertilizer'] as String?) ?? '',
+          pesticide: (map['pesticide'] as String?) ?? '',
+          tillage: (map['tillage'] as String?) ?? '',
+          cover: (map['cover'] as String?) ?? '',
+        );
+      } catch (_) {
+        return const FarmingPractices();
+      }
+    }
+    // 旧形式からの変換
+    return _migrateLegacy(value);
+  }
+
+  /// 旧 farming_method 値を4軸に変換
+  static FarmingPractices _migrateLegacy(String legacy) {
+    switch (legacy) {
+      case 'natural':
+        return const FarmingPractices(
+          fertilizer: 'none',
+          pesticide: 'none',
+          tillage: 'no_till',
+          cover: 'grass',
+        );
+      case 'organic':
+        return const FarmingPractices(
+          fertilizer: 'compost',
+          pesticide: 'none',
+          tillage: 'till',
+          cover: 'mulch',
+        );
+      case 'permaculture':
+        return const FarmingPractices(
+          fertilizer: 'green_manure',
+          pesticide: 'none',
+          tillage: 'no_till',
+          cover: 'cover_crop',
+        );
+      default:
+        return const FarmingPractices();
+    }
+  }
+
+  /// 表示用のサマリー文字列
+  String toDisplayString() {
+    final parts = <String>[];
+    final fLabel = SkillFileGenerator.fertilizerOptions[fertilizer];
+    final pLabel = SkillFileGenerator.pesticideOptions[pesticide];
+    final tLabel = SkillFileGenerator.tillageOptions[tillage];
+    final cLabel = SkillFileGenerator.coverOptions[cover];
+    if (fLabel != null) parts.add(fLabel);
+    if (pLabel != null) parts.add(pLabel);
+    if (tLabel != null) parts.add(tLabel);
+    if (cLabel != null) parts.add(cLabel);
+    return parts.join('・');
+  }
+
+  /// 短い表示用（2項目程度）
+  String toShortString() {
+    final parts = <String>[];
+    final fLabel = SkillFileGenerator.fertilizerOptions[fertilizer];
+    final pLabel = SkillFileGenerator.pesticideOptions[pesticide];
+    if (fLabel != null) parts.add(fLabel);
+    if (pLabel != null) parts.add(pLabel);
+    return parts.isEmpty ? '未設定' : parts.join('・');
+  }
+}
 
 class GrowProfile {
   final List<String> crops;
   final String location;
-  final String farmingMethod;
+  final FarmingPractices practices;
   final String experience;
   final String challenges;
 
   GrowProfile({
     required this.crops,
     required this.location,
-    required this.farmingMethod,
+    required this.practices,
     required this.experience,
     required this.challenges,
   });
@@ -19,19 +126,38 @@ class GrowProfile {
   Map<String, dynamic> toMap() => {
         'crops': crops,
         'location': location,
-        'farming_method': farmingMethod,
+        'farming_method': practices.toJsonString(),
         'experience': experience,
         'challenges': challenges,
       };
 }
 
 class SkillFileGenerator {
-  static const farmingMethods = {
-    'natural': '自然農（不耕起・無施肥・無農薬）',
-    'organic': '有機農業（有機肥料・無農薬）',
-    'conventional': '慣行農業',
-    'permaculture': 'パーマカルチャー',
-    'other': 'その他',
+  // -- 4軸の選択肢 --
+
+  static const fertilizerOptions = {
+    'none': '無施肥（自然の循環のみ）',
+    'compost': '堆肥（植物性・動物性）',
+    'green_manure': '緑肥（すき込み）',
+    'bokashi': 'ぼかし肥料',
+  };
+
+  static const pesticideOptions = {
+    'none': '無農薬',
+    'organic_certified': '有機JAS認定資材のみ',
+  };
+
+  static const tillageOptions = {
+    'no_till': '不耕起',
+    'minimum_till': '部分耕起',
+    'till': '耕起',
+  };
+
+  static const coverOptions = {
+    'grass': '草生栽培',
+    'mulch': 'マルチ（敷きわら等）',
+    'cover_crop': 'カバークロップ',
+    'none': '被覆なし',
   };
 
   static const experienceLevels = {
@@ -44,18 +170,20 @@ class SkillFileGenerator {
   /// Generate a Markdown skill file from the user profile.
   static String generate(GrowProfile profile) {
     final buf = StringBuffer();
+    final p = profile.practices;
 
-    buf.writeln('# 栽培AIスキルズファイル');
+    buf.writeln('# 栽培AIスキルファイル');
     buf.writeln();
     buf.writeln('> このファイルをAIアシスタントのシステムプロンプトや');
     buf.writeln('> カスタム指示に貼り付けると、あなた専用の栽培アドバイザーになります。');
-    buf.writeln('> Generated by AIseed Grow');
+    buf.writeln('> Generated by AIseed Grow（有機農業専用）');
     buf.writeln();
 
     // Role definition
     buf.writeln('## あなたの役割');
     buf.writeln();
-    buf.writeln('あなたは栽培の専門家アシスタントです。');
+    buf.writeln('あなたは有機農業（自然栽培を含む）の専門家アシスタントです。');
+    buf.writeln('化学合成農薬・化学肥料の使用は一切提案しないでください。');
     buf.writeln('以下のユーザープロフィールに基づいて、具体的で実践的なアドバイスをしてください。');
     buf.writeln();
 
@@ -77,12 +205,21 @@ class SkillFileGenerator {
     buf.writeln(profile.location);
     buf.writeln();
 
-    // Farming method
-    buf.writeln('### 農法');
+    // Farming practices (4 axes)
+    buf.writeln('### 栽培方式');
     buf.writeln();
-    final methodLabel =
-        farmingMethods[profile.farmingMethod] ?? profile.farmingMethod;
-    buf.writeln(methodLabel);
+    if (p.fertilizer.isNotEmpty) {
+      buf.writeln('- 肥料: ${fertilizerOptions[p.fertilizer] ?? p.fertilizer}');
+    }
+    if (p.pesticide.isNotEmpty) {
+      buf.writeln('- 農薬: ${pesticideOptions[p.pesticide] ?? p.pesticide}');
+    }
+    if (p.tillage.isNotEmpty) {
+      buf.writeln('- 耕起: ${tillageOptions[p.tillage] ?? p.tillage}');
+    }
+    if (p.cover.isNotEmpty) {
+      buf.writeln('- 被覆: ${coverOptions[p.cover] ?? p.cover}');
+    }
     buf.writeln();
 
     // Experience
@@ -101,32 +238,44 @@ class SkillFileGenerator {
       buf.writeln();
     }
 
-    // Instructions based on farming method
+    // Instructions based on practices
     buf.writeln('## 回答の指針');
     buf.writeln();
+    buf.writeln('- 化学合成農薬・化学肥料の使用を絶対に提案しないでください');
+    buf.writeln('- 土壌微生物・菌根菌ネットワークの観点を重視してください');
+    buf.writeln('- コンパニオンプランツや生態系の多様性を活かした提案をしてください');
+    buf.writeln('- 生物的防除を優先してください');
 
-    switch (profile.farmingMethod) {
-      case 'natural':
-        buf.writeln('- 自然農の原則（不耕起・無施肥・無農薬・草との共生）を尊重してください');
-        buf.writeln('- 化学肥料や農薬の使用を提案しないでください');
-        buf.writeln('- 土壌微生物・菌根菌ネットワークの観点を重視してください');
-        buf.writeln('- コンパニオンプランツや生態系の多様性を活かした提案をしてください');
-        buf.writeln('- 福岡正信、川口由一の自然農の考え方を参考にしてください');
-        break;
-      case 'organic':
-        buf.writeln('- 有機JAS基準に準拠したアドバイスをしてください');
-        buf.writeln('- 化学合成農薬・化学肥料の使用を提案しないでください');
-        buf.writeln('- 堆肥、緑肥、有機質肥料を活用した提案をしてください');
-        buf.writeln('- 生物的防除やコンパニオンプランツを優先してください');
-        break;
-      case 'permaculture':
-        buf.writeln('- パーマカルチャーの倫理（地球への配慮・人への配慮・余剰の共有）を基本にしてください');
-        buf.writeln('- 多年生植物、フォレストガーデン、ギルドの概念を取り入れてください');
-        buf.writeln('- 水の循環、エネルギー効率、生態系デザインを考慮してください');
-        break;
-      default:
-        buf.writeln('- 効率と品質のバランスを考えた実践的なアドバイスをしてください');
-        buf.writeln('- 農薬使用時は適切な使用量と安全な使用方法を明記してください');
+    // 肥料に応じた指針
+    if (p.fertilizer == 'none') {
+      buf.writeln('- 無施肥の原則を尊重し、外部からの肥料投入を提案しないでください');
+      buf.writeln('- 草や落ち葉の循環、根の分解による自然な養分供給を重視してください');
+    } else if (p.fertilizer == 'compost') {
+      buf.writeln('- 堆肥の作り方・使い方を中心にアドバイスしてください');
+      buf.writeln('- C/N比や完熟度など堆肥の品質管理を重視してください');
+    } else if (p.fertilizer == 'green_manure') {
+      buf.writeln('- 緑肥作物の選定とすき込み時期を重視してください');
+    } else if (p.fertilizer == 'bokashi') {
+      buf.writeln('- ぼかし肥料の作り方・使い方を中心にアドバイスしてください');
+      buf.writeln('- 米ぬか・油かす等の身近な有機資材の活用を提案してください');
+    }
+
+    // 耕起に応じた指針
+    if (p.tillage == 'no_till') {
+      buf.writeln('- 不耕起の原則を尊重し、耕運を提案しないでください');
+      buf.writeln('- 福岡正信、川口由一の自然農の考え方を参考にしてください');
+    } else if (p.tillage == 'minimum_till') {
+      buf.writeln('- 必要最小限の耕起にとどめる方法を提案してください');
+    }
+
+    // 被覆に応じた指針
+    if (p.cover == 'grass') {
+      buf.writeln('- 草との共生を重視し、むやみに除草を勧めないでください');
+      buf.writeln('- 草の刈り敷きによるマルチ効果を活かしてください');
+    } else if (p.cover == 'cover_crop') {
+      buf.writeln('- カバークロップの選定と管理を重視してください');
+    } else if (p.cover == 'mulch') {
+      buf.writeln('- 敷きわら・もみ殻等の有機マルチを活用してください');
     }
 
     buf.writeln();
@@ -196,16 +345,17 @@ class SkillFileGenerator {
 
   /// Generate a system prompt (shorter) from the profile for direct API use.
   static String generateSystemPrompt(GrowProfile profile) {
-    final method =
-        farmingMethods[profile.farmingMethod] ?? profile.farmingMethod;
+    final p = profile.practices;
     final exp =
         experienceLevels[profile.experience] ?? profile.experience;
     final crops = profile.crops.join('、');
 
     final buf = StringBuffer();
-    buf.writeln('あなたは栽培の専門家コワーカーです。');
+    buf.writeln('あなたは有機農業（自然栽培を含む）の専門家コワーカーです。');
+    buf.writeln('化学合成農薬・化学肥料は一切提案しないでください。');
     buf.writeln();
-    buf.writeln('ユーザー: $exp。$method。');
+    buf.writeln('ユーザー: $exp。');
+    buf.writeln('栽培方式: ${p.toDisplayString()}');
     buf.writeln('栽培作物: $crops');
     buf.writeln('場所: ${profile.location}');
     if (profile.challenges.isNotEmpty) {
@@ -214,10 +364,14 @@ class SkillFileGenerator {
     buf.writeln();
     buf.writeln('具体的で実践的なアドバイスを日本語で回答してください。');
 
-    if (profile.farmingMethod == 'natural') {
-      buf.writeln('自然農の原則（不耕起・無施肥・無農薬）を尊重してください。');
-    } else if (profile.farmingMethod == 'organic') {
-      buf.writeln('有機農業の基準に準拠したアドバイスをしてください。');
+    if (p.fertilizer == 'none') {
+      buf.writeln('無施肥の原則を尊重してください。');
+    }
+    if (p.tillage == 'no_till') {
+      buf.writeln('不耕起の原則を尊重してください。');
+    }
+    if (p.cover == 'grass') {
+      buf.writeln('草生栽培の原則を尊重してください。');
     }
 
     buf.writeln();

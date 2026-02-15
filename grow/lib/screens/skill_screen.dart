@@ -14,7 +14,11 @@ import 'sales_slips_screen.dart';
 // Structured skill profile SharedPreferences keys
 const kSkillCropsPref = 'skill_crops';
 const kSkillLocationPref = 'skill_location';
-const kSkillMethodPref = 'skill_method';
+const kSkillMethodPref = 'skill_method'; // 旧形式互換 / JSON形式
+const kSkillFertilizerPref = 'skill_fertilizer';
+const kSkillPesticidePref = 'skill_pesticide';
+const kSkillTillagePref = 'skill_tillage';
+const kSkillCoverPref = 'skill_cover';
 const kSkillExperiencePref = 'skill_experience';
 const kSkillChallengesPref = 'skill_challenges';
 
@@ -43,7 +47,10 @@ class SkillScreen extends StatefulWidget {
 class _SkillScreenState extends State<SkillScreen> {
   List<String> _crops = [];
   String _location = '';
-  String _method = '';
+  String _fertilizer = '';
+  String _pesticide = '';
+  String _tillage = '';
+  String _cover = '';
   String _experience = '';
   String _challenges = '';
 
@@ -68,7 +75,22 @@ class _SkillScreenState extends State<SkillScreen> {
       final cropsStr = prefs.getString(kSkillCropsPref) ?? '';
       _crops = cropsStr.isEmpty ? [] : cropsStr.split(',');
       _location = prefs.getString(kSkillLocationPref) ?? '';
-      _method = prefs.getString(kSkillMethodPref) ?? '';
+      // 4軸を読み込み（旧形式からのマイグレーションも対応）
+      _fertilizer = prefs.getString(kSkillFertilizerPref) ?? '';
+      _pesticide = prefs.getString(kSkillPesticidePref) ?? '';
+      _tillage = prefs.getString(kSkillTillagePref) ?? '';
+      _cover = prefs.getString(kSkillCoverPref) ?? '';
+      // 旧形式からマイグレーション
+      if (_fertilizer.isEmpty && _pesticide.isEmpty) {
+        final oldMethod = prefs.getString(kSkillMethodPref) ?? '';
+        if (oldMethod.isNotEmpty) {
+          final p = FarmingPractices.fromString(oldMethod);
+          _fertilizer = p.fertilizer;
+          _pesticide = p.pesticide;
+          _tillage = p.tillage;
+          _cover = p.cover;
+        }
+      }
       _experience = prefs.getString(kSkillExperiencePref) ?? '';
       _challenges = prefs.getString(kSkillChallengesPref) ?? '';
 
@@ -78,12 +100,19 @@ class _SkillScreenState extends State<SkillScreen> {
     });
   }
 
-  bool get _hasProfile => _method.isNotEmpty && _experience.isNotEmpty;
+  FarmingPractices get _practices => FarmingPractices(
+        fertilizer: _fertilizer,
+        pesticide: _pesticide,
+        tillage: _tillage,
+        cover: _cover,
+      );
+
+  bool get _hasProfile => _practices.isNotEmpty && _experience.isNotEmpty;
 
   GrowProfile get _profile => GrowProfile(
         crops: _crops,
         location: _location,
-        farmingMethod: _method,
+        practices: _practices,
         experience: _experience,
         challenges: _challenges,
       );
@@ -173,8 +202,7 @@ class _SkillScreenState extends State<SkillScreen> {
       _serverUrl.isNotEmpty && _serverToken.isNotEmpty;
 
   Widget _buildProfile() {
-    final methodLabel =
-        SkillFileGenerator.farmingMethods[_method] ?? _method;
+    final practicesLabel = _practices.toShortString();
     final expLabel =
         SkillFileGenerator.experienceLevels[_experience] ?? _experience;
 
@@ -188,7 +216,7 @@ class _SkillScreenState extends State<SkillScreen> {
             leading: const Icon(Icons.auto_awesome),
             title: const Text('スキルズ'),
             subtitle: Text(
-              '$methodLabel・$expLabel',
+              '$practicesLabel・$expLabel',
               style: TextStyle(
                 fontSize: 13,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -199,10 +227,71 @@ class _SkillScreenState extends State<SkillScreen> {
             children: [
               const Divider(height: 1),
               _profileTile(
+                icon: Icons.compost,
+                title: '肥料',
+                value: SkillFileGenerator.fertilizerOptions[_fertilizer] ?? '未設定',
+                onTap: () => _editPractice(
+                  '肥料',
+                  SkillFileGenerator.fertilizerOptions,
+                  _fertilizer,
+                  (v) async {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString(kSkillFertilizerPref, v);
+                    setState(() => _fertilizer = v);
+                    _syncMethodPref();
+                  },
+                ),
+              ),
+              const Divider(height: 1, indent: 56),
+              _profileTile(
+                icon: Icons.bug_report,
+                title: '農薬',
+                value: SkillFileGenerator.pesticideOptions[_pesticide] ?? '未設定',
+                onTap: () => _editPractice(
+                  '農薬',
+                  SkillFileGenerator.pesticideOptions,
+                  _pesticide,
+                  (v) async {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString(kSkillPesticidePref, v);
+                    setState(() => _pesticide = v);
+                    _syncMethodPref();
+                  },
+                ),
+              ),
+              const Divider(height: 1, indent: 56),
+              _profileTile(
                 icon: Icons.agriculture,
-                title: '農法',
-                value: methodLabel,
-                onTap: _editMethod,
+                title: '耕起',
+                value: SkillFileGenerator.tillageOptions[_tillage] ?? '未設定',
+                onTap: () => _editPractice(
+                  '耕起',
+                  SkillFileGenerator.tillageOptions,
+                  _tillage,
+                  (v) async {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString(kSkillTillagePref, v);
+                    setState(() => _tillage = v);
+                    _syncMethodPref();
+                  },
+                ),
+              ),
+              const Divider(height: 1, indent: 56),
+              _profileTile(
+                icon: Icons.grass,
+                title: '被覆',
+                value: SkillFileGenerator.coverOptions[_cover] ?? '未設定',
+                onTap: () => _editPractice(
+                  '被覆',
+                  SkillFileGenerator.coverOptions,
+                  _cover,
+                  (v) async {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString(kSkillCoverPref, v);
+                    setState(() => _cover = v);
+                    _syncMethodPref();
+                  },
+                ),
               ),
               const Divider(height: 1, indent: 56),
               _profileTile(
@@ -452,22 +541,33 @@ class _SkillScreenState extends State<SkillScreen> {
 
   // -- Edit dialogs --
 
-  Future<void> _editMethod() async {
+  /// 旧キー（kSkillMethodPref）をJSON形式で同期
+  Future<void> _syncMethodPref() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(kSkillMethodPref, _practices.toJsonString());
+  }
+
+  Future<void> _editPractice(
+    String title,
+    Map<String, String> options,
+    String currentValue,
+    Future<void> Function(String) onSave,
+  ) async {
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('農法'),
-        children: SkillFileGenerator.farmingMethods.entries.map((e) {
+        title: Text(title),
+        children: options.entries.map((e) {
           return SimpleDialogOption(
             onPressed: () => Navigator.pop(ctx, e.key),
             child: Row(
               children: [
                 Icon(
-                  _method == e.key
+                  currentValue == e.key
                       ? Icons.radio_button_checked
                       : Icons.radio_button_off,
                   size: 20,
-                  color: _method == e.key
+                  color: currentValue == e.key
                       ? Theme.of(ctx).colorScheme.primary
                       : null,
                 ),
@@ -480,9 +580,7 @@ class _SkillScreenState extends State<SkillScreen> {
       ),
     );
     if (result == null) return;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(kSkillMethodPref, result);
-    setState(() => _method = result);
+    await onSave(result);
   }
 
   Future<void> _editExperience() async {

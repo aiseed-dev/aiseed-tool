@@ -194,7 +194,7 @@
   "sourceUrl": "取得元URL",
   "cachedInfo": "（共有データベースから取得）",
   "skill": "スキルズ",
-  "farmingMethod": "農法",
+  "farmingMethod": "栽培方式",
   "inheritFromSkill": "スキルズ設定を使う",
   "web": "Web",
   "siteEasyPublish": "かんたん公開",

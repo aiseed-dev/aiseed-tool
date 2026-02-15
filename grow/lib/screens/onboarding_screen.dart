@@ -34,8 +34,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   // Q2: Location
   final _locationController = TextEditingController();
 
-  // Q3: Farming method
-  String _farmingMethod = '';
+  // Q3: Farming practices (4 axes)
+  String _fertilizer = '';
+  String _pesticide = '';
+  String _tillage = '';
+  String _cover = '';
 
   // Q4: Experience
   String _experience = '';
@@ -62,7 +65,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       case 1:
         return _locationController.text.trim().isNotEmpty;
       case 2:
-        return _farmingMethod.isNotEmpty;
+        return _fertilizer.isNotEmpty &&
+            _pesticide.isNotEmpty &&
+            _tillage.isNotEmpty &&
+            _cover.isNotEmpty;
       case 3:
         return _experience.isNotEmpty;
       case 4:
@@ -94,16 +100,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         .toList();
     final allCrops = [..._selectedCrops, ...customCrops];
 
+    final practices = FarmingPractices(
+      fertilizer: _fertilizer,
+      pesticide: _pesticide,
+      tillage: _tillage,
+      cover: _cover,
+    );
+
     final profile = GrowProfile(
       crops: allCrops,
       location: _locationController.text.trim(),
-      farmingMethod: _farmingMethod,
+      practices: practices,
       experience: _experience,
       challenges: _challengesController.text.trim(),
     );
 
     // Save structured profile data
-    _saveProfile(allCrops);
+    _saveProfile(allCrops, practices);
 
     setState(() {
       _generatedSkillFile = SkillFileGenerator.generate(profile);
@@ -111,12 +124,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
   }
 
-  Future<void> _saveProfile(List<String> allCrops) async {
+  Future<void> _saveProfile(
+      List<String> allCrops, FarmingPractices practices) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(kSkillCropsPref, allCrops.join(','));
     await prefs.setString(
         kSkillLocationPref, _locationController.text.trim());
-    await prefs.setString(kSkillMethodPref, _farmingMethod);
+    // 4軸を個別に保存
+    await prefs.setString(kSkillFertilizerPref, practices.fertilizer);
+    await prefs.setString(kSkillPesticidePref, practices.pesticide);
+    await prefs.setString(kSkillTillagePref, practices.tillage);
+    await prefs.setString(kSkillCoverPref, practices.cover);
+    // 旧キーも互換性のためJSON形式で保存
+    await prefs.setString(kSkillMethodPref, practices.toJsonString());
     await prefs.setString(kSkillExperiencePref, _experience);
     await prefs.setString(
         kSkillChallengesPref, _challengesController.text.trim());
@@ -185,7 +205,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       case 1:
         return _buildLocationStep();
       case 2:
-        return _buildMethodStep();
+        return _buildPracticesStep();
       case 3:
         return _buildExperienceStep();
       case 4:
@@ -267,24 +287,94 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  Widget _buildMethodStep() {
+  Widget _buildPracticesStep() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('栽培方式は？',
+              style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 8),
+          Text('4つの項目をそれぞれ選んでください',
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          const SizedBox(height: 20),
+
+          // 肥料
+          _practiceSection(
+            icon: Icons.compost,
+            title: '肥料',
+            options: SkillFileGenerator.fertilizerOptions,
+            value: _fertilizer,
+            onChanged: (v) => setState(() => _fertilizer = v),
+          ),
+          const SizedBox(height: 16),
+
+          // 農薬
+          _practiceSection(
+            icon: Icons.bug_report,
+            title: '農薬',
+            options: SkillFileGenerator.pesticideOptions,
+            value: _pesticide,
+            onChanged: (v) => setState(() => _pesticide = v),
+          ),
+          const SizedBox(height: 16),
+
+          // 耕起
+          _practiceSection(
+            icon: Icons.agriculture,
+            title: '耕起',
+            options: SkillFileGenerator.tillageOptions,
+            value: _tillage,
+            onChanged: (v) => setState(() => _tillage = v),
+          ),
+          const SizedBox(height: 16),
+
+          // 被覆
+          _practiceSection(
+            icon: Icons.grass,
+            title: '被覆',
+            options: SkillFileGenerator.coverOptions,
+            value: _cover,
+            onChanged: (v) => setState(() => _cover = v),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _practiceSection({
+    required IconData icon,
+    required String title,
+    required Map<String, String> options,
+    required String value,
+    required ValueChanged<String> onChanged,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('農法は？', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 8),
-        Text('どのようなスタイルで栽培していますか？',
-            style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant)),
-        const SizedBox(height: 16),
-        ...SkillFileGenerator.farmingMethods.entries.map((e) {
-          return RadioListTile<String>(
-            value: e.key,
-            groupValue: _farmingMethod,
-            title: Text(e.value),
-            onChanged: (v) => setState(() => _farmingMethod = v ?? ''),
-          );
-        }),
+        Row(
+          children: [
+            Icon(icon, size: 20),
+            const SizedBox(width: 8),
+            Text(title, style: Theme.of(context).textTheme.titleSmall),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: options.entries.map((e) {
+            final selected = value == e.key;
+            return ChoiceChip(
+              label: Text(e.value),
+              selected: selected,
+              onSelected: (v) {
+                if (v) onChanged(e.key);
+              },
+            );
+          }).toList(),
+        ),
       ],
     );
   }

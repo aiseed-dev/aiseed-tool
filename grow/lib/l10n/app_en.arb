@@ -184,7 +184,7 @@
   "sourceUrl": "Source URL",
   "cachedInfo": "(from shared database)",
   "skill": "Skill",
-  "farmingMethod": "Farming method",
+  "farmingMethod": "Farming practices",
   "inheritFromSkill": "Use skill defaults",
   "web": "Web",
   "siteEasyPublish": "Easy publish",

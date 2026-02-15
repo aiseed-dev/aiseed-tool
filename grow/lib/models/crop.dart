@@ -1,4 +1,5 @@
 import 'package:uuid/uuid.dart';
+import '../services/skill_file_generator.dart';
 
 class Crop {
   final String id;
@@ -71,6 +72,10 @@ class Crop {
       );
 
   bool get isEnded => endDate != null;
+
+  /// farming_method 文字列を FarmingPractices にパース
+  FarmingPractices get practices =>
+      FarmingPractices.fromString(farmingMethod);
 
   Crop copyWith({bool? isFavorite}) => Crop(
         id: id,

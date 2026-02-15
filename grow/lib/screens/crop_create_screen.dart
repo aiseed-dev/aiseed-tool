@@ -35,7 +35,10 @@ class _CropCreateScreenState extends State<CropCreateScreen> {
 
   String? _selectedPlotId;
   String? _selectedParentCropId;
-  String? _selectedFarmingMethod;
+  String _selectedFertilizer = '';
+  String _selectedPesticide = '';
+  String _selectedTillage = '';
+  String _selectedCover = '';
   List<Plot> _allPlots = [];
   List<Location> _locations = [];
   List<Crop> _allCrops = [];
@@ -75,16 +78,40 @@ class _CropCreateScreenState extends State<CropCreateScreen> {
     final locations = await widget.db.getLocations();
     final allCrops = await widget.db.getCrops();
     final serverAvailable = await _cultivationInfoService.isAvailable;
-    // Pre-fill farming method from skill defaults
+    // Pre-fill farming practices from skill defaults
     final prefs = await SharedPreferences.getInstance();
-    final skillMethod = prefs.getString(kSkillMethodPref) ?? '';
+    final skillFertilizer = prefs.getString(kSkillFertilizerPref) ?? '';
+    final skillPesticide = prefs.getString(kSkillPesticidePref) ?? '';
+    final skillTillage = prefs.getString(kSkillTillagePref) ?? '';
+    final skillCover = prefs.getString(kSkillCoverPref) ?? '';
+    // 旧形式のフォールバック
+    if (skillFertilizer.isEmpty && skillPesticide.isEmpty) {
+      final oldMethod = prefs.getString(kSkillMethodPref) ?? '';
+      if (oldMethod.isNotEmpty) {
+        final p = FarmingPractices.fromString(oldMethod);
+        if (!mounted) return;
+        setState(() {
+          _allPlots = allPlots;
+          _locations = locations;
+          _selectedFertilizer = p.fertilizer;
+          _selectedPesticide = p.pesticide;
+          _selectedTillage = p.tillage;
+          _selectedCover = p.cover;
+          _allCrops = allCrops;
+          _serverAvailable = serverAvailable;
+          _loading = false;
+        });
+        return;
+      }
+    }
     if (!mounted) return;
     setState(() {
       _allPlots = allPlots;
       _locations = locations;
-      if (skillMethod.isNotEmpty) {
-        _selectedFarmingMethod = skillMethod;
-      }
+      _selectedFertilizer = skillFertilizer;
+      _selectedPesticide = skillPesticide;
+      _selectedTillage = skillTillage;
+      _selectedCover = skillCover;
       _allCrops = allCrops;
       _serverAvailable = serverAvailable;
       _loading = false;
@@ -363,13 +390,19 @@ class _CropCreateScreenState extends State<CropCreateScreen> {
 
     setState(() => _saving = true);
 
+    final practices = FarmingPractices(
+      fertilizer: _selectedFertilizer,
+      pesticide: _selectedPesticide,
+      tillage: _selectedTillage,
+      cover: _selectedCover,
+    );
     final crop = Crop(
       cultivationName: _cultivationNameCtrl.text.trim(),
       name: _nameCtrl.text.trim(),
       variety: _varietyCtrl.text.trim(),
       plotId: _selectedPlotId,
       parentCropId: _selectedParentCropId,
-      farmingMethod: _selectedFarmingMethod,
+      farmingMethod: practices.isNotEmpty ? practices.toJsonString() : null,
       memo: _memoCtrl.text.trim(),
     );
 
@@ -547,14 +580,19 @@ class _CropCreateScreenState extends State<CropCreateScreen> {
                           setState(() => _selectedParentCropId = v),
                     ),
                   ],
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
+                  _sectionHeader(l.farmingMethod, Icons.agriculture),
+                  const SizedBox(height: 8),
+                  // 肥料
                   DropdownButtonFormField<String>(
-                    value: _selectedFarmingMethod,
-                    decoration: InputDecoration(
-                      labelText: l.farmingMethod,
-                      border: const OutlineInputBorder(),
+                    value: _selectedFertilizer.isNotEmpty
+                        ? _selectedFertilizer
+                        : null,
+                    decoration: const InputDecoration(
+                      labelText: '肥料',
+                      border: OutlineInputBorder(),
                     ),
-                    items: SkillFileGenerator.farmingMethods.entries
+                    items: SkillFileGenerator.fertilizerOptions.entries
                         .map((e) => DropdownMenuItem<String>(
                               value: e.key,
                               child: Text(e.value),
@@ -562,7 +600,73 @@ class _CropCreateScreenState extends State<CropCreateScreen> {
                         .toList(),
                     onChanged: (v) {
                       if (v != null) {
-                        setState(() => _selectedFarmingMethod = v);
+                        setState(() => _selectedFertilizer = v);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  // 農薬
+                  DropdownButtonFormField<String>(
+                    value: _selectedPesticide.isNotEmpty
+                        ? _selectedPesticide
+                        : null,
+                    decoration: const InputDecoration(
+                      labelText: '農薬',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: SkillFileGenerator.pesticideOptions.entries
+                        .map((e) => DropdownMenuItem<String>(
+                              value: e.key,
+                              child: Text(e.value),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) {
+                        setState(() => _selectedPesticide = v);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  // 耕起
+                  DropdownButtonFormField<String>(
+                    value: _selectedTillage.isNotEmpty
+                        ? _selectedTillage
+                        : null,
+                    decoration: const InputDecoration(
+                      labelText: '耕起',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: SkillFileGenerator.tillageOptions.entries
+                        .map((e) => DropdownMenuItem<String>(
+                              value: e.key,
+                              child: Text(e.value),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) {
+                        setState(() => _selectedTillage = v);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  // 被覆
+                  DropdownButtonFormField<String>(
+                    value: _selectedCover.isNotEmpty
+                        ? _selectedCover
+                        : null,
+                    decoration: const InputDecoration(
+                      labelText: '被覆',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: SkillFileGenerator.coverOptions.entries
+                        .map((e) => DropdownMenuItem<String>(
+                              value: e.key,
+                              child: Text(e.value),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) {
+                        setState(() => _selectedCover = v);
                       }
                     },
                   ),

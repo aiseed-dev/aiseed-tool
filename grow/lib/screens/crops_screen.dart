@@ -191,7 +191,11 @@ class _CropsScreenState extends State<CropsScreen> {
 
     String? selectedPlotId = existing?.plotId;
     String? selectedParentCropId = existing?.parentCropId;
-    String? selectedFarmingMethod = existing?.farmingMethod;
+    final existingPractices = existing?.practices ?? const FarmingPractices();
+    String selectedFertilizer = existingPractices.fertilizer;
+    String selectedPesticide = existingPractices.pesticide;
+    String selectedTillage = existingPractices.tillage;
+    String selectedCover = existingPractices.cover;
     DateTime? endDate = existing?.endDate;
 
     // Crops available as parent (exclude self)
@@ -278,12 +282,16 @@ class _CropsScreenState extends State<CropsScreen> {
                           setDialogState(() => selectedParentCropId = v),
                     ),
                   ],
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
+                  Text(l.farmingMethod,
+                      style: Theme.of(ctx).textTheme.titleSmall),
+                  const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    initialValue: selectedFarmingMethod,
-                    decoration:
-                        InputDecoration(labelText: l.farmingMethod),
-                    items: SkillFileGenerator.farmingMethods.entries
+                    value: selectedFertilizer.isNotEmpty
+                        ? selectedFertilizer
+                        : null,
+                    decoration: const InputDecoration(labelText: '肥料'),
+                    items: SkillFileGenerator.fertilizerOptions.entries
                         .map((e) => DropdownMenuItem<String>(
                               value: e.key,
                               child: Text(e.value),
@@ -291,7 +299,61 @@ class _CropsScreenState extends State<CropsScreen> {
                         .toList(),
                     onChanged: (v) {
                       if (v != null) {
-                        setDialogState(() => selectedFarmingMethod = v);
+                        setDialogState(() => selectedFertilizer = v);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: selectedPesticide.isNotEmpty
+                        ? selectedPesticide
+                        : null,
+                    decoration: const InputDecoration(labelText: '農薬'),
+                    items: SkillFileGenerator.pesticideOptions.entries
+                        .map((e) => DropdownMenuItem<String>(
+                              value: e.key,
+                              child: Text(e.value),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) {
+                        setDialogState(() => selectedPesticide = v);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: selectedTillage.isNotEmpty
+                        ? selectedTillage
+                        : null,
+                    decoration: const InputDecoration(labelText: '耕起'),
+                    items: SkillFileGenerator.tillageOptions.entries
+                        .map((e) => DropdownMenuItem<String>(
+                              value: e.key,
+                              child: Text(e.value),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) {
+                        setDialogState(() => selectedTillage = v);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: selectedCover.isNotEmpty
+                        ? selectedCover
+                        : null,
+                    decoration: const InputDecoration(labelText: '被覆'),
+                    items: SkillFileGenerator.coverOptions.entries
+                        .map((e) => DropdownMenuItem<String>(
+                              value: e.key,
+                              child: Text(e.value),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) {
+                        setDialogState(() => selectedCover = v);
                       }
                     },
                   ),
@@ -352,6 +414,12 @@ class _CropsScreenState extends State<CropsScreen> {
 
     if (saved != true || cultivationNameCtrl.text.trim().isEmpty) return;
 
+    final practices = FarmingPractices(
+      fertilizer: selectedFertilizer,
+      pesticide: selectedPesticide,
+      tillage: selectedTillage,
+      cover: selectedCover,
+    );
     final crop = Crop(
       id: existing?.id,
       cultivationName: cultivationNameCtrl.text.trim(),
@@ -359,7 +427,7 @@ class _CropsScreenState extends State<CropsScreen> {
       variety: varietyCtrl.text.trim(),
       plotId: selectedPlotId,
       parentCropId: selectedParentCropId,
-      farmingMethod: selectedFarmingMethod,
+      farmingMethod: practices.isNotEmpty ? practices.toJsonString() : null,
       memo: memoCtrl.text.trim(),
       startDate: existing?.startDate,
       endDate: endDate,
@@ -536,10 +604,9 @@ class _CropsScreenState extends State<CropsScreen> {
   Widget _buildCropCard(Crop crop) {
     final plotName = _plotDisplayName(crop.plotId);
     final parentName = _parentCropName(crop.parentCropId);
-    final methodLabel = crop.farmingMethod != null
-        ? SkillFileGenerator.farmingMethods[crop.farmingMethod!] ??
-            crop.farmingMethod!
-        : null;
+    final practices = crop.practices;
+    final methodLabel =
+        practices.isNotEmpty ? practices.toShortString() : null;
 
     // 日付表示
     final dateStr = crop.isEnded
