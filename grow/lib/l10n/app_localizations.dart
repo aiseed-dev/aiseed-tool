@@ -1309,6 +1309,72 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'画像を保存'**
   String get qrSave;
+
+  /// No description provided for @aiChatProvider.
+  ///
+  /// In ja, this message translates to:
+  /// **'AIチャット'**
+  String get aiChatProvider;
+
+  /// No description provided for @aiChatProviderGemini.
+  ///
+  /// In ja, this message translates to:
+  /// **'Gemini（Google AI Studio）'**
+  String get aiChatProviderGemini;
+
+  /// No description provided for @aiChatProviderGeminiDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'APIキーで直接利用（無料枠あり）'**
+  String get aiChatProviderGeminiDesc;
+
+  /// No description provided for @aiChatProviderClaude.
+  ///
+  /// In ja, this message translates to:
+  /// **'Claude（Anthropic）'**
+  String get aiChatProviderClaude;
+
+  /// No description provided for @aiChatProviderClaudeDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'APIキーで直接利用（従量課金）'**
+  String get aiChatProviderClaudeDesc;
+
+  /// No description provided for @aiChatProviderFastapi.
+  ///
+  /// In ja, this message translates to:
+  /// **'サーバー経由'**
+  String get aiChatProviderFastapi;
+
+  /// No description provided for @aiChatProviderFastapiDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'APIキー不要（サーバーが管理）'**
+  String get aiChatProviderFastapiDesc;
+
+  /// No description provided for @aiChatApiKey.
+  ///
+  /// In ja, this message translates to:
+  /// **'AIチャット APIキー'**
+  String get aiChatApiKey;
+
+  /// No description provided for @aiChatApiKeyHint.
+  ///
+  /// In ja, this message translates to:
+  /// **'APIキーを入力'**
+  String get aiChatApiKeyHint;
+
+  /// No description provided for @aiChatApiKeyGeminiHelp.
+  ///
+  /// In ja, this message translates to:
+  /// **'Google AI Studio で無料取得できます'**
+  String get aiChatApiKeyGeminiHelp;
+
+  /// No description provided for @aiChatModel.
+  ///
+  /// In ja, this message translates to:
+  /// **'AIモデル'**
+  String get aiChatModel;
 }
 
 class _AppLocalizationsDelegate

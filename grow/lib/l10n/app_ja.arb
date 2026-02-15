@@ -218,5 +218,16 @@
   "qrCodeDesc": "看板・値札・袋に貼って、ホームページに誘導",
   "qrGenerate": "QRコードを生成",
   "qrRegenerate": "再生成",
-  "qrSave": "画像を保存"
+  "qrSave": "画像を保存",
+  "aiChatProvider": "AIチャット",
+  "aiChatProviderGemini": "Gemini（Google AI Studio）",
+  "aiChatProviderGeminiDesc": "APIキーで直接利用（無料枠あり）",
+  "aiChatProviderClaude": "Claude（Anthropic）",
+  "aiChatProviderClaudeDesc": "APIキーで直接利用（従量課金）",
+  "aiChatProviderFastapi": "サーバー経由",
+  "aiChatProviderFastapiDesc": "APIキー不要（サーバーが管理）",
+  "aiChatApiKey": "AIチャット APIキー",
+  "aiChatApiKeyHint": "APIキーを入力",
+  "aiChatApiKeyGeminiHelp": "Google AI Studio で無料取得できます",
+  "aiChatModel": "AIモデル"
 }

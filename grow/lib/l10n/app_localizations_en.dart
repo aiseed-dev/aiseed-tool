@@ -626,4 +626,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get qrSave => 'Save image';
+
+  @override
+  String get aiChatProvider => 'AI Chat';
+
+  @override
+  String get aiChatProviderGemini => 'Gemini (Google AI Studio)';
+
+  @override
+  String get aiChatProviderGeminiDesc => 'Direct API key access (free tier available)';
+
+  @override
+  String get aiChatProviderClaude => 'Claude (Anthropic)';
+
+  @override
+  String get aiChatProviderClaudeDesc => 'Direct API key access (pay-per-use)';
+
+  @override
+  String get aiChatProviderFastapi => 'Via server';
+
+  @override
+  String get aiChatProviderFastapiDesc => 'No API key needed (server manages it)';
+
+  @override
+  String get aiChatApiKey => 'AI Chat API Key';
+
+  @override
+  String get aiChatApiKeyHint => 'Enter API key';
+
+  @override
+  String get aiChatApiKeyGeminiHelp => 'Get a free key from Google AI Studio';
+
+  @override
+  String get aiChatModel => 'AI Model';
 }

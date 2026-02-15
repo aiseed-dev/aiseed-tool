@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_localizations.dart';
+import '../services/ai_chat_service.dart';
 import '../services/plant_identification_service.dart';
 import '../services/sync_service.dart';
 import '../services/database_service.dart';
@@ -36,6 +37,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _serverToken = '';
   bool _syncing = false;
 
+  // AI Chat settings
+  AiProvider _aiProvider = AiProvider.gemini;
+  String _aiApiKey = '';
+  String _aiModel = '';
+
   @override
   void initState() {
     super.initState();
@@ -55,6 +61,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _plantIdApiKey = prefs.getString(kPlantIdApiKeyPref) ?? '';
       _serverUrl = prefs.getString(kServerUrlPref) ?? '';
       _serverToken = prefs.getString(kServerTokenPref) ?? '';
+      final aiProviderIndex = prefs.getInt(kAiProviderPref) ?? AiProvider.gemini.index;
+      _aiProvider = AiProvider.values[
+          aiProviderIndex.clamp(0, AiProvider.values.length - 1)];
+      _aiApiKey = prefs.getString(kAiApiKeyPref) ?? '';
+      _aiModel = prefs.getString(kAiModelPref) ?? '';
     });
   }
 
@@ -73,6 +84,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(title: const Text('システム設定')),
       body: ListView(
         children: [
+          // AI Chat provider
+          ListTile(
+            leading: const Icon(Icons.smart_toy),
+            title: Text(l.aiChatProvider),
+            subtitle: Text(_aiProviderLabel(l, _aiProvider)),
+            onTap: () => _showAiProviderDialog(context, l),
+          ),
+          const Divider(height: 1),
+          // AI API key（Gemini / Claude 選択時のみ）
+          if (_aiProvider == AiProvider.gemini ||
+              _aiProvider == AiProvider.claude) ...[
+            ListTile(
+              leading: const SizedBox(width: 24),
+              title: Text(l.aiChatApiKey),
+              subtitle: Text(
+                _aiApiKey.isEmpty
+                    ? (_aiProvider == AiProvider.gemini
+                        ? l.aiChatApiKeyGeminiHelp
+                        : l.aiChatApiKeyHint)
+                    : _maskedKey(_aiApiKey),
+              ),
+              onTap: () => _showTextDialog(
+                context, l,
+                title: l.aiChatApiKey,
+                hint: l.aiChatApiKeyHint,
+                currentValue: _aiApiKey,
+                obscure: true,
+                onSave: (v) async {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setString(kAiApiKeyPref, v);
+                  if (!mounted) return;
+                  setState(() => _aiApiKey = v);
+                },
+              ),
+            ),
+            const Divider(height: 1),
+          ],
+          // AI model
+          if (_aiProvider != AiProvider.fastapi) ...[
+            ListTile(
+              leading: const SizedBox(width: 24),
+              title: Text(l.aiChatModel),
+              subtitle: Text(_aiModelLabel()),
+              onTap: () => _showAiModelDialog(context, l),
+            ),
+            const Divider(height: 1),
+          ],
           // Theme
           ListTile(
             leading: const Icon(Icons.brightness_6),
@@ -125,6 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
           // Server URL & token
           if (_provider == PlantIdProvider.server ||
+              _aiProvider == AiProvider.fastapi ||
               _syncMode == SyncMode.cloudflare ||
               _syncMode == SyncMode.fastapi) ...[
             ListTile(
@@ -198,6 +257,138 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const Divider(height: 1),
           ],
         ],
+      ),
+    );
+  }
+
+  // ── AI Chat helpers ──
+
+  String _aiProviderLabel(AppLocalizations l, AiProvider provider) {
+    switch (provider) {
+      case AiProvider.gemini:
+        return l.aiChatProviderGemini;
+      case AiProvider.claude:
+        return l.aiChatProviderClaude;
+      case AiProvider.fastapi:
+        return l.aiChatProviderFastapi;
+    }
+  }
+
+  String _aiModelLabel() {
+    if (_aiModel.isEmpty) {
+      final models = AiChatService.modelsFor(_aiProvider);
+      return models.isNotEmpty ? models.first.$2 : '';
+    }
+    final models = AiChatService.modelsFor(_aiProvider);
+    for (final (id, label) in models) {
+      if (id == _aiModel) return label;
+    }
+    return _aiModel;
+  }
+
+  void _showAiProviderDialog(BuildContext context, AppLocalizations l) {
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l.aiChatProvider),
+        children: [
+          _aiProviderOption(ctx, l,
+              provider: AiProvider.gemini,
+              title: l.aiChatProviderGemini,
+              subtitle: l.aiChatProviderGeminiDesc),
+          _aiProviderOption(ctx, l,
+              provider: AiProvider.claude,
+              title: l.aiChatProviderClaude,
+              subtitle: l.aiChatProviderClaudeDesc),
+          _aiProviderOption(ctx, l,
+              provider: AiProvider.fastapi,
+              title: l.aiChatProviderFastapi,
+              subtitle: l.aiChatProviderFastapiDesc),
+        ],
+      ),
+    );
+  }
+
+  Widget _aiProviderOption(
+    BuildContext ctx,
+    AppLocalizations l, {
+    required AiProvider provider,
+    required String title,
+    required String subtitle,
+  }) {
+    final isSelected = _aiProvider == provider;
+    return SimpleDialogOption(
+      onPressed: () async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt(kAiProviderPref, provider.index);
+        // プロバイダー変更時にモデルをリセット
+        await prefs.setString(kAiModelPref, '');
+        if (!mounted) return;
+        setState(() {
+          _aiProvider = provider;
+          _aiModel = '';
+        });
+        if (ctx.mounted) Navigator.pop(ctx);
+      },
+      child: Row(
+        children: [
+          Icon(
+            isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+            size: 20,
+            color: isSelected
+                ? Theme.of(ctx).colorScheme.primary
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title),
+                Text(subtitle, style: Theme.of(ctx).textTheme.bodySmall),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAiModelDialog(BuildContext context, AppLocalizations l) {
+    final models = AiChatService.modelsFor(_aiProvider);
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l.aiChatModel),
+        children: models.map((entry) {
+          final (id, label) = entry;
+          final effectiveModel = _aiModel.isEmpty ? models.first.$1 : _aiModel;
+          final isSelected = id == effectiveModel;
+          return SimpleDialogOption(
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString(kAiModelPref, id);
+              if (!mounted) return;
+              setState(() => _aiModel = id);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: Row(
+              children: [
+                Icon(
+                  isSelected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off,
+                  size: 20,
+                  color: isSelected
+                      ? Theme.of(ctx).colorScheme.primary
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Text(label)),
+              ],
+            ),
+          );
+        }).toList(),
       ),
     );
   }

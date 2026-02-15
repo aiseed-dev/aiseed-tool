@@ -620,4 +620,37 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get qrSave => '画像を保存';
+
+  @override
+  String get aiChatProvider => 'AIチャット';
+
+  @override
+  String get aiChatProviderGemini => 'Gemini（Google AI Studio）';
+
+  @override
+  String get aiChatProviderGeminiDesc => 'APIキーで直接利用（無料枠あり）';
+
+  @override
+  String get aiChatProviderClaude => 'Claude（Anthropic）';
+
+  @override
+  String get aiChatProviderClaudeDesc => 'APIキーで直接利用（従量課金）';
+
+  @override
+  String get aiChatProviderFastapi => 'サーバー経由';
+
+  @override
+  String get aiChatProviderFastapiDesc => 'APIキー不要（サーバーが管理）';
+
+  @override
+  String get aiChatApiKey => 'AIチャット APIキー';
+
+  @override
+  String get aiChatApiKeyHint => 'APIキーを入力';
+
+  @override
+  String get aiChatApiKeyGeminiHelp => 'Google AI Studio で無料取得できます';
+
+  @override
+  String get aiChatModel => 'AIモデル';
 }

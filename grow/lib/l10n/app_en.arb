@@ -208,5 +208,16 @@
   "qrCodeDesc": "Print for signs, price tags, and packaging",
   "qrGenerate": "Generate QR code",
   "qrRegenerate": "Regenerate",
-  "qrSave": "Save image"
+  "qrSave": "Save image",
+  "aiChatProvider": "AI Chat",
+  "aiChatProviderGemini": "Gemini (Google AI Studio)",
+  "aiChatProviderGeminiDesc": "Direct API key access (free tier available)",
+  "aiChatProviderClaude": "Claude (Anthropic)",
+  "aiChatProviderClaudeDesc": "Direct API key access (pay-per-use)",
+  "aiChatProviderFastapi": "Via server",
+  "aiChatProviderFastapiDesc": "No API key needed (server manages it)",
+  "aiChatApiKey": "AI Chat API Key",
+  "aiChatApiKeyHint": "Enter API key",
+  "aiChatApiKeyGeminiHelp": "Get a free key from Google AI Studio",
+  "aiChatModel": "AI Model"
 }

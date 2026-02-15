@@ -35,10 +35,13 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isLoading = false;
   String _streamingContent = '';
 
-  // AI settings（サーバー経由のみ）
+  // AI settings
   String _systemPrompt = '';
   String _serverUrl = '';
   String _serverToken = '';
+  AiProvider _aiProvider = AiProvider.gemini;
+  String _aiApiKey = '';
+  String _aiModel = '';
 
   // Speech-to-text
   final stt.SpeechToText _speech = stt.SpeechToText();
@@ -102,6 +105,11 @@ class _ChatScreenState extends State<ChatScreen> {
       _systemPrompt = prefs.getString(kAiSystemPromptPref) ??
           prefs.getString(kSkillFileKey) ??
           '';
+      final aiProviderIndex = prefs.getInt(kAiProviderPref) ?? AiProvider.gemini.index;
+      _aiProvider = AiProvider.values[
+          aiProviderIndex.clamp(0, AiProvider.values.length - 1)];
+      _aiApiKey = prefs.getString(kAiApiKeyPref) ?? '';
+      _aiModel = prefs.getString(kAiModelPref) ?? '';
     });
   }
 
@@ -111,11 +119,20 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() => _conversations = list);
   }
 
-  bool get _isConfigured => _serverUrl.isNotEmpty;
+  bool get _isConfigured {
+    switch (_aiProvider) {
+      case AiProvider.fastapi:
+        return _serverUrl.isNotEmpty;
+      case AiProvider.gemini:
+      case AiProvider.claude:
+        return _aiApiKey.isNotEmpty;
+    }
+  }
 
   AiChatService _createService() => AiChatService(
-        provider: AiProvider.fastapi,
-        apiKey: '',
+        provider: _aiProvider,
+        apiKey: _aiApiKey,
+        model: _aiModel.isNotEmpty ? _aiModel : null,
         serverUrl: _serverUrl,
         serverToken: _serverToken,
       );
@@ -392,7 +409,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     .withValues(alpha: 0.3)),
             const SizedBox(height: 16),
             Text(
-              _isConfigured ? '会話を始めましょう' : 'サーバーURLを設定してください',
+              _isConfigured ? '会話を始めましょう' : _notConfiguredMessage(),
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -400,7 +417,7 @@ class _ChatScreenState extends State<ChatScreen> {
             if (!_isConfigured) ...[
               const SizedBox(height: 8),
               Text(
-                'スキルズ → サーバー接続 を設定してください',
+                '設定 → AIチャット で設定してください',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -641,11 +658,22 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  String _notConfiguredMessage() {
+    switch (_aiProvider) {
+      case AiProvider.fastapi:
+        return 'サーバーURLを設定してください';
+      case AiProvider.gemini:
+        return 'Gemini APIキーを設定してください';
+      case AiProvider.claude:
+        return 'Claude APIキーを設定してください';
+    }
+  }
+
   void _showApiKeyHint() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('スキルズ → サーバー接続 を設定してください'),
-        duration: Duration(seconds: 3),
+      SnackBar(
+        content: Text('設定 → AIチャット で${_notConfiguredMessage()}'),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
