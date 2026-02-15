@@ -7,6 +7,10 @@ import '../services/ai_chat_service.dart';
 import 'onboarding_screen.dart';
 import 'settings_screen.dart';
 import 'site_screen.dart';
+import 'seed_packets_screen.dart';
+import 'materials_screen.dart';
+import 'shipping_slips_screen.dart';
+import 'sales_slips_screen.dart';
 
 // Structured skill profile SharedPreferences keys
 const kSkillCropsPref = 'skill_crops';
@@ -49,6 +53,7 @@ class _SkillScreenState extends State<SkillScreen> {
   bool _loaded = false;
   bool _skillsExpanded = false;
   bool _aiExpanded = false;
+  bool _formsExpanded = false;
 
   @override
   void initState() {
@@ -300,6 +305,80 @@ class _SkillScreenState extends State<SkillScreen> {
                 title: 'AIモデル',
                 value: _aiModelLabel(),
                 onTap: _editAiModel,
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // 帳票管理 セクション
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: ExpansionTile(
+            leading: const Icon(Icons.receipt_long),
+            title: const Text('帳票管理'),
+            subtitle: Text(
+              '種袋・資材・出荷・売上',
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            initiallyExpanded: _formsExpanded,
+            onExpansionChanged: (v) => setState(() => _formsExpanded = v),
+            children: [
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.grass),
+                title: const Text('種袋'),
+                subtitle: const Text('種袋の管理・記録'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => SeedPacketsScreen(db: widget.db),
+                  ),
+                ),
+              ),
+              const Divider(height: 1, indent: 56),
+              ListTile(
+                leading: const Icon(Icons.inventory_2),
+                title: const Text('資材'),
+                subtitle: const Text('資材・道具の管理'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => MaterialsScreen(db: widget.db),
+                  ),
+                ),
+              ),
+              const Divider(height: 1, indent: 56),
+              ListTile(
+                leading: const Icon(Icons.local_shipping),
+                title: const Text('出荷伝票'),
+                subtitle: const Text('出荷の記録・管理'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ShippingSlipsScreen(db: widget.db),
+                  ),
+                ),
+              ),
+              const Divider(height: 1, indent: 56),
+              ListTile(
+                leading: const Icon(Icons.point_of_sale),
+                title: const Text('売上伝票'),
+                subtitle: const Text('売上の記録・管理'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => SalesSlipsScreen(db: widget.db),
+                  ),
+                ),
               ),
             ],
           ),

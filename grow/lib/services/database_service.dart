@@ -7,10 +7,14 @@ import '../models/record.dart';
 import '../models/record_photo.dart';
 import '../models/crop_reference.dart';
 import '../models/observation.dart';
+import '../models/seed_packet.dart';
+import '../models/farm_material.dart';
+import '../models/shipping_slip.dart';
+import '../models/sales_slip.dart';
 
 class DatabaseService {
   static const _dbName = 'grow.db';
-  static const _dbVersion = 18;
+  static const _dbVersion = 19;
 
   Database? _db;
 
@@ -335,6 +339,69 @@ class DatabaseService {
             await db.execute('ALTER TABLE records ADD COLUMN shipping_price INTEGER');
           }
         }
+        if (oldVersion < 19) {
+          // v19: 帳票管理テーブル（種袋、資材、出荷伝票、売上伝票）
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS seed_packets (
+              id TEXT PRIMARY KEY,
+              crop_name TEXT NOT NULL DEFAULT '',
+              variety TEXT NOT NULL DEFAULT '',
+              vendor TEXT NOT NULL DEFAULT '',
+              purchase_date TEXT,
+              quantity INTEGER,
+              price INTEGER,
+              memo TEXT NOT NULL DEFAULT '',
+              photo_path TEXT,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS farm_materials (
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL DEFAULT '',
+              category TEXT NOT NULL DEFAULT '',
+              vendor TEXT NOT NULL DEFAULT '',
+              purchase_date TEXT,
+              quantity INTEGER,
+              unit TEXT NOT NULL DEFAULT '',
+              price INTEGER,
+              memo TEXT NOT NULL DEFAULT '',
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS shipping_slips (
+              id TEXT PRIMARY KEY,
+              destination TEXT NOT NULL DEFAULT '',
+              crop_name TEXT NOT NULL DEFAULT '',
+              amount REAL,
+              unit TEXT NOT NULL DEFAULT 'kg',
+              price INTEGER,
+              date TEXT NOT NULL,
+              memo TEXT NOT NULL DEFAULT '',
+              photo_path TEXT,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS sales_slips (
+              id TEXT PRIMARY KEY,
+              customer TEXT NOT NULL DEFAULT '',
+              crop_name TEXT NOT NULL DEFAULT '',
+              amount REAL,
+              unit TEXT NOT NULL DEFAULT 'kg',
+              price INTEGER,
+              date TEXT NOT NULL,
+              memo TEXT NOT NULL DEFAULT '',
+              photo_path TEXT,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            )
+          ''');
+        }
       },
     );
   }
@@ -466,6 +533,66 @@ class DatabaseService {
         table_name TEXT NOT NULL,
         deleted_at TEXT NOT NULL,
         PRIMARY KEY (id, table_name)
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE seed_packets (
+        id TEXT PRIMARY KEY,
+        crop_name TEXT NOT NULL DEFAULT '',
+        variety TEXT NOT NULL DEFAULT '',
+        vendor TEXT NOT NULL DEFAULT '',
+        purchase_date TEXT,
+        quantity INTEGER,
+        price INTEGER,
+        memo TEXT NOT NULL DEFAULT '',
+        photo_path TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE farm_materials (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL DEFAULT '',
+        category TEXT NOT NULL DEFAULT '',
+        vendor TEXT NOT NULL DEFAULT '',
+        purchase_date TEXT,
+        quantity INTEGER,
+        unit TEXT NOT NULL DEFAULT '',
+        price INTEGER,
+        memo TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE shipping_slips (
+        id TEXT PRIMARY KEY,
+        destination TEXT NOT NULL DEFAULT '',
+        crop_name TEXT NOT NULL DEFAULT '',
+        amount REAL,
+        unit TEXT NOT NULL DEFAULT 'kg',
+        price INTEGER,
+        date TEXT NOT NULL,
+        memo TEXT NOT NULL DEFAULT '',
+        photo_path TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE sales_slips (
+        id TEXT PRIMARY KEY,
+        customer TEXT NOT NULL DEFAULT '',
+        crop_name TEXT NOT NULL DEFAULT '',
+        amount REAL,
+        unit TEXT NOT NULL DEFAULT 'kg',
+        price INTEGER,
+        date TEXT NOT NULL,
+        memo TEXT NOT NULL DEFAULT '',
+        photo_path TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     ''');
   }
@@ -737,6 +864,106 @@ class DatabaseService {
     final d = await db;
     await d.delete('crop_references', where: 'id = ?', whereArgs: [id]);
     await _trackDeletion(d, id, 'crop_references');
+  }
+
+  // -- Seed Packets --
+
+  Future<List<SeedPacket>> getSeedPackets() async {
+    final d = await db;
+    final rows = await d.query('seed_packets', orderBy: 'created_at DESC');
+    return rows.map(SeedPacket.fromMap).toList();
+  }
+
+  Future<void> insertSeedPacket(SeedPacket packet) async {
+    final d = await db;
+    await d.insert('seed_packets', packet.toMap());
+  }
+
+  Future<void> updateSeedPacket(SeedPacket packet) async {
+    final d = await db;
+    await d.update('seed_packets', packet.toMap(),
+        where: 'id = ?', whereArgs: [packet.id]);
+  }
+
+  Future<void> deleteSeedPacket(String id) async {
+    final d = await db;
+    await d.delete('seed_packets', where: 'id = ?', whereArgs: [id]);
+    await _trackDeletion(d, id, 'seed_packets');
+  }
+
+  // -- Farm Materials --
+
+  Future<List<FarmMaterial>> getFarmMaterials() async {
+    final d = await db;
+    final rows = await d.query('farm_materials', orderBy: 'created_at DESC');
+    return rows.map(FarmMaterial.fromMap).toList();
+  }
+
+  Future<void> insertFarmMaterial(FarmMaterial material) async {
+    final d = await db;
+    await d.insert('farm_materials', material.toMap());
+  }
+
+  Future<void> updateFarmMaterial(FarmMaterial material) async {
+    final d = await db;
+    await d.update('farm_materials', material.toMap(),
+        where: 'id = ?', whereArgs: [material.id]);
+  }
+
+  Future<void> deleteFarmMaterial(String id) async {
+    final d = await db;
+    await d.delete('farm_materials', where: 'id = ?', whereArgs: [id]);
+    await _trackDeletion(d, id, 'farm_materials');
+  }
+
+  // -- Shipping Slips --
+
+  Future<List<ShippingSlip>> getShippingSlips() async {
+    final d = await db;
+    final rows = await d.query('shipping_slips', orderBy: 'date DESC');
+    return rows.map(ShippingSlip.fromMap).toList();
+  }
+
+  Future<void> insertShippingSlip(ShippingSlip slip) async {
+    final d = await db;
+    await d.insert('shipping_slips', slip.toMap());
+  }
+
+  Future<void> updateShippingSlip(ShippingSlip slip) async {
+    final d = await db;
+    await d.update('shipping_slips', slip.toMap(),
+        where: 'id = ?', whereArgs: [slip.id]);
+  }
+
+  Future<void> deleteShippingSlip(String id) async {
+    final d = await db;
+    await d.delete('shipping_slips', where: 'id = ?', whereArgs: [id]);
+    await _trackDeletion(d, id, 'shipping_slips');
+  }
+
+  // -- Sales Slips --
+
+  Future<List<SalesSlip>> getSalesSlips() async {
+    final d = await db;
+    final rows = await d.query('sales_slips', orderBy: 'date DESC');
+    return rows.map(SalesSlip.fromMap).toList();
+  }
+
+  Future<void> insertSalesSlip(SalesSlip slip) async {
+    final d = await db;
+    await d.insert('sales_slips', slip.toMap());
+  }
+
+  Future<void> updateSalesSlip(SalesSlip slip) async {
+    final d = await db;
+    await d.update('sales_slips', slip.toMap(),
+        where: 'id = ?', whereArgs: [slip.id]);
+  }
+
+  Future<void> deleteSalesSlip(String id) async {
+    final d = await db;
+    await d.delete('sales_slips', where: 'id = ?', whereArgs: [id]);
+    await _trackDeletion(d, id, 'sales_slips');
   }
 
   // -- Sync helpers --
