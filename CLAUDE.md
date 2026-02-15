@@ -2,12 +2,19 @@
 
 農家が一人でAIとチームを組むための栽培支援プラットフォーム。
 
+## 設計方針
+
+- **ローカルファースト** — 基本処理はすべて農家のPC上で完結する
+- Windows環境では WSL 上で grow-server を動かす
+- cloudflare-server は PCを持たない農家向けと、ローカルサーバーのWeb公開・バックアップ用
+
 ## プロジェクト構成
 
 ```
 grow/                 ← スマホアプリ（Flutter / iOS・Android）
 grow_cowork/          ← デスクトップアプリ（Flutter + Python scripts）
-grow-server/          ← メインAPIサーバー（FastAPI / GPU対応）
+grow-server/          ← ローカルAPIサーバー（FastAPI / GPU対応）
+server/               ← 中央サーバー（気象・衛星データ等）
 cloudflare-server/    ← エッジサーバー（Cloudflare Workers）
 web/                  ← Webサイト
 data/                 ← データ
@@ -27,7 +34,7 @@ GPU不要。Python + Anthropic APIキーがあれば動く。
 ### サーバー運用（grow-server）
 
 OCR・画像分析・天気予報・サイト生成など全機能を使う場合。
-GPU推奨。Linux サーバー向け。
+GPU推奨。Linux サーバー向け（WindowsはWSL利用）。
 
 → `grow-server/CLAUDE.md` の手順に従う
 

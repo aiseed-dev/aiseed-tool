@@ -109,7 +109,3 @@ grow_cowork/.venv/
 grow_cowork/.env
 grow_cowork/photos/
 
-# Old directories (renamed)
-gpu-server/
-server/
-desktop/
