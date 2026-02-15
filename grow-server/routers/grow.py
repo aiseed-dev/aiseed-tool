@@ -23,7 +23,7 @@ from models.grow import (
     Observation, ObservationEntry,
 )
 from models.user import User
-from services.auth_service import get_current_user
+from services.auth_service import get_approved_user
 
 router = APIRouter(prefix="/grow", tags=["grow"])
 
@@ -168,7 +168,7 @@ def _model_to_dict(obj) -> dict:
 @router.post("/sync/pull", response_model=SyncPullResponse)
 async def sync_pull(
     req: SyncPullRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_approved_user),
     db: AsyncSession = Depends(get_db),
 ):
     since = _parse_dt(req.since)
@@ -187,7 +187,7 @@ async def sync_pull(
 @router.post("/sync/push")
 async def sync_push(
     req: SyncPushRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_approved_user),
     db: AsyncSession = Depends(get_db),
 ):
     now = datetime.utcnow()
@@ -230,7 +230,7 @@ async def sync_push(
 @router.post("/photos")
 async def upload_photo(
     image: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_approved_user),
 ):
     if image.size and image.size > settings.max_upload_size:
         raise HTTPException(status_code=413, detail="File too large")

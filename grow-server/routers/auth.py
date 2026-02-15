@@ -29,6 +29,7 @@ class UserResponse(BaseModel):
     email: str
     display_name: str
     is_active: bool
+    role: str = "pending"
 
     model_config = {"from_attributes": True}
 

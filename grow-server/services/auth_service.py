@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from config import settings
 from database import get_db
-from models.user import User
+from models.user import User, ROLE_PENDING, ROLE_USER, ROLE_ADMIN
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -70,6 +70,25 @@ async def get_current_user(
     if user is None or not user.is_active:
         raise credentials_exception
     return user
+
+
+def require_role(*allowed_roles: str):
+    """指定ロール以上のユーザーのみ許可するDependency。"""
+    async def checker(current_user: User = Depends(get_current_user)):
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="この操作を行う権限がありません",
+            )
+        return current_user
+    return checker
+
+
+# 承認済みユーザー以上（pending は不可）
+get_approved_user = require_role(ROLE_USER, ROLE_ADMIN)
+
+# 管理者のみ
+get_admin_user = require_role(ROLE_ADMIN)
 
 
 async def register_user(
