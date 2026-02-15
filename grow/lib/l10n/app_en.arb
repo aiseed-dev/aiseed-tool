@@ -226,5 +226,8 @@
   "aiSummarizing": "Analyzing...",
   "aiCropAnalysis": "AI Crop Analysis",
   "aiAnalysisError": "AI analysis error",
+  "soilTimeline": "Soil timeline",
+  "aiSoilAnalysis": "AI soil analysis",
+  "cropHistory": "Previous crops",
   "close": "Close"
 }

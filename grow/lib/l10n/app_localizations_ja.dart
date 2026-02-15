@@ -673,5 +673,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get aiAnalysisError => 'AI分析エラー';
 
   @override
+  String get soilTimeline => '土壌タイムライン';
+
+  @override
+  String get aiSoilAnalysis => 'AI土壌分析';
+
+  @override
+  String get cropHistory => '前作（過去の栽培）';
+
+  @override
   String get close => '閉じる';
 }

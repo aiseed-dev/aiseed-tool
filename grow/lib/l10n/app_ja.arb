@@ -236,5 +236,8 @@
   "aiSummarizing": "AI分析中…",
   "aiCropAnalysis": "AI栽培分析",
   "aiAnalysisError": "AI分析エラー",
+  "soilTimeline": "土壌タイムライン",
+  "aiSoilAnalysis": "AI土壌分析",
+  "cropHistory": "前作（過去の栽培）",
   "close": "閉じる"
 }

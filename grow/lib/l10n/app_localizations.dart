@@ -1412,6 +1412,24 @@ abstract class AppLocalizations {
   /// **'AI分析エラー'**
   String get aiAnalysisError;
 
+  /// No description provided for @soilTimeline.
+  ///
+  /// In ja, this message translates to:
+  /// **'土壌タイムライン'**
+  String get soilTimeline;
+
+  /// No description provided for @aiSoilAnalysis.
+  ///
+  /// In ja, this message translates to:
+  /// **'AI土壌分析'**
+  String get aiSoilAnalysis;
+
+  /// No description provided for @cropHistory.
+  ///
+  /// In ja, this message translates to:
+  /// **'前作（過去の栽培）'**
+  String get cropHistory;
+
   /// No description provided for @close.
   ///
   /// In ja, this message translates to:
