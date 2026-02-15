@@ -312,12 +312,12 @@ class _SkillScreenState extends State<SkillScreen> {
 
         const SizedBox(height: 12),
 
-        // 帳票管理 セクション
+        // 伝票入力 セクション（スマホはカメラ入力のみ）
         Card(
           clipBehavior: Clip.antiAlias,
           child: ExpansionTile(
             leading: const Icon(Icons.receipt_long),
-            title: const Text('帳票管理'),
+            title: const Text('伝票入力'),
             subtitle: Text(
               '種袋・資材・出荷・売上',
               style: TextStyle(

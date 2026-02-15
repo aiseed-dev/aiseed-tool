@@ -2,7 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/seed_packet.dart';
+import '../models/crop.dart';
+import '../models/crop_reference.dart';
 import '../services/database_service.dart';
+import '../services/photo_service.dart';
 
 class SeedPacketsScreen extends StatefulWidget {
   final DatabaseService db;
@@ -15,8 +18,10 @@ class SeedPacketsScreen extends StatefulWidget {
 
 class _SeedPacketsScreenState extends State<SeedPacketsScreen> {
   List<SeedPacket> _packets = [];
+  Map<String, Crop> _cropMap = {};
   bool _loading = true;
   final _picker = ImagePicker();
+  final _photoService = PhotoService();
 
   @override
   void initState() {
@@ -26,9 +31,11 @@ class _SeedPacketsScreenState extends State<SeedPacketsScreen> {
 
   Future<void> _load() async {
     final packets = await widget.db.getSeedPackets();
+    final crops = await widget.db.getCrops();
     if (!mounted) return;
     setState(() {
       _packets = packets;
+      _cropMap = {for (final c in crops) c.id: c};
       _loading = false;
     });
   }
@@ -219,6 +226,7 @@ class _SeedPacketsScreenState extends State<SeedPacketsScreen> {
       price: int.tryParse(priceCtrl.text),
       memo: memoCtrl.text.trim(),
       photoPath: photoPath,
+      cropId: existing?.cropId,
       createdAt: existing?.createdAt,
     );
 
@@ -227,6 +235,79 @@ class _SeedPacketsScreenState extends State<SeedPacketsScreen> {
     } else {
       await widget.db.updateSeedPacket(packet);
     }
+    _load();
+  }
+
+  /// 種袋から栽培を新規作成する
+  Future<void> _createCropFromPacket(SeedPacket packet) async {
+    final cultivationName = packet.variety.isNotEmpty
+        ? '${packet.cropName} ${packet.variety}'
+        : packet.cropName;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('栽培に登録'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('「$cultivationName」を栽培として登録しますか？'),
+            const SizedBox(height: 8),
+            Text(
+              '種袋の情報（品目名・品種）が栽培データに入力されます。',
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(ctx, true),
+            icon: const Icon(Icons.eco, size: 18),
+            label: const Text('登録'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    // 栽培を作成
+    final crop = Crop(
+      cultivationName: cultivationName,
+      name: packet.cropName,
+      variety: packet.variety,
+      memo: packet.vendor.isNotEmpty ? '種袋: ${packet.vendor}' : '',
+    );
+    await widget.db.insertCrop(crop);
+
+    // 種袋の写真を栽培の参照として保存
+    if (packet.photoPath != null) {
+      final savedPath = await _photoService.savePhoto(packet.photoPath!);
+      final ref = CropReference(
+        cropId: crop.id,
+        type: CropReferenceType.seedPhoto,
+        filePath: savedPath,
+        title: cultivationName,
+      );
+      await widget.db.insertCropReference(ref);
+    }
+
+    // 種袋にcropIdを紐付け
+    final updated = packet.copyWith(cropId: crop.id);
+    await widget.db.updateSeedPacket(updated);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('「$cultivationName」を栽培に登録しました')),
+    );
     _load();
   }
 
@@ -279,6 +360,8 @@ class _SeedPacketsScreenState extends State<SeedPacketsScreen> {
                   itemCount: _packets.length,
                   itemBuilder: (context, index) {
                     final p = _packets[index];
+                    final linkedCrop =
+                        p.cropId != null ? _cropMap[p.cropId] : null;
                     return Card(
                       clipBehavior: Clip.antiAlias,
                       child: InkWell(
@@ -320,6 +403,32 @@ class _SeedPacketsScreenState extends State<SeedPacketsScreen> {
                                   if (p.quantity != null) '${p.quantity}袋',
                                 ].join(' / '),
                               ),
+                            ),
+                            // 栽培連携
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                left: 16,
+                                right: 16,
+                                bottom: 12,
+                              ),
+                              child: linkedCrop != null
+                                  ? Chip(
+                                      avatar: const Icon(Icons.eco, size: 16),
+                                      label: Text(
+                                        linkedCrop.cultivationName,
+                                        style: const TextStyle(fontSize: 13),
+                                      ),
+                                      visualDensity: VisualDensity.compact,
+                                    )
+                                  : OutlinedButton.icon(
+                                      onPressed: () =>
+                                          _createCropFromPacket(p),
+                                      icon: const Icon(Icons.eco, size: 18),
+                                      label: const Text('栽培に登録'),
+                                      style: OutlinedButton.styleFrom(
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                    ),
                             ),
                           ],
                         ),

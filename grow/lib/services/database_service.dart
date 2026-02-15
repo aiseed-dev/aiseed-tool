@@ -14,7 +14,7 @@ import '../models/sales_slip.dart';
 
 class DatabaseService {
   static const _dbName = 'grow.db';
-  static const _dbVersion = 19;
+  static const _dbVersion = 20;
 
   Database? _db;
 
@@ -402,6 +402,16 @@ class DatabaseService {
             )
           ''');
         }
+        if (oldVersion < 20) {
+          // v20: 種袋→栽培データ連携（crop_id追加）
+          final cols = await db.rawQuery('PRAGMA table_info(seed_packets)');
+          final colNames = cols.map((c) => c['name'] as String).toSet();
+          if (!colNames.contains('crop_id')) {
+            await db.execute(
+              'ALTER TABLE seed_packets ADD COLUMN crop_id TEXT',
+            );
+          }
+        }
       },
     );
   }
@@ -546,6 +556,7 @@ class DatabaseService {
         price INTEGER,
         memo TEXT NOT NULL DEFAULT '',
         photo_path TEXT,
+        crop_id TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       )
