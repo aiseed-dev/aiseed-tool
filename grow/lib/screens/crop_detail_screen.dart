@@ -453,6 +453,24 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
         return Icons.agriculture;
       case ActivityType.other:
         return Icons.more_horiz;
+      case ActivityType.pruning:
+        return Icons.content_cut;
+      case ActivityType.weeding:
+        return Icons.eco;
+      case ActivityType.bedMaking:
+        return Icons.landscape;
+      case ActivityType.tilling:
+        return Icons.handyman;
+      case ActivityType.potUp:
+        return Icons.yard;
+      case ActivityType.cutting:
+        return Icons.carpenter;
+      case ActivityType.flowering:
+        return Icons.local_florist;
+      case ActivityType.shipping:
+        return Icons.local_shipping;
+      case ActivityType.management:
+        return Icons.settings;
     }
   }
 
