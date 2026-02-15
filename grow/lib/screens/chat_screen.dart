@@ -35,10 +35,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isLoading = false;
   String _streamingContent = '';
 
-  // AI settings
-  AiProvider _provider = AiProvider.fastapi;
-  String _apiKey = '';
-  String _model = '';
+  // AI settings（サーバー経由のみ）
   String _systemPrompt = '';
   String _serverUrl = '';
   String _serverToken = '';
@@ -100,11 +97,6 @@ class _ChatScreenState extends State<ChatScreen> {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
     setState(() {
-      final providerIndex = prefs.getInt(kAiProviderPref) ?? 0;
-      _provider = AiProvider
-          .values[providerIndex.clamp(0, AiProvider.values.length - 1)];
-      _apiKey = prefs.getString(kAiApiKeyPref) ?? '';
-      _model = prefs.getString(kAiModelPref) ?? '';
       _serverUrl = prefs.getString(kServerUrlPref) ?? '';
       _serverToken = prefs.getString(kServerTokenPref) ?? '';
       _systemPrompt = prefs.getString(kAiSystemPromptPref) ??
@@ -119,17 +111,11 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() => _conversations = list);
   }
 
-  bool get _isConfigured {
-    if (_provider == AiProvider.fastapi) {
-      return _serverUrl.isNotEmpty;
-    }
-    return _apiKey.isNotEmpty;
-  }
+  bool get _isConfigured => _serverUrl.isNotEmpty;
 
   AiChatService _createService() => AiChatService(
-        provider: _provider,
-        apiKey: _apiKey,
-        model: _model.isNotEmpty ? _model : null,
+        provider: AiProvider.fastapi,
+        apiKey: '',
         serverUrl: _serverUrl,
         serverToken: _serverToken,
       );
@@ -414,9 +400,7 @@ class _ChatScreenState extends State<ChatScreen> {
             if (!_isConfigured) ...[
               const SizedBox(height: 8),
               Text(
-                _provider == AiProvider.fastapi
-                    ? '設定 → サーバーURL を入力（APIキー不要）'
-                    : '設定 → AIプロバイダーからAPIキーを入力',
+                'スキルズ → サーバー接続 を設定してください',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -476,14 +460,6 @@ class _ChatScreenState extends State<ChatScreen> {
                   style: Theme.of(context).textTheme.titleMedium,
                   overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              Text(
-                _provider == AiProvider.fastapi
-                    ? 'Server'
-                    : _provider == AiProvider.gemini
-                        ? 'Gemini'
-                        : 'Claude',
-                style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
               ),
               const SizedBox(width: 8),
             ],
@@ -666,13 +642,10 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _showApiKeyHint() {
-    final msg = _provider == AiProvider.fastapi
-        ? '設定 → サーバーURL を入力してください（APIキー不要）'
-        : '設定 → AIプロバイダー からAPIキーを入力してください';
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        duration: const Duration(seconds: 3),
+      const SnackBar(
+        content: Text('スキルズ → サーバー接続 を設定してください'),
+        duration: Duration(seconds: 3),
       ),
     );
   }

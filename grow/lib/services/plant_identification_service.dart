@@ -11,7 +11,7 @@ enum PlantIdProvider {
   /// Plant.id API（直接）- 植物特化、コスト低め
   plantId,
 
-  /// サーバー経由（FastAPI）- APIキー不要、サーバー側で処理
+  /// サーバー経由 - APIキー不要、サーバー側で処理
   server,
 }
 
@@ -56,7 +56,6 @@ class _OffService extends PlantIdentificationService {
 /// Plant.id API を使った実装
 /// https://plant.id/
 /// 無料枠: 月200リクエスト
-/// 植物特化のDBで一般的な作物・雑草に強い
 class PlantIdService extends PlantIdentificationService {
   final String? _apiKey;
 

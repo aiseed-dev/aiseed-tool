@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/database_service.dart';
 import '../services/skill_file_generator.dart';
-import '../services/ai_chat_service.dart';
 import 'onboarding_screen.dart';
 import 'settings_screen.dart';
 import 'site_screen.dart';
@@ -25,6 +24,7 @@ class SkillScreen extends StatefulWidget {
   final ValueChanged<Locale?> onLocaleChanged;
   final ThemeMode themeMode;
   final Locale? locale;
+  final VoidCallback? onServerChanged;
 
   const SkillScreen({
     super.key,
@@ -33,6 +33,7 @@ class SkillScreen extends StatefulWidget {
     required this.onLocaleChanged,
     required this.themeMode,
     required this.locale,
+    this.onServerChanged,
   });
 
   @override
@@ -46,13 +47,12 @@ class _SkillScreenState extends State<SkillScreen> {
   String _experience = '';
   String _challenges = '';
 
-  AiProvider _aiProvider = AiProvider.gemini;
-  String _aiApiKey = '';
-  String _aiModel = '';
+  String _serverUrl = '';
+  String _serverToken = '';
 
   bool _loaded = false;
   bool _skillsExpanded = false;
-  bool _aiExpanded = false;
+  bool _serverExpanded = false;
   bool _formsExpanded = false;
 
   @override
@@ -72,11 +72,8 @@ class _SkillScreenState extends State<SkillScreen> {
       _experience = prefs.getString(kSkillExperiencePref) ?? '';
       _challenges = prefs.getString(kSkillChallengesPref) ?? '';
 
-      final aiIdx = prefs.getInt(kAiProviderPref) ?? 0;
-      _aiProvider =
-          AiProvider.values[aiIdx.clamp(0, AiProvider.values.length - 1)];
-      _aiApiKey = prefs.getString(kAiApiKeyPref) ?? '';
-      _aiModel = prefs.getString(kAiModelPref) ?? '';
+      _serverUrl = prefs.getString(kServerUrlPref) ?? '';
+      _serverToken = prefs.getString(kServerTokenPref) ?? '';
       _loaded = true;
     });
   }
@@ -172,16 +169,14 @@ class _SkillScreenState extends State<SkillScreen> {
     );
   }
 
+  bool get _isServerConnected =>
+      _serverUrl.isNotEmpty && _serverToken.isNotEmpty;
+
   Widget _buildProfile() {
     final methodLabel =
         SkillFileGenerator.farmingMethods[_method] ?? _method;
     final expLabel =
         SkillFileGenerator.experienceLevels[_experience] ?? _experience;
-    final aiLabel = _aiProvider == AiProvider.gemini
-        ? 'Gemini'
-        : _aiProvider == AiProvider.claude
-            ? 'Claude'
-            : 'FastAPI';
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -267,45 +262,58 @@ class _SkillScreenState extends State<SkillScreen> {
 
         const SizedBox(height: 12),
 
-        // AI設定 セクション
+        // サーバー接続 セクション
         Card(
           clipBehavior: Clip.antiAlias,
           child: ExpansionTile(
-            leading: const Icon(Icons.smart_toy),
-            title: const Text('AI設定'),
+            leading: Icon(
+              _isServerConnected ? Icons.cloud_done : Icons.cloud_off,
+              color: _isServerConnected
+                  ? Theme.of(context).colorScheme.primary
+                  : null,
+            ),
+            title: const Text('サーバー接続'),
             subtitle: Text(
-              '$aiLabel・${_aiModelLabel()}',
+              _isServerConnected ? '接続済み' : '未接続（オフラインモード）',
               style: TextStyle(
                 fontSize: 13,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: _isServerConnected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
-            initiallyExpanded: _aiExpanded,
-            onExpansionChanged: (v) => setState(() => _aiExpanded = v),
+            initiallyExpanded: _serverExpanded,
+            onExpansionChanged: (v) => setState(() => _serverExpanded = v),
             children: [
               const Divider(height: 1),
               _profileTile(
-                icon: Icons.smart_toy,
-                title: 'AIプロバイダー',
-                value: _aiProvider == AiProvider.gemini
-                    ? 'Gemini（無料枠あり）'
-                    : 'Claude（従量課金）',
-                onTap: _editAiProvider,
+                icon: Icons.dns,
+                title: 'サーバーURL',
+                value: _serverUrl.isEmpty ? '未設定' : _serverUrl,
+                onTap: _editServerUrl,
               ),
               const Divider(height: 1, indent: 56),
               _profileTile(
                 icon: Icons.key,
-                title: 'APIキー',
-                value: _aiApiKey.isEmpty ? '未設定' : _maskedKey(_aiApiKey),
-                onTap: _editAiApiKey,
+                title: 'トークン',
+                value: _serverToken.isEmpty
+                    ? '未設定'
+                    : _maskedKey(_serverToken),
+                onTap: _editServerToken,
               ),
-              const Divider(height: 1, indent: 56),
-              _profileTile(
-                icon: Icons.memory,
-                title: 'AIモデル',
-                value: _aiModelLabel(),
-                onTap: _editAiModel,
-              ),
+              if (_isServerConnected) ...[
+                const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    'AIチャット・植物同定・データ同期が利用できます',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -440,15 +448,6 @@ class _SkillScreenState extends State<SkillScreen> {
     final stars = '*' * (key.length > 8 ? 8 : key.length);
     final tail = key.length > 4 ? key.substring(key.length - 4) : key;
     return '$stars$tail';
-  }
-
-  String _aiModelLabel() {
-    if (_aiModel.isEmpty) return 'デフォルト';
-    final models = AiChatService.modelsFor(_aiProvider);
-    for (final m in models) {
-      if (m.$1 == _aiModel) return m.$2;
-    }
-    return _aiModel;
   }
 
   // -- Edit dialogs --
@@ -620,91 +619,49 @@ class _SkillScreenState extends State<SkillScreen> {
     setState(() => _challenges = result);
   }
 
-  Future<void> _editAiProvider() async {
-    final result = await showDialog<AiProvider>(
+  Future<void> _editServerUrl() async {
+    final ctrl = TextEditingController(text: _serverUrl);
+    final result = await showDialog<String>(
       context: context,
-      builder: (ctx) => SimpleDialog(
-        title: const Text('AIプロバイダー'),
-        children: [
-          SimpleDialogOption(
-            onPressed: () => Navigator.pop(ctx, AiProvider.gemini),
-            child: Row(
-              children: [
-                Icon(
-                  _aiProvider == AiProvider.gemini
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_off,
-                  size: 20,
-                  color: _aiProvider == AiProvider.gemini
-                      ? Theme.of(ctx).colorScheme.primary
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Gemini'),
-                      Text('Google AI - 無料枠あり',
-                          style: TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+      builder: (ctx) => AlertDialog(
+        title: const Text('サーバーURL'),
+        content: TextField(
+          controller: ctrl,
+          decoration: const InputDecoration(
+            hintText: 'https://your-server.example.com',
           ),
-          SimpleDialogOption(
-            onPressed: () => Navigator.pop(ctx, AiProvider.claude),
-            child: Row(
-              children: [
-                Icon(
-                  _aiProvider == AiProvider.claude
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_off,
-                  size: 20,
-                  color: _aiProvider == AiProvider.claude
-                      ? Theme.of(ctx).colorScheme.primary
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Claude'),
-                      Text('Anthropic - 従量課金',
-                          style: TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          keyboardType: TextInputType.url,
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('保存'),
           ),
         ],
       ),
     );
     if (result == null) return;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(kAiProviderPref, result.index);
-    await prefs.setString(kAiModelPref, '');
-    setState(() {
-      _aiProvider = result;
-      _aiModel = '';
-    });
+    await prefs.setString(kServerUrlPref, result);
+    setState(() => _serverUrl = result);
+    widget.onServerChanged?.call();
   }
 
-  Future<void> _editAiApiKey() async {
-    final ctrl = TextEditingController(text: _aiApiKey);
+  Future<void> _editServerToken() async {
+    final ctrl = TextEditingController(text: _serverToken);
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('AI APIキー'),
+        title: const Text('トークン'),
         content: TextField(
           controller: ctrl,
-          decoration: InputDecoration(
-            hintText: _aiProvider == AiProvider.gemini
-                ? 'AIza...'
-                : 'sk-ant-...',
+          decoration: const InputDecoration(
+            hintText: '管理者から受け取ったトークン',
           ),
           obscureText: true,
           autofocus: true,
@@ -723,44 +680,9 @@ class _SkillScreenState extends State<SkillScreen> {
     );
     if (result == null) return;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(kAiApiKeyPref, result);
-    setState(() => _aiApiKey = result);
-  }
-
-  Future<void> _editAiModel() async {
-    final models = AiChatService.modelsFor(_aiProvider);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => SimpleDialog(
-        title: const Text('AIモデル'),
-        children: models.map((m) {
-          final isSelected =
-              _aiModel == m.$1 || (_aiModel.isEmpty && m == models.first);
-          return SimpleDialogOption(
-            onPressed: () => Navigator.pop(ctx, m.$1),
-            child: Row(
-              children: [
-                Icon(
-                  isSelected
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_off,
-                  size: 20,
-                  color: isSelected
-                      ? Theme.of(ctx).colorScheme.primary
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                Text(m.$2),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-    if (result == null) return;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(kAiModelPref, result);
-    setState(() => _aiModel = result);
+    await prefs.setString(kServerTokenPref, result);
+    setState(() => _serverToken = result);
+    widget.onServerChanged?.call();
   }
 
   void _copySkillFile() {

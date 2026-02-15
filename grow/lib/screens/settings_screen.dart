@@ -97,7 +97,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: () => _showProviderDialog(context, l),
           ),
           const Divider(height: 1),
-          // Provider-specific settings
+          // Plant.id APIキー（Plant.idプロバイダー選択時のみ）
           if (_provider == PlantIdProvider.plantId) ...[
             ListTile(
               leading: const SizedBox(width: 24),
