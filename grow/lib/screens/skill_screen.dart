@@ -43,6 +43,8 @@ class _SkillScreenState extends State<SkillScreen> {
   String _aiModel = '';
 
   bool _loaded = false;
+  bool _skillsExpanded = false;
+  bool _aiExpanded = false;
 
   @override
   void initState() {
@@ -106,7 +108,7 @@ class _SkillScreenState extends State<SkillScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('スキル'),
+        title: const Text('スキルズ'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -162,26 +164,47 @@ class _SkillScreenState extends State<SkillScreen> {
   }
 
   Widget _buildProfile() {
+    final methodLabel =
+        SkillFileGenerator.farmingMethods[_method] ?? _method;
+    final expLabel =
+        SkillFileGenerator.experienceLevels[_experience] ?? _experience;
+    final aiLabel = _aiProvider == AiProvider.gemini
+        ? 'Gemini'
+        : _aiProvider == AiProvider.claude
+            ? 'Claude'
+            : 'FastAPI';
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // Profile card
+        // スキルズ セクション
         Card(
-          child: Column(
+          clipBehavior: Clip.antiAlias,
+          child: ExpansionTile(
+            leading: const Icon(Icons.auto_awesome),
+            title: const Text('スキルズ'),
+            subtitle: Text(
+              '$methodLabel・$expLabel',
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            initiallyExpanded: _skillsExpanded,
+            onExpansionChanged: (v) => setState(() => _skillsExpanded = v),
             children: [
+              const Divider(height: 1),
               _profileTile(
                 icon: Icons.agriculture,
                 title: '農法',
-                value:
-                    SkillFileGenerator.farmingMethods[_method] ?? _method,
+                value: methodLabel,
                 onTap: _editMethod,
               ),
               const Divider(height: 1, indent: 56),
               _profileTile(
                 icon: Icons.school,
                 title: '経験',
-                value: SkillFileGenerator.experienceLevels[_experience] ??
-                    _experience,
+                value: expLabel,
                 onTap: _editExperience,
               ),
               const Divider(height: 1, indent: 56),
@@ -205,16 +228,53 @@ class _SkillScreenState extends State<SkillScreen> {
                 value: _challenges.isEmpty ? '未設定' : _challenges,
                 onTap: _editChallenges,
               ),
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _copySkillFile,
+                        icon: const Icon(Icons.copy, size: 18),
+                        label: const Text('ファイルをコピー'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _openOnboarding,
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text('再設定'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
-        // AI Settings
+        // AI設定 セクション
         Card(
-          child: Column(
+          clipBehavior: Clip.antiAlias,
+          child: ExpansionTile(
+            leading: const Icon(Icons.smart_toy),
+            title: const Text('AI設定'),
+            subtitle: Text(
+              '$aiLabel・${_aiModelLabel()}',
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            initiallyExpanded: _aiExpanded,
+            onExpansionChanged: (v) => setState(() => _aiExpanded = v),
             children: [
+              const Divider(height: 1),
               _profileTile(
                 icon: Icons.smart_toy,
                 title: 'AIプロバイダー',
@@ -239,21 +299,6 @@ class _SkillScreenState extends State<SkillScreen> {
               ),
             ],
           ),
-        ),
-
-        const SizedBox(height: 24),
-
-        // Actions
-        FilledButton.icon(
-          onPressed: _copySkillFile,
-          icon: const Icon(Icons.copy),
-          label: const Text('スキルファイルをコピー'),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: _openOnboarding,
-          icon: const Icon(Icons.refresh),
-          label: const Text('プロフィールを再設定'),
         ),
       ],
     );
@@ -611,7 +656,7 @@ class _SkillScreenState extends State<SkillScreen> {
     Clipboard.setData(ClipboardData(text: skillFile));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('スキルファイルをコピーしました'),
+        content: Text('スキルズファイルをコピーしました'),
         duration: Duration(seconds: 2),
       ),
     );

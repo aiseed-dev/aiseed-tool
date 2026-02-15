@@ -1157,7 +1157,7 @@ abstract class AppLocalizations {
   /// No description provided for @skill.
   ///
   /// In ja, this message translates to:
-  /// **'スキル'**
+  /// **'スキルズ'**
   String get skill;
 
   /// No description provided for @farmingMethod.
@@ -1169,7 +1169,7 @@ abstract class AppLocalizations {
   /// No description provided for @inheritFromSkill.
   ///
   /// In ja, this message translates to:
-  /// **'スキル設定を使う'**
+  /// **'スキルズ設定を使う'**
   String get inheritFromSkill;
 
   /// No description provided for @web.
@@ -1187,7 +1187,7 @@ abstract class AppLocalizations {
   /// No description provided for @siteEasyPublishDesc.
   ///
   /// In ja, this message translates to:
-  /// **'スキルと栽培記録からサイトを自動作成し cowork.aiseed.dev に公開'**
+  /// **'スキルズと栽培記録からサイトを自動作成し cowork.aiseed.dev に公開'**
   String get siteEasyPublishDesc;
 
   /// No description provided for @siteRequestSent.
@@ -1211,7 +1211,7 @@ abstract class AppLocalizations {
   /// No description provided for @siteAutoFilled.
   ///
   /// In ja, this message translates to:
-  /// **'スキル設定から自動入力しました'**
+  /// **'スキルズ設定から自動入力しました'**
   String get siteAutoFilled;
 
   /// No description provided for @siteEmail.

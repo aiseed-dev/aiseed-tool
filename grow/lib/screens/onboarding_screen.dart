@@ -169,7 +169,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ? Icons.auto_awesome
                     : Icons.arrow_forward),
                 label:
-                    Text(_step == _totalSteps - 1 ? 'スキルファイルを生成' : '次へ'),
+                    Text(_step == _totalSteps - 1 ? 'スキルズファイルを生成' : '次へ'),
               ),
             ],
           ),
@@ -342,7 +342,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               Icon(Icons.auto_awesome,
                   size: 40, color: Theme.of(context).colorScheme.primary),
               const SizedBox(height: 8),
-              Text('あなた専用のスキルファイルが完成しました！',
+              Text('あなた専用のスキルズファイルが完成しました！',
                   style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 4),
               Text('このMarkdownをAIの設定に貼り付けてください',
@@ -400,7 +400,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     Clipboard.setData(ClipboardData(text: _generatedSkillFile!));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('スキルファイルをクリップボードにコピーしました'),
+        content: Text('スキルズファイルをクリップボードにコピーしました'),
         duration: Duration(seconds: 2),
       ),
     );

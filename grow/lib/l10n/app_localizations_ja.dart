@@ -544,13 +544,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get cachedInfo => '（共有データベースから取得）';
 
   @override
-  String get skill => 'スキル';
+  String get skill => 'スキルズ';
 
   @override
   String get farmingMethod => '農法';
 
   @override
-  String get inheritFromSkill => 'スキル設定を使う';
+  String get inheritFromSkill => 'スキルズ設定を使う';
 
   @override
   String get web => 'Web';
@@ -559,7 +559,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get siteEasyPublish => 'かんたん公開';
 
   @override
-  String get siteEasyPublishDesc => 'スキルと栽培記録からサイトを自動作成し cowork.aiseed.dev に公開';
+  String get siteEasyPublishDesc => 'スキルズと栽培記録からサイトを自動作成し cowork.aiseed.dev に公開';
 
   @override
   String get siteRequestSent => 'リクエストを送信しました。完了後メールでお知らせします。';
@@ -571,7 +571,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get siteAdvancedModeDesc => 'HTMLを即時生成し、自分のCloudflare Pagesにデプロイ';
 
   @override
-  String get siteAutoFilled => 'スキル設定から自動入力しました';
+  String get siteAutoFilled => 'スキルズ設定から自動入力しました';
 
   @override
   String get siteEmail => '通知メールアドレス';

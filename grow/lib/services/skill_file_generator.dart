@@ -45,7 +45,7 @@ class SkillFileGenerator {
   static String generate(GrowProfile profile) {
     final buf = StringBuffer();
 
-    buf.writeln('# 栽培AIスキルファイル');
+    buf.writeln('# 栽培AIスキルズファイル');
     buf.writeln();
     buf.writeln('> このファイルをAIアシスタントのシステムプロンプトや');
     buf.writeln('> カスタム指示に貼り付けると、あなた専用の栽培アドバイザーになります。');
