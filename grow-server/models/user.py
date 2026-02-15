@@ -6,6 +6,12 @@ from sqlalchemy.orm import Mapped, mapped_column
 from database import Base
 
 
+# ロール: pending（未承認）→ user（承認済み）→ admin（管理者）
+ROLE_PENDING = "pending"
+ROLE_USER = "user"
+ROLE_ADMIN = "admin"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -15,6 +21,7 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255), default="")
     display_name: Mapped[str] = mapped_column(String(100), default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    role: Mapped[str] = mapped_column(String(20), default=ROLE_PENDING)
 
     # Social auth providers
     apple_id: Mapped[Optional[str]] = mapped_column(

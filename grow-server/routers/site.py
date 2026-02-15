@@ -14,7 +14,7 @@ from sqlalchemy import select
 
 from database import AsyncSession, get_db
 from models.site_job import SiteJob
-from routers.auth import get_current_user
+from services.auth_service import get_approved_user
 from services.site_template import generate_site_html
 
 logger = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ class DeployRequest(BaseModel):
 
 
 @router.post("/generate")
-async def generate(data: SiteData, request: Request, user=Depends(get_current_user)):
+async def generate(data: SiteData, request: Request, user=Depends(get_approved_user)):
     """テンプレートから HTML を即時生成して返す。"""
     api_base = str(request.base_url).rstrip("/")
     html = generate_site_html(
@@ -81,7 +81,7 @@ async def generate(data: SiteData, request: Request, user=Depends(get_current_us
 @router.post("/request")
 async def request_generation(
     data: SiteData,
-    user=Depends(get_current_user),
+    user=Depends(get_approved_user),
     db: AsyncSession = Depends(get_db),
 ):
     """バッチ処理キューにリクエストを追加する。"""
@@ -98,7 +98,7 @@ async def request_generation(
 @router.get("/status/{job_id}")
 async def job_status(
     job_id: str,
-    user=Depends(get_current_user),
+    user=Depends(get_approved_user),
     db: AsyncSession = Depends(get_db),
 ):
     """バッチジョブの状態を確認する。"""
@@ -119,7 +119,7 @@ async def job_status(
 
 @router.get("/jobs")
 async def list_jobs(
-    user=Depends(get_current_user),
+    user=Depends(get_approved_user),
     db: AsyncSession = Depends(get_db),
 ):
     """ユーザーのジョブ一覧を返す。"""
@@ -145,7 +145,7 @@ async def list_jobs(
 
 
 @router.post("/deploy")
-async def deploy(req: DeployRequest, request: Request, user=Depends(get_current_user)):
+async def deploy(req: DeployRequest, request: Request, user=Depends(get_approved_user)):
     """ユーザーの Cloudflare Pages にデプロイする。"""
     api_base = str(request.base_url).rstrip("/")
     html = generate_site_html(

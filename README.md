@@ -1,16 +1,22 @@
-# aiseed-tool
+# aiseed-tool — 自然栽培Cowork
 
-**AI x 自然栽培** -- 栽培から販売までを支えるツールと知識基盤
+農家が一人でAIとチームを組むための栽培支援プラットフォーム。
 
 ## 概要
 
 自然栽培を「記録する・知る・届ける」ための Flutter アプリと、それを支える知識基盤のプロジェクトです。
 
-栽培記録はもちろん、アルバム・販売用 Web ページ・動画の作成まで、栽培から販売までの流れをひとつのツールでカバーします。畑仕事で忙しい人でも最小限の手間で使えることを重視しています。アプリ内でどこまで作り、外部ツールをどう活用するかは機能ごとに検討していきます。
+栽培記録、写真管理、AI植物同定、販売用 Web サイト生成、気候データ分析まで、栽培から販売までの流れをひとつのプラットフォームでカバーします。畑仕事で忙しい人でも最小限の手間で使えることを重視しています。
 
 知識基盤には、イタリア・日本の伝統野菜と伝統料理のデータに加え、自然農法や土壌生物学の知識を収録。全文検索や AI による検索で、必要な情報にすぐアクセスできることを目指します。
 
 除草するためではなく、共生するためのツールです。
+
+## セットアップ
+
+**Claude Desktop（Cowork）をお持ちの方は、このリポジトリを clone して「セットアップして」と頼むだけで始められます。** 各ディレクトリの `CLAUDE.md` に手順が書いてあり、Claude が自動で環境構築を行います。
+
+手動でセットアップする場合は、各ディレクトリの README.md を参照してください。
 
 ## 特徴
 
@@ -28,43 +34,28 @@
 
 ```
 aiseed-tool/
-├── grow/                          # Flutter アプリ（記録・アルバム・販売Web・動画）
-├── grow-server/                   # FastAPI バックエンド（データ同期・筆ポリゴン）
-├── climate-server/                # 気候データサーバー（ERA5・AgERA5・世界時計）
-│   ├── services/                  # データ取得サービス
-│   │   ├── era5_service.py        #   農地気候 (Open-Meteo ERA5 0.25°)
-│   │   ├── agera5_gee.py          #   AgERA5 via Google Earth Engine (0.1°)
-│   │   ├── era5_s3.py             #   世界時計 (AWS S3 ERA5 minmax/accumu)
-│   │   ├── fude_grid.py           #   筆ポリゴン → AgERA5グリッドマッピング
-│   │   └── sentinel2.py           #   Sentinel-2 植生指数（予定）
-│   ├── routers/                   # API エンドポイント
-│   │   ├── era5.py                #   /era5/* 農地気候
-│   │   └── world_clock.py         #   /world-clock/* 旅行・都市比較
-│   ├── storage/                   # NetCDF 日次データストレージ
-│   └── scripts/                   # データ収集・統計スクリプト
-│       ├── collect_presets.py     #   農地気候の一括取得（10年/30年）
-│       ├── climate_stats.py       #   気候統計・特異現象の算出
-│       └── show_summary.py        #   保存状況の確認
-├── data/
-│   ├── vegetables/                # 伝統野菜データ (JSON)
-│   ├── recipes/                   # 伝統料理データ (JSON)
-│   ├── master_lists/              # マスターデータ (CSV)
-│   └── deep_research/             # 深堀り調査結果 (Markdown)
-│       ├── イタリア野菜/           #   77品目の解説
-│       └── 農業地域/              #   海外農業地域の伝統作物・料理
-├── src/
-│   ├── agents/                    # AIリサーチエージェント
-│   ├── schemas/                   # Pydantic データスキーマ
-│   └── validators/                # データバリデーション
-├── web/                           # 静的Webサイト（野菜図鑑）
-├── scripts/                       # ユーティリティスクリプト
-│   ├── gen_cultivation.py         #   栽培ガイド生成 (Gemini)
-│   ├── gen_cuisine.py             #   料理ガイド生成 (Gemini)
-│   ├── gen_icons.py               #   野菜アイコン生成 (Gemini)
-│   ├── research_regions.py        #   海外農業地域リサーチ (Gemini/Claude)
-│   └── extract_varieties*.py      #   品種データ抽出
-└── docs/                          # ドキュメント・計画書
+├── grow/                  ← スマホアプリ（Flutter / iOS・Android）
+├── grow_cowork/           ← デスクトップアプリ（Flutter + Python scripts）
+├── grow-server/           ← メインAPIサーバー（FastAPI / GPU対応）
+├── cloudflare-server/     ← エッジサーバー（Cloudflare Workers）
+├── climate-server/        ← 気候データサーバー（ERA5・AgERA5・世界時計）
+├── data/                  ← 知識基盤（伝統野菜・伝統料理・気候データ）
+├── web/                   ← Webサイト
+├── src/                   ← AIリサーチエージェント・スキーマ
+├── scripts/               ← ユーティリティスクリプト
+└── docs/                  ← ドキュメント
 ```
+
+### 各コンポーネントの役割
+
+| コンポーネント | 説明 | セットアップ |
+|---|---|---|
+| **grow** | スマホアプリ。栽培記録・写真・同期 | Flutter |
+| **grow_cowork** | デスクトップアプリ。AI植物同定・写真管理・データ同期 | `grow_cowork/CLAUDE.md` |
+| **grow-server** | メインAPI。AIチャット・OCR・画像分析・天気・予報・サイト生成・消費者PF | `grow-server/CLAUDE.md` |
+| **cloudflare-server** | エッジサーバー。スマホアプリ用API | Cloudflare Workers |
+| **climate-server** | 気候データ。ERA5・AgERA5(GEE)・Sentinel-2・世界時計 | FastAPI |
+| **data** | 伝統野菜・伝統料理・農業地域の構造化データ | JSON/CSV/Markdown |
 
 ## 気候データ基盤
 
@@ -134,13 +125,21 @@ aiseed-tool/
 
 | 用途 | 技術 |
 |------|------|
-| アプリ（記録・アルバム・販売Web・動画） | Flutter |
+| スマホ・デスクトップアプリ | Flutter |
 | バックエンド | FastAPI (grow-server, climate-server) |
+| エッジ | Cloudflare Workers |
+| AI チャット | Claude Agent SDK（Max 定額プラン） |
+| AI 植物同定 | Claude Vision |
+| OCR | PaddleOCR + PaddlePaddle GPU |
+| 画像分析 | Florence-2 |
 | 気候データ | ERA5 (Open-Meteo / AWS S3), AgERA5 (GEE), NetCDF |
 | 植生指数 | Sentinel-2 via Earth Search STAC |
 | 農地マッピング | 農水省筆ポリゴン → 0.1°グリッド |
+| 天気予報 | ECMWF / AMeDAS / Ecowitt |
 | リサーチエンジン | Claude Agent SDK + WebSearch |
 | バッチ処理 | Gemini API |
+| DB | SQLite（async） |
+| 認証 | JWT |
 | データ形式 | JSON / CSV / Markdown / NetCDF |
 | データ検証 | Pydantic v2 |
 

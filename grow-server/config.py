@@ -65,9 +65,6 @@ class Settings(BaseSettings):
     upload_dir: str = "./uploads"
     max_upload_size: int = 20 * 1024 * 1024  # 20MB
 
-    # AMeDAS 定期取得（カンマ区切りの地点ID、最大3箇所）
-    amedas_stations: str = ""  # 例: "44132,44171,44191"
-
     # Mail（Postfix + DKIM）
     mail_from: str = "noreply@aiseed.dev"
 

@@ -14,9 +14,6 @@ class Base(DeclarativeBase):
 async def init_db():
     # Import all models so Base.metadata knows about them
     import models.user  # noqa: F401
-    import models.weather  # noqa: F401
-    import models.amedas  # noqa: F401
-    import models.forecast  # noqa: F401
     import models.grow  # noqa: F401
     import models.site_job  # noqa: F401
     import models.fude_polygon  # noqa: F401

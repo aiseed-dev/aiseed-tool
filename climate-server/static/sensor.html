@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>センサーデータ</title>
+<style>
+:root {
+  --bg: #f8f9fa;
+  --card: #fff;
+  --text: #333;
+  --accent: #2e7d32;
+  --border: #e0e0e0;
+  --muted: #888;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 16px; }
+h1 { font-size: 1.4rem; color: var(--accent); margin-bottom: 16px; }
+h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent); }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+.card-label { font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; }
+.card-value { font-size: 1.8rem; font-weight: 600; }
+.card-unit { font-size: 0.9rem; color: var(--muted); margin-left: 4px; }
+.card-source { font-size: 0.7rem; color: var(--accent); margin-top: 4px; }
+
+.chart-container { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+canvas { width: 100% !important; height: 300px !important; }
+
+.summary-table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 8px; overflow: hidden; }
+.summary-table th, .summary-table td { padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--border); }
+.summary-table th { background: var(--accent); color: #fff; text-align: left; }
+.summary-table td:first-child { text-align: left; font-weight: 500; }
+
+.controls { margin-bottom: 16px; display: flex; gap: 8px; align-items: center; }
+select, button { padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.9rem; }
+button { background: var(--accent); color: #fff; border: none; cursor: pointer; }
+button:hover { opacity: 0.9; }
+
+.status { font-size: 0.8rem; color: var(--muted); margin-top: 8px; }
+.error { color: #c62828; }
+</style>
+</head>
+<body>
+
+<h1>センサーデータ</h1>
+
+<div class="controls">
+  <select id="hours">
+    <option value="6">6時間</option>
+    <option value="24" selected>24時間</option>
+    <option value="48">48時間</option>
+    <option value="168">1週間</option>
+  </select>
+  <button onclick="loadData()">更新</button>
+  <span id="status" class="status"></span>
+</div>
+
+<!-- 現在値 -->
+<div class="grid" id="current-cards"></div>
+
+<!-- 気温グラフ -->
+<div class="chart-container">
+  <h2>気温推移</h2>
+  <canvas id="tempChart"></canvas>
+</div>
+
+<!-- 降水量グラフ -->
+<div class="chart-container">
+  <h2>降水量</h2>
+  <canvas id="rainChart"></canvas>
+</div>
+
+<!-- サマリー -->
+<div class="chart-container">
+  <h2>期間サマリー</h2>
+  <table class="summary-table" id="summaryTable">
+    <thead><tr><th>項目</th><th>値</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+const API_BASE = window.location.origin;
+let tempChart = null;
+let rainChart = null;
+
+function setStatus(msg, isError = false) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = isError ? 'status error' : 'status';
+}
+
+function card(label, value, unit, source) {
+  const v = value != null ? value : '--';
+  const src = source ? `<div class="card-source">${source}</div>` : '';
+  return `<div class="card">
+    <div class="card-label">${label}</div>
+    <div class="card-value">${v}<span class="card-unit">${unit}</span></div>
+    ${src}
+  </div>`;
+}
+
+async function loadCurrent() {
+  try {
+    const resp = await fetch(`${API_BASE}/sensor/latest`);
+    const d = resp.ok ? await resp.json() : null;
+    if (!d || !d.recorded_at) {
+      document.getElementById('current-cards').innerHTML = '<div class="card"><div class="card-value">データなし</div></div>';
+      return;
+    }
+    const src = d.source || '';
+    document.getElementById('current-cards').innerHTML = [
+      card('気温（屋外）', d.temp_outdoor_c, '℃', src),
+      card('湿度（屋外）', d.humidity_outdoor, '%', src),
+      card('気圧', d.pressure_rel_hpa, 'hPa', src),
+      card('風速', d.wind_speed_ms, 'm/s', src),
+      card('日射量', d.solar_radiation, 'W/m²', src),
+      card('UV', d.uv_index, '', src),
+      card('降水量（日）', d.rain_daily_mm, 'mm', src),
+      card('風向', d.wind_dir != null ? d.wind_dir + '°' : '--', '', src),
+    ].join('');
+  } catch (e) {
+    setStatus('現在値の取得に失敗: ' + e.message, true);
+  }
+}
+
+async function loadHistory() {
+  const hours = document.getElementById('hours').value;
+  try {
+    const resp = await fetch(`${API_BASE}/sensor/history?hours=${hours}&limit=1000`);
+    if (!resp.ok) throw new Error(resp.statusText);
+    const data = await resp.json();
+    if (!data.length) { setStatus('履歴データなし'); return; }
+
+    // 時系列順（古い→新しい）
+    data.reverse();
+    const labels = data.map(d => {
+      const dt = new Date(d.recorded_at);
+      return dt.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+    });
+    const temps = data.map(d => d.temp_outdoor_c);
+    const rains = data.map(d => d.rain_hourly_mm || 0);
+
+    // 気温チャート
+    if (tempChart) tempChart.destroy();
+    tempChart = new Chart(document.getElementById('tempChart'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: '気温 (℃)',
+          data: temps,
+          borderColor: '#e65100',
+          backgroundColor: 'rgba(230, 81, 0, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 0,
+        }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { title: { display: true, text: '℃' } } } }
+    });
+
+    // 降水量チャート
+    if (rainChart) rainChart.destroy();
+    rainChart = new Chart(document.getElementById('rainChart'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: '降水量 (mm)',
+          data: rains,
+          backgroundColor: 'rgba(21, 101, 192, 0.7)',
+        }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { title: { display: true, text: 'mm' }, beginAtZero: true } } }
+    });
+
+    setStatus(`${data.length}件表示 (${hours}時間)`);
+  } catch (e) {
+    setStatus('履歴の取得に失敗: ' + e.message, true);
+  }
+}
+
+async function loadSummary() {
+  const hours = document.getElementById('hours').value;
+  try {
+    const resp = await fetch(`${API_BASE}/sensor/summary?hours=${hours}`);
+    if (!resp.ok) return;
+    const s = resp.ok ? await resp.json() : {};
+    const tbody = document.querySelector('#summaryTable tbody');
+    const rows = [
+      ['データ数', s.count || 0],
+      ['気温（最低）', s.temp_outdoor_min != null ? s.temp_outdoor_min + ' ℃' : '--'],
+      ['気温（最高）', s.temp_outdoor_max != null ? s.temp_outdoor_max + ' ℃' : '--'],
+      ['気温（平均）', s.temp_outdoor_avg != null ? s.temp_outdoor_avg + ' ℃' : '--'],
+      ['湿度（平均）', s.humidity_outdoor_avg != null ? s.humidity_outdoor_avg + ' %' : '--'],
+      ['風速（平均）', s.wind_speed_avg != null ? s.wind_speed_avg + ' m/s' : '--'],
+      ['突風（最大）', s.wind_gust_max != null ? s.wind_gust_max + ' m/s' : '--'],
+      ['日射量（最大）', s.solar_radiation_max != null ? s.solar_radiation_max + ' W/m²' : '--'],
+      ['UV（最大）', s.uv_index_max != null ? s.uv_index_max : '--'],
+      ['降水量（日最大）', s.rain_daily_max != null ? s.rain_daily_max + ' mm' : '--'],
+      ['気圧（平均）', s.pressure_rel_avg != null ? s.pressure_rel_avg + ' hPa' : '--'],
+    ];
+    tbody.innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+  } catch (e) { /* ignore */ }
+}
+
+async function loadData() {
+  setStatus('読み込み中...');
+  await Promise.all([loadCurrent(), loadHistory(), loadSummary()]);
+}
+
+// 初回読み込み
+loadData();
+// 60秒ごとに自動更新
+setInterval(loadData, 60000);
+</script>
+</body>
+</html>
