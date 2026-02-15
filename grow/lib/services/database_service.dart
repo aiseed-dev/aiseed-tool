@@ -10,7 +10,7 @@ import '../models/observation.dart';
 
 class DatabaseService {
   static const _dbName = 'grow.db';
-  static const _dbVersion = 16;
+  static const _dbVersion = 17;
 
   Database? _db;
 
@@ -309,6 +309,16 @@ class DatabaseService {
             await db.execute('ALTER TABLE crops ADD COLUMN end_date TEXT');
           }
         }
+        if (oldVersion < 17) {
+          // v17: Add is_favorite to crops
+          final cols = await db.rawQuery('PRAGMA table_info(crops)');
+          final colNames = cols.map((c) => c['name'] as String).toSet();
+          if (!colNames.contains('is_favorite')) {
+            await db.execute(
+              'ALTER TABLE crops ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0',
+            );
+          }
+        }
       },
     );
   }
@@ -351,6 +361,7 @@ class DatabaseService {
         memo TEXT NOT NULL DEFAULT '',
         start_date TEXT NOT NULL,
         end_date TEXT,
+        is_favorite INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         FOREIGN KEY (plot_id) REFERENCES plots(id) ON DELETE SET NULL,

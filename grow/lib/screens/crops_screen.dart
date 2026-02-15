@@ -8,6 +8,13 @@ import '../services/skill_file_generator.dart';
 import 'crop_create_screen.dart';
 import 'crop_detail_screen.dart';
 
+enum _SortMode {
+  startDateDesc, // 開始日（新しい順）— デフォルト
+  startDateAsc, // 開始日（古い順）
+  nameAsc, // 名前（あ→わ）
+  updatedDesc, // 更新日（新しい順）
+}
+
 class CropsScreen extends StatefulWidget {
   final DatabaseService db;
 
@@ -23,10 +30,11 @@ class _CropsScreenState extends State<CropsScreen> {
   List<Location> _locations = [];
   bool _loading = true;
 
-  // 検索・フィルタ
+  // 検索・フィルタ・ソート
   bool _isSearching = false;
   String _searchQuery = '';
   bool _showEnded = false;
+  _SortMode _sortMode = _SortMode.startDateDesc;
   final _searchController = TextEditingController();
 
   @override
@@ -55,7 +63,7 @@ class _CropsScreenState extends State<CropsScreen> {
   }
 
   List<Crop> get _filteredCrops {
-    var results = _crops;
+    var results = _crops.toList();
 
     // 終了した栽培を除外（デフォルト）
     if (!_showEnded) {
@@ -73,6 +81,24 @@ class _CropsScreenState extends State<CropsScreen> {
         return false;
       }).toList();
     }
+
+    // ソート
+    results.sort((a, b) {
+      // お気に入りを常に先頭に
+      if (a.isFavorite != b.isFavorite) {
+        return a.isFavorite ? -1 : 1;
+      }
+      switch (_sortMode) {
+        case _SortMode.startDateDesc:
+          return b.startDate.compareTo(a.startDate);
+        case _SortMode.startDateAsc:
+          return a.startDate.compareTo(b.startDate);
+        case _SortMode.nameAsc:
+          return a.cultivationName.compareTo(b.cultivationName);
+        case _SortMode.updatedDesc:
+          return b.updatedAt.compareTo(a.updatedAt);
+      }
+    });
 
     return results;
   }
@@ -93,6 +119,65 @@ class _CropsScreenState extends State<CropsScreen> {
 
   String _formatDate(DateTime d) {
     return '${d.year}/${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _toggleFavorite(Crop crop) async {
+    final updated = crop.copyWith(isFavorite: !crop.isFavorite);
+    await widget.db.updateCrop(updated);
+    _load();
+  }
+
+  void _showSortMenu() {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('並び替え', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            RadioListTile<_SortMode>(
+              title: const Text('開始日（新しい順）'),
+              value: _SortMode.startDateDesc,
+              groupValue: _sortMode,
+              onChanged: (v) {
+                setState(() => _sortMode = v!);
+                Navigator.pop(ctx);
+              },
+            ),
+            RadioListTile<_SortMode>(
+              title: const Text('開始日（古い順）'),
+              value: _SortMode.startDateAsc,
+              groupValue: _sortMode,
+              onChanged: (v) {
+                setState(() => _sortMode = v!);
+                Navigator.pop(ctx);
+              },
+            ),
+            RadioListTile<_SortMode>(
+              title: const Text('名前順'),
+              value: _SortMode.nameAsc,
+              groupValue: _sortMode,
+              onChanged: (v) {
+                setState(() => _sortMode = v!);
+                Navigator.pop(ctx);
+              },
+            ),
+            RadioListTile<_SortMode>(
+              title: const Text('更新日（新しい順）'),
+              value: _SortMode.updatedDesc,
+              groupValue: _sortMode,
+              onChanged: (v) {
+                setState(() => _sortMode = v!);
+                Navigator.pop(ctx);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _showForm({Crop? existing}) async {
@@ -278,6 +363,7 @@ class _CropsScreenState extends State<CropsScreen> {
       memo: memoCtrl.text.trim(),
       startDate: existing?.startDate,
       endDate: endDate,
+      isFavorite: existing?.isFavorite ?? false,
       createdAt: existing?.createdAt,
     );
 
@@ -385,11 +471,17 @@ class _CropsScreenState extends State<CropsScreen> {
                 });
               },
             )
-          else
+          else ...[
             IconButton(
               icon: const Icon(Icons.search),
               onPressed: () => setState(() => _isSearching = true),
             ),
+            IconButton(
+              icon: const Icon(Icons.sort),
+              tooltip: '並び替え',
+              onPressed: _showSortMenu,
+            ),
+          ],
         ],
       ),
       body: _loading
@@ -497,6 +589,16 @@ class _CropsScreenState extends State<CropsScreen> {
                 ),
               ),
           ],
+        ),
+        trailing: IconButton(
+          icon: Icon(
+            crop.isFavorite ? Icons.star : Icons.star_border,
+            color: crop.isFavorite
+                ? Colors.amber
+                : Theme.of(context).colorScheme.onSurfaceVariant,
+            size: 22,
+          ),
+          onPressed: () => _toggleFavorite(crop),
         ),
         onTap: () => _openCropDetail(crop),
         onLongPress: () => _showCropMenu(crop),

@@ -11,6 +11,7 @@ class Crop {
   final String memo;
   final DateTime startDate;
   final DateTime? endDate;
+  final bool isFavorite;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -25,6 +26,7 @@ class Crop {
     this.memo = '',
     DateTime? startDate,
     this.endDate,
+    this.isFavorite = false,
     DateTime? createdAt,
     DateTime? updatedAt,
   })  : id = id ?? const Uuid().v4(),
@@ -43,6 +45,7 @@ class Crop {
         'memo': memo,
         'start_date': startDate.toIso8601String(),
         'end_date': endDate?.toIso8601String(),
+        'is_favorite': isFavorite ? 1 : 0,
         'created_at': createdAt.toIso8601String(),
         'updated_at': updatedAt.toIso8601String(),
       };
@@ -60,6 +63,7 @@ class Crop {
         endDate: map['end_date'] != null
             ? DateTime.parse(map['end_date'] as String)
             : null,
+        isFavorite: (map['is_favorite'] as int?) == 1,
         createdAt: DateTime.parse(map['created_at'] as String),
         updatedAt: map['updated_at'] != null
             ? DateTime.parse(map['updated_at'] as String)
@@ -67,4 +71,20 @@ class Crop {
       );
 
   bool get isEnded => endDate != null;
+
+  Crop copyWith({bool? isFavorite}) => Crop(
+        id: id,
+        cultivationName: cultivationName,
+        name: name,
+        variety: variety,
+        plotId: plotId,
+        parentCropId: parentCropId,
+        farmingMethod: farmingMethod,
+        memo: memo,
+        startDate: startDate,
+        endDate: endDate,
+        isFavorite: isFavorite ?? this.isFavorite,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
 }
