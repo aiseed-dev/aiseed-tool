@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/database_service.dart';
 import '../services/skill_file_generator.dart';
 import '../services/ai_chat_service.dart';
 import 'onboarding_screen.dart';
 import 'settings_screen.dart';
+import 'site_screen.dart';
 
 // Structured skill profile SharedPreferences keys
 const kSkillCropsPref = 'skill_crops';
@@ -14,6 +16,7 @@ const kSkillExperiencePref = 'skill_experience';
 const kSkillChallengesPref = 'skill_challenges';
 
 class SkillScreen extends StatefulWidget {
+  final DatabaseService db;
   final ValueChanged<ThemeMode> onThemeModeChanged;
   final ValueChanged<Locale?> onLocaleChanged;
   final ThemeMode themeMode;
@@ -21,6 +24,7 @@ class SkillScreen extends StatefulWidget {
 
   const SkillScreen({
     super.key,
+    required this.db,
     required this.onThemeModeChanged,
     required this.onLocaleChanged,
     required this.themeMode,
@@ -300,7 +304,36 @@ class _SkillScreenState extends State<SkillScreen> {
             ],
           ),
         ),
+
+        const SizedBox(height: 12),
+
+        // Web作成 セクション
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: ListTile(
+            leading: const Icon(Icons.web),
+            title: const Text('Web作成'),
+            subtitle: Text(
+              'ホームページ作成・公開',
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _openSiteScreen,
+          ),
+        ),
       ],
+    );
+  }
+
+  void _openSiteScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SiteScreen(db: widget.db),
+      ),
     );
   }
 
