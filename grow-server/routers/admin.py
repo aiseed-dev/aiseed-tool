@@ -9,7 +9,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
-from models.user import User, ROLE_PENDING, ROLE_USER, ROLE_ADMIN
+from models.user import User, ROLE_PENDING, ROLE_USER, ROLE_SUPER_USER, ROLE_ADMIN
 from services.auth_service import get_admin_user
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -29,7 +29,7 @@ class UserSummary(BaseModel):
 
 
 class UpdateRoleRequest(BaseModel):
-    role: str  # "pending", "user", "admin"
+    role: str  # "pending", "user", "super_user", "admin"
 
 
 class UserStats(BaseModel):
@@ -127,10 +127,11 @@ async def update_role(
     db: AsyncSession = Depends(get_db),
 ):
     """ユーザーのロールを変更。"""
-    if req.role not in (ROLE_PENDING, ROLE_USER, ROLE_ADMIN):
+    valid_roles = (ROLE_PENDING, ROLE_USER, ROLE_SUPER_USER, ROLE_ADMIN)
+    if req.role not in valid_roles:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"無効なロール: {req.role}（pending, user, admin のいずれか）",
+            detail=f"無効なロール: {req.role}（pending, user, super_user, admin のいずれか）",
         )
     user = await _get_user_or_404(db, user_id)
     # 自分自身のadminロールは変更不可
@@ -176,6 +177,44 @@ async def activate_user(
     await db.commit()
     await db.refresh(user)
     return _user_to_summary(user)
+
+
+@router.post("/reload-config")
+async def reload_config(
+    _admin: User = Depends(get_admin_user),
+):
+    """users.yaml を再読み込み。"""
+    from services.feature_config import reload, load_user_features
+    reload()
+    config = load_user_features()
+    return {"status": "ok", "users_configured": len(config)}
+
+
+@router.get("/users/{user_id}/features")
+async def get_user_features(
+    user_id: str,
+    _admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """ユーザーの利用可能機能を表示。"""
+    user = await _get_user_or_404(db, user_id)
+    role = getattr(user, "role", ROLE_PENDING)
+
+    if role == ROLE_ADMIN:
+        return {"username": user.username, "role": role, "features": ["*（全機能+管理）"]}
+    if role == ROLE_SUPER_USER:
+        return {"username": user.username, "role": role, "features": ["*（管理以外全機能）"]}
+    if role == ROLE_PENDING:
+        return {"username": user.username, "role": role, "features": ["プロフィールのみ"]}
+
+    from services.feature_config import get_user_features as _get_features, ALL_FEATURES
+    allowed = _get_features(user.username)
+    return {
+        "username": user.username,
+        "role": role,
+        "features": allowed or [],
+        "available_features": ALL_FEATURES,
+    }
 
 
 async def _get_user_or_404(db: AsyncSession, user_id: str) -> User:

@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from config import settings
 from models.user import User
-from services.auth_service import get_approved_user
+from services.auth_service import require_feature
 from services.vision_service import run_caption, run_detect, analyze_plant_photo
 
 router = APIRouter(prefix="/vision", tags=["vision"])
@@ -55,7 +55,7 @@ async def _save_upload(file: UploadFile) -> str:
 @router.post("/caption", response_model=CaptionResponse)
 async def caption_image(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_approved_user),
+    current_user: User = Depends(require_feature("vision")),
 ):
     """Generate a detailed caption for the uploaded image."""
     temp_path = await _save_upload(file)
@@ -71,7 +71,7 @@ async def caption_image(
 async def detect_objects(
     file: UploadFile = File(...),
     target: str = "",
-    current_user: User = Depends(get_approved_user),
+    current_user: User = Depends(require_feature("vision")),
 ):
     """Detect objects in the uploaded image.
 
@@ -89,7 +89,7 @@ async def detect_objects(
 @router.post("/analyze", response_model=AnalyzeResponse)
 async def analyze_photo(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_approved_user),
+    current_user: User = Depends(require_feature("vision")),
 ):
     """Analyze a plant/garden photo.
 

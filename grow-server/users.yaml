@@ -1,0 +1,30 @@
+# ユーザー別 機能許可設定
+#
+# admin / super_user / pending ロールのユーザーはここに書く必要なし
+# （admin=全機能+管理, super_user=管理以外全部, pending=プロフィールのみ）
+#
+# role=user のユーザーのみ、ここで利用可能な機能を指定する
+#
+# 利用可能な機能名:
+#   ai       — AI チャット
+#   ocr      — OCR（文字認識）
+#   vision   — 画像分析（Florence-2）
+#   grow     — 栽培記録 CRUD
+#   site     — サイト生成・デプロイ
+#   fude     — 筆ポリゴン
+#   qr       — QRコード
+#   consumer — 消費者プラットフォーム
+#   skillfile — スキルファイル
+
+users:
+  # 例: 栽培記録とAIのみ利用可能
+  # farmer_tanaka:
+  #   features:
+  #     - grow
+  #     - ai
+  #     - ocr
+  #
+  # 例: サイト生成のみ
+  # test_user:
+  #   features:
+  #     - site

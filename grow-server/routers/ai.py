@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from services.auth_service import get_approved_user
+from services.auth_service import require_feature
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ async def _query_sdk(prompt: str, max_tokens: int) -> AsyncGenerator[str, None]:
 
 
 @router.post("/chat")
-async def chat(req: ChatRequest, user=Depends(get_approved_user)):
+async def chat(req: ChatRequest, user=Depends(require_feature("ai"))):
     """Claude Agent SDK 経由でチャット。Max 定額プランで従量課金なし。"""
     try:
         import claude_agent_sdk  # noqa: F401

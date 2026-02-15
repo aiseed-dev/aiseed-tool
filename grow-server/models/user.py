@@ -6,10 +6,15 @@ from sqlalchemy.orm import Mapped, mapped_column
 from database import Base
 
 
-# ロール: pending（未承認）→ user（承認済み）→ admin（管理者）
-ROLE_PENDING = "pending"
-ROLE_USER = "user"
+# ロール
+# admin: 全機能 + ユーザー管理
+# super_user: 管理以外すべて
+# user: 設定ファイル（users.yaml）で許可された機能のみ
+# pending: プロフィール閲覧・更新のみ
 ROLE_ADMIN = "admin"
+ROLE_SUPER_USER = "super_user"
+ROLE_USER = "user"
+ROLE_PENDING = "pending"
 
 
 class User(Base):
