@@ -18,6 +18,8 @@ import 'settings_screen.dart';
 
 enum _LinkType { location, plot, crop }
 
+const _harvestUnits = ['kg', 'g', '個', '本', '束', '袋', 'パック'];
+
 class RecordsScreen extends StatefulWidget {
   final DatabaseService db;
 
@@ -365,6 +367,19 @@ class _RecordsScreenState extends State<RecordsScreen> {
     final noteCtrl = TextEditingController(text: existing?.note ?? '');
     double? workHours = existing?.workHours;
     final materialsCtrl = TextEditingController(text: existing?.materials ?? '');
+    // 収穫
+    final harvestAmountCtrl = TextEditingController(
+      text: existing?.harvestAmount?.toString() ?? '',
+    );
+    var harvestUnit = existing?.harvestUnit ?? 'kg';
+    // 出荷
+    final shippingAmountCtrl = TextEditingController(
+      text: existing?.shippingAmount?.toString() ?? '',
+    );
+    var shippingUnit = existing?.shippingUnit ?? 'kg';
+    final shippingPriceCtrl = TextEditingController(
+      text: existing?.shippingPrice?.toString() ?? '',
+    );
 
     List<RecordPhoto> existingPhotos = [];
     if (existing != null) {
@@ -598,6 +613,73 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     decoration: InputDecoration(labelText: l.materials),
                     maxLines: 1,
                   ),
+                  // 収穫量（収穫時のみ）
+                  if (selectedActivity == ActivityType.harvest) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            controller: harvestAmountCtrl,
+                            decoration: const InputDecoration(labelText: '収穫量'),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            value: harvestUnit,
+                            decoration: const InputDecoration(labelText: '単位'),
+                            items: _harvestUnits
+                                .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                                .toList(),
+                            onChanged: (v) {
+                              if (v != null) setDialogState(() => harvestUnit = v);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  // 出荷量・出荷額（出荷時のみ）
+                  if (selectedActivity == ActivityType.shipping) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            controller: shippingAmountCtrl,
+                            decoration: const InputDecoration(labelText: '出荷量'),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            value: shippingUnit,
+                            decoration: const InputDecoration(labelText: '単位'),
+                            items: _harvestUnits
+                                .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                                .toList(),
+                            onChanged: (v) {
+                              if (v != null) setDialogState(() => shippingUnit = v);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: shippingPriceCtrl,
+                      decoration: const InputDecoration(
+                        labelText: '出荷額（円）',
+                        prefixText: '¥',
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   TextField(
                     controller: noteCtrl,
@@ -640,6 +722,17 @@ class _RecordsScreenState extends State<RecordsScreen> {
       note: noteCtrl.text.trim(),
       workHours: workHours,
       materials: materialsCtrl.text.trim(),
+      harvestAmount: selectedActivity == ActivityType.harvest
+          ? double.tryParse(harvestAmountCtrl.text)
+          : null,
+      harvestUnit: harvestUnit,
+      shippingAmount: selectedActivity == ActivityType.shipping
+          ? double.tryParse(shippingAmountCtrl.text)
+          : null,
+      shippingUnit: shippingUnit,
+      shippingPrice: selectedActivity == ActivityType.shipping
+          ? int.tryParse(shippingPriceCtrl.text)
+          : null,
       createdAt: existing?.createdAt,
     );
 
@@ -1092,10 +1185,21 @@ class _RecordsScreenState extends State<RecordsScreen> {
                                       subtitle: Text(
                                         [
                                           dateStr,
+                                          if (rec.activityType == ActivityType.harvest &&
+                                              rec.harvestAmount != null)
+                                            '収穫: ${rec.harvestAmount!.toStringAsFixed(rec.harvestAmount! == rec.harvestAmount!.roundToDouble() ? 0 : 1)}${rec.harvestUnit}',
+                                          if (rec.activityType == ActivityType.shipping) ...[
+                                            if (rec.shippingAmount != null)
+                                              '出荷: ${rec.shippingAmount!.toStringAsFixed(rec.shippingAmount! == rec.shippingAmount!.roundToDouble() ? 0 : 1)}${rec.shippingUnit}',
+                                            if (rec.shippingPrice != null)
+                                              '¥${rec.shippingPrice}',
+                                          ],
                                           if (rec.note.isNotEmpty) rec.note,
                                         ].join('\n'),
                                       ),
-                                      isThreeLine: rec.note.isNotEmpty,
+                                      isThreeLine: rec.note.isNotEmpty ||
+                                          (rec.activityType == ActivityType.harvest && rec.harvestAmount != null) ||
+                                          (rec.activityType == ActivityType.shipping && rec.shippingAmount != null),
                                     ),
                                   ],
                                 ),

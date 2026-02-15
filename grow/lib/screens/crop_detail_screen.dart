@@ -390,6 +390,55 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
                       ),
                     ],
                   ),
+                  // 収穫量
+                  if (rec.activityType == ActivityType.harvest &&
+                      rec.harvestAmount != null) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(Icons.agriculture, size: 16,
+                            color: Theme.of(context).colorScheme.tertiary),
+                        const SizedBox(width: 4),
+                        Text(
+                          '収穫量: ${rec.harvestAmount!.toStringAsFixed(rec.harvestAmount! == rec.harvestAmount!.roundToDouble() ? 0 : 1)}${rec.harvestUnit}',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.tertiary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  // 出荷量・出荷額
+                  if (rec.activityType == ActivityType.shipping &&
+                      (rec.shippingAmount != null || rec.shippingPrice != null)) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(Icons.local_shipping, size: 16,
+                            color: Theme.of(context).colorScheme.tertiary),
+                        const SizedBox(width: 4),
+                        if (rec.shippingAmount != null)
+                          Text(
+                            '出荷量: ${rec.shippingAmount!.toStringAsFixed(rec.shippingAmount! == rec.shippingAmount!.roundToDouble() ? 0 : 1)}${rec.shippingUnit}',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.tertiary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        if (rec.shippingAmount != null && rec.shippingPrice != null)
+                          const Text('  '),
+                        if (rec.shippingPrice != null)
+                          Text(
+                            '¥${rec.shippingPrice!.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.tertiary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
                   // Note
                   if (rec.note.isNotEmpty) ...[
                     const SizedBox(height: 8),
@@ -540,10 +589,19 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
     );
   }
 
+  static const _units = ['kg', 'g', '個', '本', '束', '袋', 'パック'];
+
   Future<void> _addRecord(AppLocalizations l) async {
     var selectedActivity = ActivityType.observation;
     var selectedDate = DateTime.now();
     final noteCtrl = TextEditingController();
+    // 収穫
+    final harvestAmountCtrl = TextEditingController();
+    var harvestUnit = 'kg';
+    // 出荷
+    final shippingAmountCtrl = TextEditingController();
+    var shippingUnit = 'kg';
+    final shippingPriceCtrl = TextEditingController();
 
     final saved = await showDialog<bool>(
       context: context,
@@ -590,13 +648,79 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
                     }
                   },
                 ),
+                // 収穫量（収穫時のみ）
+                if (selectedActivity == ActivityType.harvest) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: TextField(
+                          controller: harvestAmountCtrl,
+                          decoration: const InputDecoration(labelText: '収穫量'),
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: harvestUnit,
+                          decoration: const InputDecoration(labelText: '単位'),
+                          items: _units
+                              .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                              .toList(),
+                          onChanged: (v) {
+                            if (v != null) setDialogState(() => harvestUnit = v);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                // 出荷量・出荷額（出荷時のみ）
+                if (selectedActivity == ActivityType.shipping) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: TextField(
+                          controller: shippingAmountCtrl,
+                          decoration: const InputDecoration(labelText: '出荷量'),
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: shippingUnit,
+                          decoration: const InputDecoration(labelText: '単位'),
+                          items: _units
+                              .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                              .toList(),
+                          onChanged: (v) {
+                            if (v != null) setDialogState(() => shippingUnit = v);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: shippingPriceCtrl,
+                    decoration: const InputDecoration(
+                      labelText: '出荷額（円）',
+                      prefixText: '¥',
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ],
                 const SizedBox(height: 12),
                 // メモ
                 TextField(
                   controller: noteCtrl,
                   decoration: InputDecoration(labelText: l.note),
                   maxLines: 3,
-                  autofocus: true,
                 ),
               ],
             ),
@@ -622,6 +746,17 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
       activityType: selectedActivity,
       date: selectedDate,
       note: noteCtrl.text.trim(),
+      harvestAmount: selectedActivity == ActivityType.harvest
+          ? double.tryParse(harvestAmountCtrl.text)
+          : null,
+      harvestUnit: harvestUnit,
+      shippingAmount: selectedActivity == ActivityType.shipping
+          ? double.tryParse(shippingAmountCtrl.text)
+          : null,
+      shippingUnit: shippingUnit,
+      shippingPrice: selectedActivity == ActivityType.shipping
+          ? int.tryParse(shippingPriceCtrl.text)
+          : null,
     );
     await widget.db.insertRecord(record);
     _load();

@@ -10,7 +10,7 @@ import '../models/observation.dart';
 
 class DatabaseService {
   static const _dbName = 'grow.db';
-  static const _dbVersion = 17;
+  static const _dbVersion = 18;
 
   Database? _db;
 
@@ -319,6 +319,22 @@ class DatabaseService {
             );
           }
         }
+        if (oldVersion < 18) {
+          // v18: Add harvest/shipping fields to records
+          final cols = await db.rawQuery('PRAGMA table_info(records)');
+          final colNames = cols.map((c) => c['name'] as String).toSet();
+          if (!colNames.contains('harvest_amount')) {
+            await db.execute('ALTER TABLE records ADD COLUMN harvest_amount REAL');
+            await db.execute(
+              "ALTER TABLE records ADD COLUMN harvest_unit TEXT NOT NULL DEFAULT 'kg'",
+            );
+            await db.execute('ALTER TABLE records ADD COLUMN shipping_amount REAL');
+            await db.execute(
+              "ALTER TABLE records ADD COLUMN shipping_unit TEXT NOT NULL DEFAULT 'kg'",
+            );
+            await db.execute('ALTER TABLE records ADD COLUMN shipping_price INTEGER');
+          }
+        }
       },
     );
   }
@@ -379,6 +395,11 @@ class DatabaseService {
         note TEXT NOT NULL DEFAULT '',
         work_hours REAL,
         materials TEXT NOT NULL DEFAULT '',
+        harvest_amount REAL,
+        harvest_unit TEXT NOT NULL DEFAULT 'kg',
+        shipping_amount REAL,
+        shipping_unit TEXT NOT NULL DEFAULT 'kg',
+        shipping_price INTEGER,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         FOREIGN KEY (crop_id) REFERENCES crops(id) ON DELETE CASCADE,
