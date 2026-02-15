@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
+import 'package:gal/gal.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
@@ -397,17 +397,12 @@ class _SiteScreenState extends State<SiteScreen> {
   Future<void> _saveQrToGallery() async {
     if (_qrImageBytes == null) return;
     try {
-      final result = await ImageGallerySaverPlus.saveImage(
-        _qrImageBytes!,
-        name: 'grow_qr_${DateTime.now().millisecondsSinceEpoch}',
-        quality: 100,
-      );
+      await Gal.putImageBytes(_qrImageBytes!, album: 'Grow');
       if (!mounted) return;
-      if (result['isSuccess'] == true) {
-        _showSuccess('QRコードを保存しました');
-      } else {
-        _showError('保存に失敗しました');
-      }
+      _showSuccess('QRコードを保存しました');
+    } on GalException catch (e) {
+      if (!mounted) return;
+      _showError(e.type.message);
     } catch (e) {
       if (!mounted) return;
       _showError(e.toString());
