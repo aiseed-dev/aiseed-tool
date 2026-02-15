@@ -108,6 +108,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get activityOther => 'Other';
 
   @override
+  String get activityPruning => 'Pruning';
+
+  @override
+  String get activityWeeding => 'Weeding';
+
+  @override
+  String get activityBedMaking => 'Bed making';
+
+  @override
+  String get activityTilling => 'Tilling';
+
+  @override
+  String get activityPotUp => 'Potting up';
+
+  @override
+  String get activityCutting => 'Cutting';
+
+  @override
+  String get activityFlowering => 'Flowering';
+
+  @override
+  String get activityShipping => 'Shipping';
+
+  @override
+  String get activityManagement => 'Management';
+
+  @override
+  String get workHours => 'Work hours';
+
+  @override
+  String get materials => 'Materials';
+
+  @override
   String get save => 'Save';
 
   @override
@@ -290,7 +323,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get plantIdProviderServer => 'Server (no API key needed)';
 
   @override
-  String get plantIdProviderServerDesc => 'Processed on FastAPI server, no phone-side setup';
+  String get plantIdProviderServerDesc =>
+      'Processed on FastAPI server, no phone-side setup';
 
   @override
   String get plantIdApiKey => 'Plant.id API Key';
@@ -367,43 +401,61 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get homepageComingSoon => 'Homepage creation is coming soon';
 
-  // Site creation screen
   @override
   String get siteInfoFarm => 'Farm info';
+
   @override
   String get siteFarmName => 'Farm name';
+
   @override
   String get siteFarmDesc => 'Farm description';
+
   @override
   String get siteFarmLocation => 'Location';
+
   @override
   String get siteFarmPolicy => 'Farming method (e.g. Natural farming)';
+
   @override
   String get siteInfoCrops => 'Crops to include';
+
   @override
   String get siteInfoSales => 'Sales info';
+
   @override
   String get siteSalesDesc => 'How to purchase';
+
   @override
   String get siteSalesContact => 'Contact (email, phone, etc.)';
+
   @override
   String get siteGenerate => 'Generate HTML';
+
   @override
   String get siteHtmlReady => 'HTML has been generated';
+
   @override
   String get siteCopyHtml => 'Copy HTML';
+
   @override
   String get siteDeploySection => 'Auto-deploy to Cloudflare';
+
   @override
-  String get siteDeployDesc => 'Deploy directly to Cloudflare Pages. Requires Account ID and API Token.';
+  String get siteDeployDesc =>
+      'Deploy directly to Cloudflare Pages. Requires Account ID and API Token.';
+
   @override
   String get siteCfAccountId => 'Cloudflare Account ID';
+
   @override
   String get siteCfApiToken => 'Cloudflare API Token';
+
   @override
   String get siteCfProjectName => 'Project name (site URL)';
+
   @override
   String get siteDeploy => 'Deploy';
+
   @override
   String get siteDeployDone => 'Deployed successfully';
 
@@ -502,4 +554,76 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inheritFromSkill => 'Use skill defaults';
+
+  @override
+  String get web => 'Web';
+
+  @override
+  String get siteEasyPublish => 'Easy publish';
+
+  @override
+  String get siteEasyPublishDesc =>
+      'Auto-create a site from your skill & records, published on cowork.aiseed.dev';
+
+  @override
+  String get siteRequestSent =>
+      'Request sent. You will be notified by email when ready.';
+
+  @override
+  String get siteAdvancedMode => 'Self-hosted (PC mode)';
+
+  @override
+  String get siteAdvancedModeDesc =>
+      'Generate HTML instantly and deploy to your own Cloudflare Pages';
+
+  @override
+  String get siteAutoFilled => 'Auto-filled from skill profile';
+
+  @override
+  String get siteEmail => 'Notification email';
+
+  @override
+  String get siteUsername => 'Username (for URL, alphanumeric)';
+
+  @override
+  String get sitePublicUrl => 'Public URL';
+
+  @override
+  String get siteJobPending => 'Pending';
+
+  @override
+  String get siteJobProcessing => 'Generating…';
+
+  @override
+  String get siteJobDone => 'Published';
+
+  @override
+  String get siteJobError => 'Error';
+
+  @override
+  String get voiceInput => 'Voice input';
+
+  @override
+  String get voiceInputStop => 'Stop voice input';
+
+  @override
+  String get voiceInputHint => 'Speak now...';
+
+  @override
+  String get voiceInputUnavailable => 'Voice input is not available';
+
+  @override
+  String get qrCode => 'QR Code';
+
+  @override
+  String get qrCodeDesc => 'Print for signs, price tags, and packaging';
+
+  @override
+  String get qrGenerate => 'Generate QR code';
+
+  @override
+  String get qrRegenerate => 'Regenerate';
+
+  @override
+  String get qrSave => 'Save image';
 }
