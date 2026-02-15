@@ -52,6 +52,13 @@ class UpdateProfileRequest(BaseModel):
 
 @router.post("/register", response_model=TokenResponse)
 async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    """ローカル登録。allow_local_register=False のサーバーでは無効。"""
+    from config import settings
+    if not settings.allow_local_register:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="このサーバーでは Google または Apple アカウントでログインしてください",
+        )
     if len(req.username) < 3:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -82,6 +89,7 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
 ):
+    """ローカルログイン。allow_local_register=False でも既存ユーザーはログイン可能。"""
     user = await authenticate_user(db, form_data.username, form_data.password)
     if user is None:
         raise HTTPException(
@@ -94,6 +102,17 @@ async def login(
         access_token=token,
         user=UserResponse.model_validate(user),
     )
+
+
+@router.get("/providers")
+async def auth_providers():
+    """利用可能な認証方法を返す。アプリが登録画面を切り替える用。"""
+    from config import settings
+    return {
+        "local": settings.allow_local_register,
+        "apple": bool(settings.apple_client_id),
+        "google": bool(settings.google_client_id),
+    }
 
 
 @router.post("/apple", response_model=TokenResponse)
