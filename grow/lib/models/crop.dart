@@ -10,6 +10,7 @@ class Crop {
   final String? farmingMethod;
   final String memo;
   final DateTime startDate;
+  final DateTime? endDate;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -23,6 +24,7 @@ class Crop {
     this.farmingMethod,
     this.memo = '',
     DateTime? startDate,
+    this.endDate,
     DateTime? createdAt,
     DateTime? updatedAt,
   })  : id = id ?? const Uuid().v4(),
@@ -40,6 +42,7 @@ class Crop {
         'farming_method': farmingMethod,
         'memo': memo,
         'start_date': startDate.toIso8601String(),
+        'end_date': endDate?.toIso8601String(),
         'created_at': createdAt.toIso8601String(),
         'updated_at': updatedAt.toIso8601String(),
       };
@@ -54,9 +57,14 @@ class Crop {
         farmingMethod: map['farming_method'] as String?,
         memo: (map['memo'] as String?) ?? '',
         startDate: DateTime.parse(map['start_date'] as String),
+        endDate: map['end_date'] != null
+            ? DateTime.parse(map['end_date'] as String)
+            : null,
         createdAt: DateTime.parse(map['created_at'] as String),
         updatedAt: map['updated_at'] != null
             ? DateTime.parse(map['updated_at'] as String)
             : DateTime.parse(map['created_at'] as String),
       );
+
+  bool get isEnded => endDate != null;
 }

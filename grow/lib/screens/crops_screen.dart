@@ -23,10 +23,22 @@ class _CropsScreenState extends State<CropsScreen> {
   List<Location> _locations = [];
   bool _loading = true;
 
+  // 検索・フィルタ
+  bool _isSearching = false;
+  String _searchQuery = '';
+  bool _showEnded = false;
+  final _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -40,6 +52,29 @@ class _CropsScreenState extends State<CropsScreen> {
       _locations = locations;
       _loading = false;
     });
+  }
+
+  List<Crop> get _filteredCrops {
+    var results = _crops;
+
+    // 終了した栽培を除外（デフォルト）
+    if (!_showEnded) {
+      results = results.where((c) => !c.isEnded).toList();
+    }
+
+    // 検索
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      results = results.where((c) {
+        if (c.cultivationName.toLowerCase().contains(query)) return true;
+        if (c.name.toLowerCase().contains(query)) return true;
+        if (c.variety.toLowerCase().contains(query)) return true;
+        if (c.memo.toLowerCase().contains(query)) return true;
+        return false;
+      }).toList();
+    }
+
+    return results;
   }
 
   String _plotDisplayName(String? plotId) {
@@ -56,6 +91,10 @@ class _CropsScreenState extends State<CropsScreen> {
     return crop?.cultivationName ?? '';
   }
 
+  String _formatDate(DateTime d) {
+    return '${d.year}/${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}';
+  }
+
   Future<void> _showForm({Crop? existing}) async {
     final l = AppLocalizations.of(context)!;
 
@@ -68,6 +107,7 @@ class _CropsScreenState extends State<CropsScreen> {
     String? selectedPlotId = existing?.plotId;
     String? selectedParentCropId = existing?.parentCropId;
     String? selectedFarmingMethod = existing?.farmingMethod;
+    DateTime? endDate = existing?.endDate;
 
     // Crops available as parent (exclude self)
     final parentCandidates =
@@ -170,6 +210,43 @@ class _CropsScreenState extends State<CropsScreen> {
                       }
                     },
                   ),
+                  // 終了日
+                  if (existing != null) ...[
+                    const SizedBox(height: 12),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.event_available),
+                      title: Text(endDate != null
+                          ? '終了: ${_formatDate(endDate!)}'
+                          : '栽培中'),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (endDate != null)
+                            IconButton(
+                              icon: const Icon(Icons.clear, size: 20),
+                              onPressed: () =>
+                                  setDialogState(() => endDate = null),
+                            ),
+                          IconButton(
+                            icon: const Icon(Icons.calendar_today, size: 20),
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: ctx,
+                                initialDate: endDate ?? DateTime.now(),
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime.now()
+                                    .add(const Duration(days: 365)),
+                              );
+                              if (picked != null) {
+                                setDialogState(() => endDate = picked);
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -200,6 +277,7 @@ class _CropsScreenState extends State<CropsScreen> {
       farmingMethod: selectedFarmingMethod,
       memo: memoCtrl.text.trim(),
       startDate: existing?.startDate,
+      endDate: endDate,
       createdAt: existing?.createdAt,
     );
 
@@ -279,44 +357,75 @@ class _CropsScreenState extends State<CropsScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
+    final filtered = _filteredCrops;
+    final endedCount = _crops.where((c) => c.isEnded).length;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.crops)),
+      appBar: AppBar(
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: '栽培を検索...',
+                  border: InputBorder.none,
+                ),
+                onChanged: (v) => setState(() => _searchQuery = v),
+              )
+            : Text(l.crops),
+        actions: [
+          if (_isSearching)
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () {
+                setState(() {
+                  _isSearching = false;
+                  _searchQuery = '';
+                  _searchController.clear();
+                });
+              },
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: () => setState(() => _isSearching = true),
+            ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _crops.isEmpty
-              ? Center(child: Text(l.noCrops))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _crops.length,
-                  itemBuilder: (context, index) {
-                    final crop = _crops[index];
-                    final plotName = _plotDisplayName(crop.plotId);
-                    final parentName = _parentCropName(crop.parentCropId);
-                    final methodLabel = crop.farmingMethod != null
-                        ? SkillFileGenerator
-                                .farmingMethods[crop.farmingMethod!] ??
-                            crop.farmingMethod!
-                        : null;
-                    final subtitle = [
-                      if (crop.name.isNotEmpty) crop.name,
-                      if (crop.variety.isNotEmpty) crop.variety,
-                      if (plotName.isNotEmpty) plotName,
-                      if (parentName.isNotEmpty) '← $parentName',
-                      if (methodLabel != null) methodLabel,
-                    ].join(' / ');
-
-                    return Card(
-                      child: ListTile(
-                        leading: const Icon(Icons.eco),
-                        title: Text(crop.cultivationName),
-                        subtitle: subtitle.isNotEmpty ? Text(subtitle) : null,
-                        onTap: () => _openCropDetail(crop),
-                        onLongPress: () => _showCropMenu(crop),
-                      ),
-                    );
-                  },
+          : Column(
+              children: [
+                // 終了済み表示トグル
+                if (endedCount > 0)
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: Row(
+                      children: [
+                        FilterChip(
+                          label: Text('終了済みも表示 ($endedCount)'),
+                          selected: _showEnded,
+                          onSelected: (v) =>
+                              setState(() => _showEnded = v),
+                        ),
+                      ],
+                    ),
+                  ),
+                Expanded(
+                  child: filtered.isEmpty
+                      ? Center(child: Text(l.noCrops))
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: filtered.length,
+                          itemBuilder: (context, index) {
+                            final crop = filtered[index];
+                            return _buildCropCard(crop);
+                          },
+                        ),
                 ),
+              ],
+            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.push<bool>(
@@ -328,6 +437,69 @@ class _CropsScreenState extends State<CropsScreen> {
           if (result == true) _load();
         },
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Widget _buildCropCard(Crop crop) {
+    final plotName = _plotDisplayName(crop.plotId);
+    final parentName = _parentCropName(crop.parentCropId);
+    final methodLabel = crop.farmingMethod != null
+        ? SkillFileGenerator.farmingMethods[crop.farmingMethod!] ??
+            crop.farmingMethod!
+        : null;
+
+    // 日付表示
+    final dateStr = crop.isEnded
+        ? '${_formatDate(crop.startDate)} ~ ${_formatDate(crop.endDate!)}'
+        : '${_formatDate(crop.startDate)} ~';
+
+    final details = [
+      if (crop.name.isNotEmpty) crop.name,
+      if (crop.variety.isNotEmpty) crop.variety,
+      if (plotName.isNotEmpty) plotName,
+      if (parentName.isNotEmpty) '← $parentName',
+      if (methodLabel != null) methodLabel,
+    ].join(' / ');
+
+    return Card(
+      child: ListTile(
+        leading: Icon(
+          Icons.eco,
+          color: crop.isEnded
+              ? Theme.of(context).colorScheme.onSurfaceVariant
+              : null,
+        ),
+        title: Text(
+          crop.cultivationName,
+          style: crop.isEnded
+              ? TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                )
+              : null,
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              dateStr,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (details.isNotEmpty)
+              Text(
+                details,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+          ],
+        ),
+        onTap: () => _openCropDetail(crop),
+        onLongPress: () => _showCropMenu(crop),
       ),
     );
   }

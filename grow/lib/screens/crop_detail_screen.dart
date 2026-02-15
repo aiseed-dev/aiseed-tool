@@ -101,6 +101,10 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
     }
   }
 
+  String _formatDate(DateTime d) {
+    return '${d.year}/${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}';
+  }
+
   String _plotDisplayName(String? plotId) {
     if (plotId == null) return '';
     final plot = _allPlots.where((p) => p.id == plotId).firstOrNull;
@@ -232,6 +236,7 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
       parentCropId: selectedParentCropId,
       memo: memoCtrl.text.trim(),
       startDate: _crop.startDate,
+      endDate: _crop.endDate,
       createdAt: _crop.createdAt,
     );
 
@@ -308,7 +313,9 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
                 const Icon(Icons.calendar_today, size: 16),
                 const SizedBox(width: 6),
                 Text(
-                  '${l.date}: ${_crop.startDate.year}/${_crop.startDate.month.toString().padLeft(2, '0')}/${_crop.startDate.day.toString().padLeft(2, '0')}',
+                  _crop.isEnded
+                      ? '${_formatDate(_crop.startDate)} ~ ${_formatDate(_crop.endDate!)}'
+                      : '${_formatDate(_crop.startDate)} ~',
                 ),
               ],
             ),

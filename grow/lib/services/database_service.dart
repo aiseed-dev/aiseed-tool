@@ -10,7 +10,7 @@ import '../models/observation.dart';
 
 class DatabaseService {
   static const _dbName = 'grow.db';
-  static const _dbVersion = 15;
+  static const _dbVersion = 16;
 
   Database? _db;
 
@@ -301,6 +301,14 @@ class DatabaseService {
             );
           }
         }
+        if (oldVersion < 16) {
+          // v16: Add end_date to crops
+          final cols = await db.rawQuery('PRAGMA table_info(crops)');
+          final colNames = cols.map((c) => c['name'] as String).toSet();
+          if (!colNames.contains('end_date')) {
+            await db.execute('ALTER TABLE crops ADD COLUMN end_date TEXT');
+          }
+        }
       },
     );
   }
@@ -342,6 +350,7 @@ class DatabaseService {
         farming_method TEXT,
         memo TEXT NOT NULL DEFAULT '',
         start_date TEXT NOT NULL,
+        end_date TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         FOREIGN KEY (plot_id) REFERENCES plots(id) ON DELETE SET NULL,
