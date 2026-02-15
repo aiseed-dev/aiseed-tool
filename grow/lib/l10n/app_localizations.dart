@@ -119,7 +119,7 @@ abstract class AppLocalizations {
   /// No description provided for @records.
   ///
   /// In ja, this message translates to:
-  /// **'記録'**
+  /// **'観察'**
   String get records;
 
   /// No description provided for @settings.

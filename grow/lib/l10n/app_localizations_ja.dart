@@ -18,7 +18,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get crops => '栽培';
 
   @override
-  String get records => '記録';
+  String get records => '観察';
 
   @override
   String get settings => '設定';

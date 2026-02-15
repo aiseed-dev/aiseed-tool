@@ -526,7 +526,98 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
                 _buildTimeline(l),
               ],
             ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _addRecord(l),
+        child: const Icon(Icons.add),
+      ),
     );
+  }
+
+  Future<void> _addRecord(AppLocalizations l) async {
+    var selectedActivity = ActivityType.observation;
+    var selectedDate = DateTime.now();
+    final noteCtrl = TextEditingController();
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(l.addRecord),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 活動タイプ
+                DropdownButtonFormField<ActivityType>(
+                  value: selectedActivity,
+                  decoration: InputDecoration(labelText: l.activityType),
+                  items: ActivityType.values.map((t) {
+                    return DropdownMenuItem(
+                      value: t,
+                      child: Text(_activityLabel(l, t)),
+                    );
+                  }).toList(),
+                  onChanged: (v) {
+                    if (v != null) {
+                      setDialogState(() => selectedActivity = v);
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                // 日付
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_today),
+                  title: Text(
+                    '${selectedDate.year}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.day.toString().padLeft(2, '0')}',
+                  ),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (picked != null) {
+                      setDialogState(() => selectedDate = picked);
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                // メモ
+                TextField(
+                  controller: noteCtrl,
+                  decoration: InputDecoration(labelText: l.note),
+                  maxLines: 3,
+                  autofocus: true,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l.save),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (saved != true) return;
+
+    final record = GrowRecord(
+      cropId: _crop.id,
+      activityType: selectedActivity,
+      date: selectedDate,
+      note: noteCtrl.text.trim(),
+    );
+    await widget.db.insertRecord(record);
+    _load();
   }
 
   Widget _buildReferences(AppLocalizations l) {

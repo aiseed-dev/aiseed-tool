@@ -52,8 +52,8 @@ class _HomeScreenState extends State<HomeScreen> {
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: [
           NavigationDestination(
-            icon: const Icon(Icons.edit_note_outlined),
-            selectedIcon: const Icon(Icons.edit_note),
+            icon: const Icon(Icons.visibility_outlined),
+            selectedIcon: const Icon(Icons.visibility),
             label: l.records,
           ),
           NavigationDestination(

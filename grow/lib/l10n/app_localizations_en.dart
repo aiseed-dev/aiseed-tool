@@ -18,7 +18,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get crops => 'Cultivations';
 
   @override
-  String get records => 'Records';
+  String get records => 'Observe';
 
   @override
   String get settings => 'Settings';
