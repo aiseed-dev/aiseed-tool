@@ -229,5 +229,12 @@
   "aiChatApiKey": "AIチャット APIキー",
   "aiChatApiKeyHint": "APIキーを入力",
   "aiChatApiKeyGeminiHelp": "Google AI Studio で無料取得できます",
-  "aiChatModel": "AIモデル"
+  "aiChatModel": "AIモデル",
+  "aiPhotoAnalysis": "AI写真分析",
+  "aiPhotoAnalyzing": "AI分析中…",
+  "aiSummary": "AI要約",
+  "aiSummarizing": "AI分析中…",
+  "aiCropAnalysis": "AI栽培分析",
+  "aiAnalysisError": "AI分析エラー",
+  "close": "閉じる"
 }

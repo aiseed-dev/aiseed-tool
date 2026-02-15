@@ -659,4 +659,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiChatModel => 'AI Model';
+
+  @override
+  String get aiPhotoAnalysis => 'AI Photo Analysis';
+
+  @override
+  String get aiPhotoAnalyzing => 'Analyzing...';
+
+  @override
+  String get aiSummary => 'AI Summary';
+
+  @override
+  String get aiSummarizing => 'Analyzing...';
+
+  @override
+  String get aiCropAnalysis => 'AI Crop Analysis';
+
+  @override
+  String get aiAnalysisError => 'AI analysis error';
+
+  @override
+  String get close => 'Close';
 }

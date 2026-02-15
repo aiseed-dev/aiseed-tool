@@ -219,5 +219,12 @@
   "aiChatApiKey": "AI Chat API Key",
   "aiChatApiKeyHint": "Enter API key",
   "aiChatApiKeyGeminiHelp": "Get a free key from Google AI Studio",
-  "aiChatModel": "AI Model"
+  "aiChatModel": "AI Model",
+  "aiPhotoAnalysis": "AI Photo Analysis",
+  "aiPhotoAnalyzing": "Analyzing...",
+  "aiSummary": "AI Summary",
+  "aiSummarizing": "Analyzing...",
+  "aiCropAnalysis": "AI Crop Analysis",
+  "aiAnalysisError": "AI analysis error",
+  "close": "Close"
 }

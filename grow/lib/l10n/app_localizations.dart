@@ -1375,6 +1375,48 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'AIモデル'**
   String get aiChatModel;
+
+  /// No description provided for @aiPhotoAnalysis.
+  ///
+  /// In ja, this message translates to:
+  /// **'AI写真分析'**
+  String get aiPhotoAnalysis;
+
+  /// No description provided for @aiPhotoAnalyzing.
+  ///
+  /// In ja, this message translates to:
+  /// **'AI分析中…'**
+  String get aiPhotoAnalyzing;
+
+  /// No description provided for @aiSummary.
+  ///
+  /// In ja, this message translates to:
+  /// **'AI要約'**
+  String get aiSummary;
+
+  /// No description provided for @aiSummarizing.
+  ///
+  /// In ja, this message translates to:
+  /// **'AI分析中…'**
+  String get aiSummarizing;
+
+  /// No description provided for @aiCropAnalysis.
+  ///
+  /// In ja, this message translates to:
+  /// **'AI栽培分析'**
+  String get aiCropAnalysis;
+
+  /// No description provided for @aiAnalysisError.
+  ///
+  /// In ja, this message translates to:
+  /// **'AI分析エラー'**
+  String get aiAnalysisError;
+
+  /// No description provided for @close.
+  ///
+  /// In ja, this message translates to:
+  /// **'閉じる'**
+  String get close;
 }
 
 class _AppLocalizationsDelegate

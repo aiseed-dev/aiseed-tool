@@ -9,6 +9,7 @@ import '../models/location.dart';
 import '../models/plot.dart';
 import '../models/record.dart';
 import '../models/record_photo.dart';
+import '../services/ai_service.dart';
 import '../services/cultivation_info_service.dart';
 import '../services/database_service.dart';
 import 'site_screen.dart';
@@ -31,6 +32,7 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
   List<Plot> _allPlots = [];
   List<Location> _locations = [];
   bool _loading = true;
+  bool _aiSummaryLoading = false;
 
   @override
   void initState() {
@@ -576,6 +578,26 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
                         l.growthTimeline,
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
+                      const Spacer(),
+                      if (_timeline.isNotEmpty)
+                        TextButton.icon(
+                          onPressed: _aiSummaryLoading
+                              ? null
+                              : () => _showAiSummary(l),
+                          icon: _aiSummaryLoading
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2),
+                                )
+                              : const Icon(Icons.auto_awesome, size: 16),
+                          label: Text(
+                              _aiSummaryLoading ? l.aiSummarizing : l.aiSummary),
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -929,6 +951,92 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _showAiSummary(AppLocalizations l) async {
+    final ai = await AiService.fromPrefs();
+    if (!ai.isConfigured) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${l.aiChatProvider}: ${l.aiChatApiKeyHint}')),
+      );
+      return;
+    }
+
+    setState(() => _aiSummaryLoading = true);
+
+    try {
+      // タイムラインをテキスト化
+      final timelineText = _timeline.map((item) {
+        final rec = item.record;
+        final date = _formatDate(rec.date);
+        final act = _activityLabel(l, rec.activityType);
+        final parts = <String>['$date $act'];
+        if (rec.note.isNotEmpty) parts.add(rec.note);
+        if (rec.harvestAmount != null) {
+          parts.add(
+              '収穫量: ${rec.harvestAmount!.toStringAsFixed(rec.harvestAmount! == rec.harvestAmount!.roundToDouble() ? 0 : 1)}${rec.harvestUnit}');
+        }
+        if (rec.shippingAmount != null) {
+          parts.add(
+              '出荷量: ${rec.shippingAmount!.toStringAsFixed(rec.shippingAmount! == rec.shippingAmount!.roundToDouble() ? 0 : 1)}${rec.shippingUnit}');
+        }
+        if (rec.shippingPrice != null) parts.add('出荷額: ¥${rec.shippingPrice}');
+        return parts.join(' / ');
+      }).join('\n');
+
+      final cropInfo = [
+        '栽培名: ${_crop.cultivationName}',
+        if (_crop.name.isNotEmpty) '作物名: ${_crop.name}',
+        if (_crop.variety.isNotEmpty) '品種: ${_crop.variety}',
+        '開始日: ${_formatDate(_crop.startDate)}',
+        if (_crop.isEnded) '終了日: ${_formatDate(_crop.endDate!)}',
+      ].join('\n');
+
+      final result = await ai.request(
+        '以下の栽培データを分析して要約してください。\n\n'
+        '## 栽培情報\n$cropInfo\n\n'
+        '## 活動タイムライン\n$timelineText\n\n'
+        '以下の観点で簡潔に報告してください：\n'
+        '1. 栽培の進捗と現在のステージ\n'
+        '2. 気づきやポイント\n'
+        '3. 今後のアドバイス\n'
+        '日本語で回答してください。',
+        systemPrompt:
+            'あなたは自然栽培の栽培アドバイザーです。農家の栽培記録を分析して実用的なアドバイスを提供してください。',
+      );
+
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.auto_awesome, size: 20),
+              const SizedBox(width: 8),
+              Expanded(child: Text(l.aiCropAnalysis)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: SelectableText(result),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l.close),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${l.aiAnalysisError}: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _aiSummaryLoading = false);
+    }
   }
 
   Future<void> _openUrl(String url) async {

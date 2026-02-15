@@ -8,6 +8,7 @@ import '../models/location.dart';
 import '../models/plot.dart';
 import '../models/record.dart';
 import '../models/record_photo.dart';
+import '../services/ai_service.dart';
 import '../services/database_service.dart';
 import '../services/image_analysis_service.dart';
 import '../services/location_service.dart';
@@ -686,6 +687,35 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     decoration: InputDecoration(labelText: l.note),
                     maxLines: 3,
                   ),
+                  // AI 写真分析ボタン
+                  if (newPhotoPaths.isNotEmpty || existingPhotos.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: _AiAnalyzeButton(
+                        imagePaths: [
+                          ...existingPhotos.map((p) => p.filePath),
+                          ...newPhotoPaths,
+                        ],
+                        activityLabel: _activityLabel(l, selectedActivity),
+                        cropName: selectedCropId.value != null
+                            ? _crops
+                                    .where(
+                                        (c) => c.id == selectedCropId.value)
+                                    .firstOrNull
+                                    ?.cultivationName ??
+                                ''
+                            : '',
+                        onResult: (text) {
+                          setDialogState(() {
+                            if (noteCtrl.text.isEmpty) {
+                              noteCtrl.text = text;
+                            } else {
+                              noteCtrl.text = '${noteCtrl.text}\n$text';
+                            }
+                          });
+                        },
+                      ),
+                    ),
                   const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -1214,6 +1244,87 @@ class _RecordsScreenState extends State<RecordsScreen> {
         onPressed: () => _showForm(),
         child: const Icon(Icons.add),
       ),
+    );
+  }
+}
+
+/// 写真をAIで分析して結果を返すボタン
+class _AiAnalyzeButton extends StatefulWidget {
+  final List<String> imagePaths;
+  final String activityLabel;
+  final String cropName;
+  final void Function(String) onResult;
+
+  const _AiAnalyzeButton({
+    required this.imagePaths,
+    required this.activityLabel,
+    required this.cropName,
+    required this.onResult,
+  });
+
+  @override
+  State<_AiAnalyzeButton> createState() => _AiAnalyzeButtonState();
+}
+
+class _AiAnalyzeButtonState extends State<_AiAnalyzeButton> {
+  bool _loading = false;
+
+  Future<void> _analyze() async {
+    final ai = await AiService.fromPrefs();
+    if (!ai.isConfigured) {
+      if (!mounted) return;
+      final l = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${l.aiChatProvider}: ${l.aiChatApiKeyHint}')),
+      );
+      return;
+    }
+
+    setState(() => _loading = true);
+
+    try {
+      final context = [
+        if (widget.cropName.isNotEmpty) '作物: ${widget.cropName}',
+        '活動: ${widget.activityLabel}',
+      ].join(', ');
+
+      final result = await ai.analyzeImage(
+        widget.imagePaths.first,
+        '以下の栽培記録の写真を分析してください。$context\n'
+        '植物の状態（健康・病気・害虫・成長段階など）を簡潔に日本語で説明してください。'
+        '記録メモとして使える2-3行の文章で回答してください。',
+        systemPrompt:
+            'あなたは栽培記録の写真分析アシスタントです。簡潔に観察結果を報告してください。',
+      );
+
+      if (result.isNotEmpty) {
+        widget.onResult(result.trim());
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('AI分析エラー: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return OutlinedButton.icon(
+      onPressed: _loading ? null : _analyze,
+      icon: _loading
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.auto_awesome, size: 18),
+      label: Text(_loading
+          ? (l?.aiPhotoAnalyzing ?? 'AI分析中…')
+          : (l?.aiPhotoAnalysis ?? 'AI写真分析')),
     );
   }
 }
