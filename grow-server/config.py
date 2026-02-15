@@ -57,6 +57,10 @@ class Settings(BaseSettings):
     apple_client_id: str = ""   # Apple Services ID (e.g., dev.aiseed.grow)
     google_client_id: str = ""  # Google OAuth 2.0 Client ID
 
+    # 登録制御: False にするとローカル登録（/auth/register）を無効化
+    # メインサーバーは False（Google/Apple のみ）、個人サーバーは True
+    allow_local_register: bool = True
+
     # GPU Models
     ocr_languages: list[str] = ["japan", "en", "it"]
     florence_model: str = "microsoft/Florence-2-base"

@@ -1,6 +1,6 @@
 # Grow Server — セットアップ手順
 
-栽培支援APIサーバー。AIチャット、OCR、画像分析、天気予報、サイト生成を提供する。
+栽培支援APIサーバー。AIチャット、OCR、画像分析、サイト生成、消費者プラットフォームを提供する。
 
 ## 前提条件
 
@@ -74,7 +74,7 @@ cp .env.example .env
 初回起動時にデフォルト値のままなら安全なキーが自動生成される。
 
 その他の設定:
-- `GROW_GPU_AMEDAS_STATIONS`: AMeDAS 地点ID（カンマ区切り、`/amedas/stations?q=地名` で検索）
+- `GROW_GPU_ALLOW_LOCAL_REGISTER`: `false` で公開サーバーのローカル登録を無効化
 - ソーシャルログイン: 個人利用なら設定不要
 
 ### 7. 起動
@@ -102,7 +102,17 @@ sudo systemctl start grow-server
 | 認証 | /auth/* | 不要 |
 | OCR | /ocr/* | 推奨 |
 | 画像分析 | /vision/* | 必要 |
-| 天気 | /weather/*, /amedas/*, /forecast/* | 不要 |
+| スキルファイル | POST /skillfile/generate | 不要 |
 | 栽培記録同期 | /grow/sync/* | 不要 |
 | サイト生成 | /sites/* | 不要 |
+| 筆ポリゴン | /fude/* | 不要 |
+| QRコード | GET /qr/generate | 不要 |
 | 消費者プラットフォーム | /consumer/* | 不要 |
+| 管理者 | /admin/* | 不要 |
+
+## ロールと機能制御
+
+- **admin**: 全機能 + 管理者API
+- **super_user**: 管理以外の全機能
+- **user**: `users.yaml` で許可された機能のみ
+- **pending**: プロフィールのみ（承認待ち）

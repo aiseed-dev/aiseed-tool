@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from config import settings
 from database import get_db
-from models.user import User, ROLE_PENDING, ROLE_USER, ROLE_ADMIN
+from models.user import User, ROLE_PENDING, ROLE_USER, ROLE_SUPER_USER, ROLE_ADMIN
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -72,23 +72,71 @@ async def get_current_user(
     return user
 
 
-def require_role(*allowed_roles: str):
-    """指定ロール以上のユーザーのみ許可するDependency。"""
+def require_feature(feature: str):
+    """機能単位のアクセス制御 Dependency。
+
+    - admin: 全機能許可
+    - super_user: 全機能許可（admin管理以外）
+    - user: users.yaml で許可された機能のみ
+    - pending: すべて拒否
+    """
     async def checker(current_user: User = Depends(get_current_user)):
-        if current_user.role not in allowed_roles:
+        role = getattr(current_user, "role", ROLE_PENDING)
+
+        # admin / super_user は無条件で許可
+        if role in (ROLE_ADMIN, ROLE_SUPER_USER):
+            return current_user
+
+        # pending は全拒否
+        if role == ROLE_PENDING:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="この操作を行う権限がありません",
+                detail="アカウントが承認されていません",
+            )
+
+        # role=user → users.yaml をチェック
+        from services.feature_config import get_user_features
+        allowed = get_user_features(current_user.username)
+        if allowed is None:
+            # 設定ファイルに記載なし → 拒否
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="利用可能な機能が設定されていません",
+            )
+        if feature not in allowed:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"この機能（{feature}）は許可されていません",
             )
         return current_user
     return checker
 
 
-# 承認済みユーザー以上（pending は不可）
-get_approved_user = require_role(ROLE_USER, ROLE_ADMIN)
-
 # 管理者のみ
-get_admin_user = require_role(ROLE_ADMIN)
+def _require_admin():
+    async def checker(current_user: User = Depends(get_current_user)):
+        if getattr(current_user, "role", ROLE_PENDING) != ROLE_ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="管理者権限が必要です",
+            )
+        return current_user
+    return checker
+
+get_admin_user = _require_admin()
+
+# 後方互換: get_approved_user は pending 以外を許可
+def _require_not_pending():
+    async def checker(current_user: User = Depends(get_current_user)):
+        if getattr(current_user, "role", ROLE_PENDING) == ROLE_PENDING:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="アカウントが承認されていません",
+            )
+        return current_user
+    return checker
+
+get_approved_user = _require_not_pending()
 
 
 async def register_user(

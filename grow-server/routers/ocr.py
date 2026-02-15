@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from config import settings
 from models.user import User
-from services.auth_service import get_approved_user
+from services.auth_service import require_feature
 from services.ocr_service import run_ocr, extract_seed_packet_info
 
 router = APIRouter(prefix="/ocr", tags=["ocr"])
@@ -29,7 +29,7 @@ class SeedPacketResponse(BaseModel):
 @router.post("/read", response_model=OcrResponse)
 async def ocr_read(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_approved_user),
+    current_user: User = Depends(require_feature("ocr")),
 ):
     """Run OCR on an uploaded image. Returns all detected text lines."""
     if not file.content_type or not file.content_type.startswith("image/"):
@@ -56,7 +56,7 @@ async def ocr_read(
 @router.post("/seed-packet", response_model=SeedPacketResponse)
 async def ocr_seed_packet(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_approved_user),
+    current_user: User = Depends(require_feature("ocr")),
 ):
     """Read a seed packet image and extract crop name and cultivation info."""
     if not file.content_type or not file.content_type.startswith("image/"):

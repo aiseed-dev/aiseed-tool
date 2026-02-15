@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
-from models.user import User
+from models.user import User, ROLE_USER
 from services.auth_service import create_access_token
 
 logger = logging.getLogger(__name__)
@@ -214,6 +214,7 @@ async def social_login_apple(
             display_name=display_name or username,
             apple_id=apple_sub,
             auth_provider="apple",
+            role=ROLE_USER,
         )
         db.add(user)
         await db.commit()
@@ -274,6 +275,7 @@ async def social_login_google(
             display_name=name or username,
             google_id=google_sub,
             auth_provider="google",
+            role=ROLE_USER,
         )
         db.add(user)
         await db.commit()

@@ -21,6 +21,10 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info("Database initialized.")
 
+    # ユーザー別機能設定を読み込み
+    from services.feature_config import load_user_features
+    load_user_features()
+
     yield
 
     logger.info("Shutting down Grow Server.")

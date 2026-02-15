@@ -1,0 +1,64 @@
+# ユーザー別 機能許可設定
+#
+# admin / super_user / pending ロールのユーザーはここに書く必要なし
+# （admin=全機能+管理, super_user=管理以外全部, pending=プロフィールのみ）
+#
+# role=user のユーザーのみ、ここで利用可能な機能を指定する
+#
+# ── 利用可能な機能名 ──
+#   ai        — AI チャット
+#   ocr       — OCR（文字認識）
+#   vision    — 画像分析（Florence-2）
+#   grow      — 栽培記録 CRUD
+#   site      — サイト生成・デプロイ
+#   fude      — 筆ポリゴン
+#   qr        — QRコード
+#   consumer  — 消費者プラットフォーム
+#   skillfile — スキルファイル
+#
+# ── ロールごとの挙動 ──
+#   admin      → 全機能 + ユーザー管理（この設定ファイル不要）
+#   super_user → 管理以外すべて（この設定ファイル不要）
+#   user       → 下記で許可した機能のみ利用可能
+#   pending    → プロフィール閲覧・更新のみ（承認待ち）
+#
+# ── 登録方法 ──
+#   ローカル登録:  admin が role を指定して登録（省略時 pending）
+#     API:  POST /admin/register  { username, email, password, role }
+#     CLI:  python admin_cli.py register <user> <email> <pass> [role]
+#
+#   Google ID / Apple ID:  role=user で自動登録（標準機能が使える）
+
+# ── user ロールの標準機能（Google / Apple ログイン時に使える機能） ──
+# user はこのファイルに記載された機能のみ利用可能。
+# Google / Apple で初回ログインすると user ロールで登録されるので、
+# 下記のようにユーザー名を追加して使える機能を設定する。
+
+users:
+  # 標準的な農家ユーザー（栽培記録 + AI + OCR + 画像分析）
+  # farmer_tanaka:
+  #   features:
+  #     - grow
+  #     - ai
+  #     - ocr
+  #     - vision
+
+  # サイト運用ユーザー（栽培記録 + サイト生成）
+  # farmer_suzuki:
+  #   features:
+  #     - grow
+  #     - site
+  #     - qr
+
+  # フル機能ユーザー（管理以外すべて）
+  # power_user:
+  #   features:
+  #     - ai
+  #     - ocr
+  #     - vision
+  #     - grow
+  #     - site
+  #     - fude
+  #     - qr
+  #     - consumer
+  #     - skillfile
