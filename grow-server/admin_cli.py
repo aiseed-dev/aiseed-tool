@@ -3,6 +3,7 @@
 Usage:
     python admin_cli.py list                    # 全ユーザー一覧
     python admin_cli.py pending                 # 承認待ち一覧
+    python admin_cli.py register <user> <email> <pass> [role]  # ローカル登録（role省略=pending）
     python admin_cli.py approve <username>      # ユーザーを承認（→ user）
     python admin_cli.py set-super <username>    # super_user に昇格
     python admin_cli.py set-admin <username>    # admin に昇格
@@ -91,6 +92,42 @@ async def activate_user(username: str):
         print(f"有効化しました: {username}")
 
 
+async def register_user(username: str, email: str, password: str, role: str = ROLE_PENDING):
+    """ローカル登録 — ユーザーとロールを指定して登録。ロール省略時は pending。"""
+    if role not in VALID_ROLES:
+        print(f"エラー: 無効なロール '{role}'（{', '.join(VALID_ROLES)}）")
+        return
+    if len(username) < 3:
+        print("エラー: ユーザー名は3文字以上にしてください")
+        return
+    if len(password) < 8:
+        print("エラー: パスワードは8文字以上にしてください")
+        return
+
+    await init_db()
+    async with async_session() as db:
+        result = await db.execute(
+            select(User).where((User.username == username) | (User.email == email))
+        )
+        existing = result.scalar_one_or_none()
+        if existing:
+            print("エラー: ユーザー名またはメールが既に存在します")
+            return
+
+        user = User(
+            id=str(uuid4()),
+            username=username,
+            email=email,
+            hashed_password=hash_password(password),
+            display_name=username,
+            role=role,
+            is_active=True,
+        )
+        db.add(user)
+        await db.commit()
+        print(f"ユーザーを登録しました: {username} (role={role})")
+
+
 async def create_admin(username: str, email: str, password: str):
     """初期管理者ユーザーを作成。"""
     await init_db()
@@ -165,6 +202,9 @@ def main():
         asyncio.run(list_users())
     elif cmd == "pending":
         asyncio.run(list_users(ROLE_PENDING))
+    elif cmd == "register" and len(sys.argv) >= 5:
+        role = sys.argv[5] if len(sys.argv) >= 6 else ROLE_PENDING
+        asyncio.run(register_user(sys.argv[2], sys.argv[3], sys.argv[4], role))
     elif cmd == "approve" and len(sys.argv) >= 3:
         asyncio.run(set_role(sys.argv[2], ROLE_USER))
     elif cmd == "set-super" and len(sys.argv) >= 3:

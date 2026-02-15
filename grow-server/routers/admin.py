@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from models.user import User, ROLE_PENDING, ROLE_USER, ROLE_SUPER_USER, ROLE_ADMIN
-from services.auth_service import get_admin_user
+from services.auth_service import get_admin_user, hash_password
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -26,6 +26,14 @@ class UserSummary(BaseModel):
     created_at: str
 
     model_config = {"from_attributes": True}
+
+
+class AdminRegisterRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+    display_name: str = ""
+    role: str = ROLE_PENDING  # 指定しなければ pending
 
 
 class UpdateRoleRequest(BaseModel):
@@ -174,6 +182,62 @@ async def activate_user(
     """ユーザーを有効化。"""
     user = await _get_user_or_404(db, user_id)
     user.is_active = True
+    await db.commit()
+    await db.refresh(user)
+    return _user_to_summary(user)
+
+
+@router.post("/register", response_model=UserSummary)
+async def admin_register(
+    req: AdminRegisterRequest,
+    _admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """ローカル登録 — ユーザーとロールを指定して登録。ロール省略時は pending。"""
+    valid_roles = (ROLE_PENDING, ROLE_USER, ROLE_SUPER_USER, ROLE_ADMIN)
+    if req.role not in valid_roles:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"無効なロール: {req.role}（{', '.join(valid_roles)}）",
+        )
+    if len(req.username) < 3:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="ユーザー名は3文字以上にしてください",
+        )
+    if len(req.password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="パスワードは8文字以上にしてください",
+        )
+
+    # 重複チェック
+    result = await db.execute(
+        select(User).where((User.username == req.username) | (User.email == req.email))
+    )
+    existing = result.scalar_one_or_none()
+    if existing:
+        if existing.username == req.username:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="このユーザー名は既に使われています",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="このメールアドレスは既に使われています",
+        )
+
+    from uuid import uuid4
+    user = User(
+        id=str(uuid4()),
+        username=req.username,
+        email=req.email,
+        hashed_password=hash_password(req.password),
+        display_name=req.display_name or req.username,
+        role=req.role,
+        is_active=True,
+    )
+    db.add(user)
     await db.commit()
     await db.refresh(user)
     return _user_to_summary(user)
